@@ -1,0 +1,97 @@
+{
+  "version": 3,
+  "middleware": {},
+  "sortedMiddleware": [],
+  "functions": {
+    "/opengraph-image/route": {
+      "files": [
+        "server/middleware-build-manifest.js",
+        "server/interception-route-rewrite-manifest.js",
+        "required-server-files.js",
+        "server/server-reference-manifest.js",
+        "server/app/opengraph-image/route_client-reference-manifest.js",
+        "server/edge/chunks/8a382_mail_website__next-internal_server_app_opengraph-image_route_actions_6eacfbd6.js",
+        "server/edge/chunks/[root-of-the-server]__e1360fa1._.js",
+        "server/edge/chunks/[root-of-the-server]__4a8b8678._.js",
+        "server/edge/chunks/44bde_next_dist_compiled_@vercel_og_842c296c._.js",
+        "server/edge/chunks/99b30_next_dist_esm_build_templates_edge-wrapper_43836ec8.js"
+      ],
+      "name": "app/opengraph-image/route",
+      "page": "/opengraph-image/route",
+      "matchers": [
+        {
+          "regexp": "^/opengraph-image(?:/)?$",
+          "originalSource": "/opengraph-image"
+        }
+      ],
+      "wasm": [
+        {
+          "name": "wasm_fdb56e4cc5936d29",
+          "filePath": "server/edge/chunks/44bde_next_dist_compiled_@vercel_og_resvg_23ace1ce.wasm"
+        },
+        {
+          "name": "wasm_1ccdc983b1fd9f87",
+          "filePath": "server/edge/chunks/44bde_next_dist_compiled_@vercel_og_yoga_23ace1ce.wasm"
+        }
+      ],
+      "assets": [
+        {
+          "name": "server/edge/assets/noto-sans-v27-latin-regular.bdfa676c.ttf",
+          "filePath": "server/edge/assets/noto-sans-v27-latin-regular.bdfa676c.ttf"
+        }
+      ],
+      "env": {
+        "__NEXT_BUILD_ID": "VqRicqKUC0JLp8kiq3DMT",
+        "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "GOHBS1edSlE+SBbKoyuex4tVk9NRcH2rvHiGZTZoioc=",
+        "__NEXT_PREVIEW_MODE_ID": "5ee660025265bf51551e439afb5b2a7d",
+        "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "aa83022f2c0dfc0f269c215040956b307699f7cabe076b42f510e0ecf70cf3fc",
+        "__NEXT_PREVIEW_MODE_SIGNING_KEY": "a8b3f6196567931950a4d942bd4772fec4250cf19d90d4bc521778d8253d1984"
+      }
+    },
+    "/twitter-image/route": {
+      "files": [
+        "server/middleware-build-manifest.js",
+        "server/interception-route-rewrite-manifest.js",
+        "required-server-files.js",
+        "server/server-reference-manifest.js",
+        "server/app/twitter-image/route_client-reference-manifest.js",
+        "server/edge/chunks/8a382_mail_website__next-internal_server_app_twitter-image_route_actions_ba7e6a03.js",
+        "server/edge/chunks/[root-of-the-server]__6fc2b62e._.js",
+        "server/edge/chunks/[root-of-the-server]__4a8b8678._.js",
+        "server/edge/chunks/44bde_next_dist_compiled_@vercel_og_842c296c._.js",
+        "server/edge/chunks/99b30_next_dist_esm_build_templates_edge-wrapper_45a037ae.js"
+      ],
+      "name": "app/twitter-image/route",
+      "page": "/twitter-image/route",
+      "matchers": [
+        {
+          "regexp": "^/twitter-image(?:/)?$",
+          "originalSource": "/twitter-image"
+        }
+      ],
+      "wasm": [
+        {
+          "name": "wasm_fdb56e4cc5936d29",
+          "filePath": "server/edge/chunks/44bde_next_dist_compiled_@vercel_og_resvg_23ace1ce.wasm"
+        },
+        {
+          "name": "wasm_1ccdc983b1fd9f87",
+          "filePath": "server/edge/chunks/44bde_next_dist_compiled_@vercel_og_yoga_23ace1ce.wasm"
+        }
+      ],
+      "assets": [
+        {
+          "name": "server/edge/assets/noto-sans-v27-latin-regular.bdfa676c.ttf",
+          "filePath": "server/edge/assets/noto-sans-v27-latin-regular.bdfa676c.ttf"
+        }
+      ],
+      "env": {
+        "__NEXT_BUILD_ID": "VqRicqKUC0JLp8kiq3DMT",
+        "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "GOHBS1edSlE+SBbKoyuex4tVk9NRcH2rvHiGZTZoioc=",
+        "__NEXT_PREVIEW_MODE_ID": "5ee660025265bf51551e439afb5b2a7d",
+        "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "aa83022f2c0dfc0f269c215040956b307699f7cabe076b42f510e0ecf70cf3fc",
+        "__NEXT_PREVIEW_MODE_SIGNING_KEY": "a8b3f6196567931950a4d942bd4772fec4250cf19d90d4bc521778d8253d1984"
+      }
+    }
+  }
+}

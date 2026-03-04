@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Agent Mail Dashboard Placeholder</title>
+  <desc id="desc">Placeholder poster for the Agent Mail dashboard recording hero video.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#020a14" />
+      <stop offset="50%" stop-color="#0a1628" />
+      <stop offset="100%" stop-color="#0f2744" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#bg)" />
+  <rect x="80" y="80" width="1440" height="740" rx="28" fill="#071220" stroke="#23456d" stroke-width="2" />
+  <rect x="110" y="120" width="1380" height="54" rx="12" fill="#0d1c2f" />
+  <circle cx="145" cy="147" r="8" fill="#3b82f6" />
+  <circle cx="172" cy="147" r="8" fill="#06b6d4" />
+  <circle cx="199" cy="147" r="8" fill="#22c55e" />
+  <text x="230" y="154" fill="#95b9e3" font-family="monospace" font-size="20">MCP Agent Mail Dashboard</text>
+
+  <rect x="110" y="205" width="360" height="580" rx="16" fill="#0b192b" />
+  <rect x="500" y="205" width="580" height="580" rx="16" fill="#0b192b" />
+  <rect x="1110" y="205" width="380" height="580" rx="16" fill="#0b192b" />
+
+  <rect x="130" y="235" width="320" height="20" rx="8" fill="#15314f" />
+  <rect x="130" y="273" width="290" height="16" rx="8" fill="#112841" />
+  <rect x="130" y="305" width="300" height="16" rx="8" fill="#112841" />
+  <rect x="130" y="337" width="250" height="16" rx="8" fill="#112841" />
+
+  <rect x="520" y="235" width="540" height="20" rx="8" fill="#15314f" />
+  <rect x="520" y="275" width="510" height="16" rx="8" fill="#112841" />
+  <rect x="520" y="307" width="490" height="16" rx="8" fill="#112841" />
+  <rect x="520" y="339" width="460" height="16" rx="8" fill="#112841" />
+
+  <rect x="1130" y="235" width="340" height="20" rx="8" fill="#15314f" />
+  <rect x="1130" y="273" width="300" height="16" rx="8" fill="#112841" />
+  <rect x="1130" y="305" width="330" height="16" rx="8" fill="#112841" />
+
+  <rect x="520" y="642" width="250" height="54" rx="14" fill="url(#accent)" />
+  <text x="645" y="676" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="700" font-size="20">Drop Recording Here</text>
+
+  <text x="800" y="830" text-anchor="middle" fill="#7ca7da" font-family="monospace" font-size="18">
+    Replace with: public/media/agent-mail-dashboard-placeholder.mp4
+  </text>
+</svg>

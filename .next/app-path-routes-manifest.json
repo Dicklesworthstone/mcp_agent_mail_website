@@ -1,0 +1,15 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/architecture/page": "/architecture",
+  "/getting-started/page": "/getting-started",
+  "/glossary/page": "/glossary",
+  "/icon/route": "/icon",
+  "/opengraph-image/route": "/opengraph-image",
+  "/page": "/",
+  "/robots.txt/route": "/robots.txt",
+  "/showcase/page": "/showcase",
+  "/sitemap.xml/route": "/sitemap.xml",
+  "/spec-explorer/page": "/spec-explorer",
+  "/twitter-image/route": "/twitter-image"
+}

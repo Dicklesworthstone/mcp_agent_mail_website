@@ -1,0 +1,3 @@
+module.exports=[82377,a=>{"use strict";a.i(91340),a.i(54964);var b=a.i(55887);let c={alt:"Asupersync — The Cancel-Correct Async Runtime for Rust",contentType:"image/png",runtime:"edge",size:{width:1200,height:630}};async function d(a){let{__metadata_id__:d,...e}=await a.params,f=(0,b.fillMetadataSegment)("/",e,"opengraph-image");return[function(a,b){let c={alt:a.alt,type:a.contentType||"image/png",url:f+"?6211db02fc680de8"},{size:d}=a;return d&&(c.width=d.width,c.height=d.height),c}(c,0)]}a.s(["default",0,d],82377)}];
+
+//# sourceMappingURL=mcp_agent_mail_website_app_opengraph-image--metadata_89ebcead.js.map

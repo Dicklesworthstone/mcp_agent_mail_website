@@ -1,0 +1,15 @@
+{
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/architecture/page": "app/architecture/page.js",
+  "/getting-started/page": "app/getting-started/page.js",
+  "/glossary/page": "app/glossary/page.js",
+  "/icon/route": "app/icon/route.js",
+  "/opengraph-image/route": "app-edge-has-no-entrypoint",
+  "/page": "app/page.js",
+  "/robots.txt/route": "app/robots.txt/route.js",
+  "/showcase/page": "app/showcase/page.js",
+  "/sitemap.xml/route": "app/sitemap.xml/route.js",
+  "/spec-explorer/page": "app/spec-explorer/page.js",
+  "/twitter-image/route": "app-edge-has-no-entrypoint"
+}

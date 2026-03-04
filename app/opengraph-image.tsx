@@ -1,0 +1,151 @@
+import { ImageResponse } from "next/og";
+
+export const runtime = "edge";
+export const alt = "Asupersync — The Cancel-Correct Async Runtime for Rust";
+export const size = { width: 1200, height: 630 };
+export const contentType = "image/png";
+
+export default function Image() {
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "linear-gradient(145deg, #020a14 0%, #0a1628 50%, #020a14 100%)",
+          fontFamily: "sans-serif",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        {/* Top-left glow */}
+        <div
+          style={{
+            position: "absolute",
+            top: "-120px",
+            left: "-120px",
+            width: "400px",
+            height: "400px",
+            borderRadius: "9999px",
+            background: "radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%)",
+            display: "flex",
+          }}
+        />
+
+        {/* Bottom-right glow */}
+        <div
+          style={{
+            position: "absolute",
+            bottom: "-100px",
+            right: "-100px",
+            width: "350px",
+            height: "350px",
+            borderRadius: "9999px",
+            background: "radial-gradient(circle, rgba(96,165,250,0.1) 0%, transparent 70%)",
+            display: "flex",
+          }}
+        />
+
+        {/* Orange accent dot */}
+        <div
+          style={{
+            position: "absolute",
+            top: "60px",
+            right: "80px",
+            width: "12px",
+            height: "12px",
+            borderRadius: "9999px",
+            backgroundColor: "#F97316",
+            display: "flex",
+          }}
+        />
+
+        {/* Logo mark */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "72px",
+            height: "72px",
+            borderRadius: "16px",
+            background: "linear-gradient(135deg, #3B82F6, #2563EB)",
+            marginBottom: "32px",
+          }}
+        >
+          <span
+            style={{
+              color: "white",
+              fontSize: "44px",
+              fontWeight: 900,
+            }}
+          >
+            A
+          </span>
+        </div>
+
+        {/* Title */}
+        <div
+          style={{
+            display: "flex",
+            fontSize: "72px",
+            fontWeight: 800,
+            color: "#F1F5F9",
+            letterSpacing: "-2px",
+            lineHeight: 1.1,
+          }}
+        >
+          Asupersync
+        </div>
+
+        {/* Decorative blue line */}
+        <div
+          style={{
+            display: "flex",
+            width: "120px",
+            height: "4px",
+            background: "linear-gradient(90deg, #3B82F6, #60A5FA)",
+            borderRadius: "2px",
+            marginTop: "28px",
+            marginBottom: "28px",
+          }}
+        />
+
+        {/* Subtitle */}
+        <div
+          style={{
+            display: "flex",
+            fontSize: "28px",
+            fontWeight: 500,
+            color: "#93C5FD",
+            letterSpacing: "-0.5px",
+          }}
+        >
+          The Cancel-Correct Async Runtime for Rust
+        </div>
+
+        {/* Bottom URL */}
+        <div
+          style={{
+            position: "absolute",
+            bottom: "40px",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            fontSize: "18px",
+            fontWeight: 500,
+            color: "#64748B",
+          }}
+        >
+          <span style={{ color: "#F97316" }}>{">"}</span>
+          <span>asupersync.com</span>
+        </div>
+      </div>
+    ),
+    { ...size }
+  );
+}
