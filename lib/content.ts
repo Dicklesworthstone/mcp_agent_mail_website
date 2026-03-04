@@ -1103,6 +1103,174 @@ export const conversionMessages: ConversionMessage[] = [
   },
 ];
 
+// Proof-of-utility: before/after workflow deltas, reliability evidence, use cases
+export interface WorkflowDelta {
+  id: string;
+  scenario: string;
+  before: string;
+  after: string;
+  impact: string;
+}
+
+export const workflowDeltas: WorkflowDelta[] = [
+  {
+    id: "file-collision",
+    scenario: "Two agents edit the same file",
+    before: "Silent overwrite. Hours of work lost. Discovered only at commit time, if at all.",
+    after: "Advisory file reservations surface the conflict before either agent starts. Agents negotiate via threaded messages or pick different files.",
+    impact: "Zero lost work from file collisions",
+  },
+  {
+    id: "worktree-debt",
+    scenario: "Isolating agents with Git worktrees",
+    before: "Each agent works in a separate worktree. Divergence accumulates silently. Merge conflicts pile up. Development velocity drops as you pay back the debt later.",
+    after: "Agents work in one shared space with advisory reservations. Conflicts surface immediately and are resolved in real time through messaging. No merge debt.",
+    impact: "Eliminates worktree merge debt entirely",
+  },
+  {
+    id: "agent-crash",
+    scenario: "Agent crashes or context resets mid-task",
+    before: "Stale locks block other agents indefinitely. Manual cleanup required. No record of what the crashed agent was working on.",
+    after: "TTL-based reservations expire automatically. Other agents detect stale reservations and reclaim them. Full audit trail in Git shows exactly what happened.",
+    impact: "Self-healing, no manual intervention needed",
+  },
+  {
+    id: "context-waste",
+    scenario: "Agents broadcasting updates to all peers",
+    before: "Every agent receives every message. Context windows fill with irrelevant information. Token costs spike. Signal-to-noise ratio collapses.",
+    after: "Targeted messaging with subjects, threads, and recipients. Agents only receive messages addressed to them. Acknowledgment tracking ensures nothing is missed.",
+    impact: "Up to 10x reduction in coordination token waste",
+  },
+  {
+    id: "scale-coordination",
+    scenario: "Scaling from 3 to 30+ concurrent agents",
+    before: "Informal coordination breaks down completely. File conflicts multiply quadratically. No one knows who is doing what.",
+    after: "Agent roster shows all active agents and their tasks. File reservations prevent conflicts at any scale. Graph-aware task prioritization (bv) ensures each agent works on the highest-impact task.",
+    impact: "Tested with 40-50 concurrent agents across providers",
+  },
+];
+
+export interface ReliabilityEvidence {
+  id: string;
+  claim: string;
+  evidence: string;
+  metric: string;
+}
+
+export const reliabilityEvidence: ReliabilityEvidence[] = [
+  {
+    id: "stress-gauntlet",
+    claim: "Production-ready at scale",
+    evidence: "10-scenario stress gauntlet covering 30-agent message pipelines, pool exhaustion, thundering herd, stale lock recovery, and sustained mixed workloads.",
+    metric: "10/10 scenarios pass with zero errors",
+  },
+  {
+    id: "throughput",
+    claim: "Low-latency coordination",
+    evidence: "HTTP stress profile sustains ~49 RPS with 1,494 operations in 30 seconds of mixed workloads including messaging, search, and reservations.",
+    metric: "~49 RPS sustained throughput",
+  },
+  {
+    id: "commit-efficiency",
+    claim: "Minimal Git overhead",
+    evidence: "Commit coalescer batches multiple storage writes into fewer Git commits, reducing write amplification.",
+    metric: "9.1x write reduction (100 writes to 11 commits)",
+  },
+  {
+    id: "cross-provider",
+    claim: "Works with any MCP-capable agent",
+    evidence: "First open-source coordination system that works across providers. Battle-tested with Claude Code, Codex CLI, and Gemini CLI running simultaneously on the same project.",
+    metric: "40-50 agents concurrently, mixed providers",
+  },
+  {
+    id: "self-healing",
+    claim: "Robust to agent failures",
+    evidence: "TTL-based reservation expiration, stale lock detection, and automatic cleanup. Designed for the reality that agents crash, context-reset, and disappear without notice.",
+    metric: "Zero manual intervention for crashed agents",
+  },
+];
+
+export interface UseCase {
+  id: string;
+  title: string;
+  description: string;
+  personaId: string;
+  outcome: string;
+}
+
+export const useCases: UseCase[] = [
+  {
+    id: "rapid-prototyping",
+    title: "Rapid Multi-Agent Prototyping",
+    description: "Launch 10+ agents on a new project with NTM. Each agent picks the highest-impact task via bv graph analysis. File reservations prevent collisions. Threaded messages coordinate API boundaries.",
+    personaId: "solo-builder",
+    outcome: "Ship a working prototype in hours, not days",
+  },
+  {
+    id: "refactoring-at-scale",
+    title: "Large-Scale Codebase Refactoring",
+    description: "Decompose a refactoring plan into beads with dependency tracking. Agents claim work, reserve affected files, and coordinate through thread IDs that map to bead IDs. The pre-commit guard prevents accidental conflicts.",
+    personaId: "team-lead",
+    outcome: "Refactor 50+ files with zero merge conflicts",
+  },
+  {
+    id: "cross-repo-migration",
+    title: "Cross-Repository API Migration",
+    description: "Link frontend and backend repos via the product bus. Agents working on the backend notify frontend agents of API changes through cross-project messages. Contact handshakes establish secure communication channels.",
+    personaId: "platform-engineer",
+    outcome: "Coordinated migrations across repository boundaries",
+  },
+  {
+    id: "continuous-development",
+    title: "24/7 Continuous Development",
+    description: "Agents work in shifts. Incoming agents use macro_prepare_thread to catch up on conversation history. Semi-persistent identities mean agents can pick up where predecessors left off without breaking coordination state.",
+    personaId: "team-lead",
+    outcome: "Continuous progress without context loss between sessions",
+  },
+  {
+    id: "audit-compliance",
+    title: "Auditable Agent Operations",
+    description: "Every message, reservation, and agent action is recorded in SQLite and archived to Git. Searchable audit trail shows exactly what each agent did, when, and why. Human Overseer provides real-time oversight.",
+    personaId: "platform-engineer",
+    outcome: "Complete audit trail for every agent decision",
+  },
+];
+
+// Key insight quotes from the creator (sourced from public tweets)
+export interface CreatorInsight {
+  id: string;
+  quote: string;
+  context: string;
+}
+
+export const creatorInsights: CreatorInsight[] = [
+  {
+    id: "worktrees-suck",
+    quote: "Worktrees suck and just kick the can down the road. Advisory file reservations and messaging ftw.",
+    context: "On running 40-50 agents simultaneously with no issues, mixing Claude Code, Codex, and Gemini CLI.",
+  },
+  {
+    id: "footguns",
+    quote: "It does exactly what they want and much more, while sidestepping all the many footguns that a naive implementation would fall prey to.",
+    context: "On why purpose-built coordination beats ad-hoc solutions.",
+  },
+  {
+    id: "semi-persistent-identity",
+    quote: "You want semi-persistent identity. An identity that can last for the duration of a discrete task, but one that can also vanish without a trace and not break things.",
+    context: "On designing identity systems robust to agent crashes and context resets.",
+  },
+  {
+    id: "graph-compass",
+    quote: "It's like a compass that each agent can use to tell them which direction will unlock the most work overall.",
+    context: "On how bv uses dependency graph analysis to prioritize agent work.",
+  },
+  {
+    id: "first-mover",
+    quote: "You're going to be hearing about a lot of agent communication systems soon because it's such an obviously good idea, but mine was the first open-source system that works across providers, and still has the best design.",
+    context: "On Agent Mail's position as the first cross-provider coordination system.",
+  },
+];
+
 // Flywheel
 export interface FlywheelTool {
   id: string;
