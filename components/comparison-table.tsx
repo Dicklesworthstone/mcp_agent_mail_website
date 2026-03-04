@@ -3,16 +3,24 @@
 import { useMemo } from "react";
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { comparisonData } from "@/lib/content";
-import type { ComparisonRow } from "@/lib/content";
+import type { AgentMailComparisonRow } from "@/lib/content";
 import { cn } from "@/lib/utils";
 import { SyncContainer } from "./sync-elements";
 import GlitchText from "./glitch-text";
 import { motion } from "framer-motion";
 
 function StatusCell({ value }: { value: string }) {
-  const isPositive = ["First-class", "3-phase", "Enforced", "Built-in", "Lab Runtime", "Compile-time", "3-lane", "Guaranteed", "8+", "12 proofs", "Reserve/Commit", "35 rules (Lean)", "Spectral (real-time)", "17 built-in", "Macaroon (8 caveats)", "E-process (anytime)", "16 op kinds (CALM)", "Lyapunov + martingale"].includes(value);
-  const isPartial = ["Work-stealing", "Separate crates", "Partial", "Loom tests", "Best-effort"].includes(value);
-  const isNegative = ["Manual", "No", "Silent drop", "Minimal"].includes(value);
+  const isPositive = [
+    "Persistent, project-scoped", "Threaded + searchable", "Advisory reservations + guard",
+    "Git + SQLite", "Product bus", "Hybrid lexical + semantic", "15-screen TUI + Web UI",
+    "34 tools + 20 resources", "Auto-detect + register", "Built-in ack protocol",
+    "Build slot management", "10/10 gauntlet (30 agents)",
+  ].includes(value);
+  const isPartial = [
+    "Isolated branches", "Git history only", "Git log", "File history",
+    "File browser", "Text search", "Append-only files",
+  ].includes(value);
+  const isNegative = ["None", "Manual", "N/A", "Race conditions"].includes(value);
 
   return (
     <td
@@ -32,20 +40,20 @@ function StatusCell({ value }: { value: string }) {
 }
 
 export default function ComparisonTable() {
-  const columns = useMemo<ColumnDef<ComparisonRow>[]>(
+  const columns = useMemo<ColumnDef<AgentMailComparisonRow>[]>(
     () => [
       { accessorKey: "feature", header: "Feature" },
       {
-        accessorKey: "asupersync",
+        accessorKey: "agentMail",
         header: () => (
           <GlitchText trigger="hover" intensity="low">
-            Asupersync
+            Agent Mail
           </GlitchText>
         ),
       },
-      { accessorKey: "tokio", header: "Tokio" },
-      { accessorKey: "asyncStd", header: "async-std" },
-      { accessorKey: "smol", header: "smol" },
+      { accessorKey: "gitWorktrees", header: "Git Worktrees" },
+      { accessorKey: "sharedDocs", header: "Shared Docs" },
+      { accessorKey: "noCoordination", header: "No Coordination" },
     ],
     []
   );
@@ -61,7 +69,7 @@ export default function ComparisonTable() {
   return (
     <SyncContainer withPulse={true} className="overflow-hidden border-blue-500/10">
       <div className="overflow-x-auto">
-        <table className="w-full text-left" aria-label="Async runtime feature comparison">
+        <table className="w-full text-left" aria-label="Agent coordination approach comparison">
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id} className="border-b border-white/5 bg-white/[0.02]">
@@ -70,7 +78,7 @@ export default function ComparisonTable() {
                     key={header.id}
                     className={cn(
                       "px-4 py-4 text-xs font-bold uppercase tracking-widest",
-                      header.column.id === "asupersync" ? "text-blue-400" : "text-slate-500"
+                      header.column.id === "agentMail" ? "text-blue-400" : "text-slate-500"
                     )}
                   >
                     {header.isPlaceholder

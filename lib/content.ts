@@ -3,7 +3,7 @@ export const siteConfig = {
   name: "MCP Agent Mail",
   title: "MCP Agent Mail — Coordination Infrastructure For AI Coding Agents",
   description: "Git-auditable, SQLite-backed coordination fabric for multi-agent coding: inboxes, reservations, threads, search, and operator tooling.",
-  url: "https://mcp-agent-mail.com",
+  url: "https://mcpagentmail.com",
   github: "https://github.com/Dicklesworthstone/mcp_agent_mail_rust",
   social: {
     github: "https://github.com/Dicklesworthstone/mcp_agent_mail_rust",
@@ -37,10 +37,10 @@ export interface Feature {
 
 export interface ComparisonRow {
   feature: string;
-  asupersync: string;
-  tokio: string;
-  asyncStd: string;
-  smol: string;
+  agentMail: string;
+  gitWorktrees: string;
+  sharedDocs: string;
+  noCoordination: string;
 }
 
 export interface ChangelogEntry {
@@ -179,316 +179,287 @@ export const heroStats: Stat[] = [
 // Features
 export const features: Feature[] = [
   {
-    title: "Structured Concurrency",
-    description: "Every task lives inside a Region. When a Region closes, all tasks within it are cancelled, awaited, and cleaned up — automatically. No orphaned futures, no leaked goroutines.",
+    title: "Agent Identity & Discovery",
+    description: "Agents get memorable persistent identities (GreenCastle, BlueLake) with project-scoped registration, program/model metadata, and automatic roster management. No more anonymous processes colliding in the dark.",
     icon: "blocks",
-    category: "Concurrency Model",
+    category: "Identity",
   },
   {
-    title: "Cancel-Correct Protocol",
-    description: "Three-phase cancellation: Request → Drain → Finalize. Tasks get budgeted time to clean up connections, flush buffers, and release resources. Never a silent drop again.",
+    title: "Threaded Messaging",
+    description: "Asynchronous, threaded conversations with subjects, recipients, CC/BCC, importance levels, and acknowledgment requirements. Messages stored in Git-backed archive, never consuming agent context windows.",
+    icon: "activity",
+    category: "Messaging",
+  },
+  {
+    title: "Advisory File Reservations",
+    description: "Agents declare exclusive or shared leases on file globs before editing. TTL-based expiration, pattern matching, and optional pre-commit guard enforcement prevent conflicts while remaining bypassable.",
     icon: "shield",
-    category: "Core Runtime Protocol",
+    category: "Coordination",
   },
   {
-    title: "Linear Obligations",
-    description: "Permits must be explicitly consumed — sent, completed, or aborted. The type system prevents you from forgetting to handle them. Compile-time resource leak prevention.",
-    icon: "lock",
-    category: "Type System Guarantee",
-  },
-  {
-    title: "Capability Security",
-    description: "Tasks receive a Cx (capability context) that controls what they can do. Spawn, I/O, timers — all gated by capabilities. Principle of least authority, enforced by the runtime.",
+    title: "34 MCP Tools in 9 Clusters",
+    description: "Infrastructure, Identity, Messaging, Contacts, File Reservations, Search, Macros, Product Bus, and Build Slots. Every coordination primitive exposed via the Model Context Protocol standard.",
     icon: "cpu",
-    category: "Security Model",
+    category: "MCP Surface",
   },
   {
-    title: "Lab Runtime",
-    description: "Deterministic testing with seed-controlled execution order. Replay any interleaving. Integrated DPOR (Dynamic Partial Order Reduction) finds concurrency bugs systematically.",
+    title: "Hybrid Search (V3)",
+    description: "Two-tier fusion combining lexical and semantic search with reranking. Field-based filters (subject:, body:, from:), cross-project search via product bus, and relevance scoring built on frankensearch.",
     icon: "sparkles",
-    category: "Testing Infrastructure",
+    category: "Search",
   },
   {
-    title: "Three-Lane Scheduler",
-    description: "Cancel lane (highest priority), Timed lane (deadlines), Ready lane (normal work). Cancellation always wins the race, ensuring prompt cleanup even under load.",
+    title: "15-Screen Operations TUI",
+    description: "Real-time dashboard, message browser, thread explorer, agent roster, unified search, reservation manager, tool metrics, system health, timeline views, contact graph, and more. Five themes including Cyberpunk Aurora.",
     icon: "activity",
-    category: "Scheduler Design",
+    category: "Operator Tooling",
   },
   {
-    title: "Built-in Ecosystem",
-    description: "Cancel-correct TCP, HTTP, channels, mutexes, and supervisors out of the box. Every protocol respects the cancel contract. No need to wrap Tokio primitives.",
+    title: "Git-Backed Audit Trail",
+    description: "Every message, reservation, and agent profile stored as files in per-project Git repositories. Human-auditable, diffable, fully recoverable. Date-partitioned messages with advisory locking for safe concurrent access.",
+    icon: "lock",
+    category: "Storage",
+  },
+  {
+    title: "Cross-Repository Coordination",
+    description: "Product bus links multiple repositories. Contact handshake protocol enables inter-project messaging. Shared thread IDs and contact policy management across your entire codebase.",
     icon: "globe",
-    category: "Protocol Ecosystem",
+    category: "Multi-Project",
   },
   {
-    title: "Two-Phase Effects",
-    description: "Reserve/commit pattern: side effects are staged before cancellation checkpoints, then committed atomically. If cancellation arrives mid-operation, only reserved (uncommitted) work is rolled back.",
+    title: "Robot Mode CLI",
+    description: "16 non-interactive subcommands optimized for agent consumption. Token-efficient output in toon, JSON, or Markdown formats. Status, inbox, timeline, search, reservations, metrics, and health at your fingertips.",
+    icon: "cpu",
+    category: "CLI",
+  },
+  {
+    title: "Pre-Commit Guard",
+    description: "Git hook (mcp-agent-mail-guard) blocks commits touching files reserved by other agents. Prevents accidental conflicts while remaining bypassable with AGENT_MAIL_BYPASS=1 for emergencies.",
     icon: "shield",
-    category: "Effect Safety",
+    category: "Coordination",
   },
   {
-    title: "Budget Algebra",
-    description: "Cancel budgets compose algebraically as a product semiring. When regions nest, their budgets merge via min(deadlines) \u00D7 min(quotas) \u00D7 max(priority). Consistent cancel timing across arbitrarily deep hierarchies.",
-    icon: "cpu",
-    category: "Formal Foundations",
+    title: "Build Slot Management",
+    description: "Acquire, renew, and release build slots to control compilation concurrency across agents. Prevents resource contention on shared build infrastructure.",
+    icon: "activity",
+    category: "Resource Management",
   },
   {
-    title: "17 Test Oracles",
-    description: "The Lab runtime ships with 17 built-in correctness monitors — from TaskLeak and ObligationLeak to CancelProtocol and DeadlineMonotone. Each oracle independently watches for a specific class of concurrency bug during deterministic testing.",
+    title: "Four Session Macros",
+    description: "macro_start_session bootstraps project + agent + inbox in one call. macro_prepare_thread joins existing conversations. macro_file_reservation_cycle manages reserve-work-release flows. macro_contact_handshake sets up cross-agent contacts.",
     icon: "sparkles",
-    category: "Testing Infrastructure",
+    category: "Developer Experience",
   },
   {
-    title: "Spectral Deadlock Detection",
-    description: "Analyzes the wait-graph\u2019s Laplacian eigenvalues in real time. When the Fiedler value drops near zero, the scheduler detects incipient deadlocks before they fully form.",
-    icon: "activity",
-    category: "Scheduler Design",
-  },
-  {
-    title: "Formal Small-Step Semantics",
-    description: "35 transition rules define every possible async state change — from SPAWN and CANCEL-PROPAGATE to CHECKPOINT-MASKED and CLOSE-RUN-FINALIZER. These rules are mechanized in Lean 4, bridging the gap between spec-doc prose and machine-checked proofs.",
-    icon: "lock",
-    category: "Formal Foundations",
-  },
-  {
-    title: "Macaroon Capability Attenuation",
-    description: "Capabilities use a decentralized Macaroon model with 8 caveat predicates: time bounds, region scope, task scope, max uses, resource glob patterns, rate limits, and custom key-value constraints. Caveats can only restrict — never widen — making delegation safe without a central authority.",
-    icon: "lock",
-    category: "Security Model",
-  },
-  {
-    title: "E-Process Invariant Monitoring",
-    description: "The Lab runtime uses E-processes (betting martingales via Ville's inequality) for anytime-valid statistical monitoring. Unlike fixed-sample tests, you can peek at any time and reject if the E-value exceeds 1/α — no p-hacking, no multiple-testing correction needed.",
-    icon: "activity",
-    category: "Testing Infrastructure",
-  },
-  {
-    title: "Saga Compensation",
-    description: "Distributed operations use a Saga pattern with 16 operation kinds split into monotone (coordination-free) and non-monotone (barrier-required) classes. CALM analysis batches consecutive monotone steps, inserting coordination barriers only before non-monotone operations like Commit or Release.",
+    title: "20+ MCP Resources",
+    description: "Fast lookup surfaces for inbox, threads, agents, reservations, metrics, and health \u2014 all accessible without tool calls. resource://inbox/{Agent}, resource://thread/{id}, and more.",
     icon: "globe",
-    category: "Effect Safety",
+    category: "MCP Surface",
   },
   {
-    title: "Lyapunov Potential Scheduling",
-    description: "A 4-component Lyapunov function — live tasks, obligation age, draining regions, and deadline pressure — provides a formal energy measure that strictly decreases over time. The scheduler uses this potential to prove that the system always makes progress toward quiescence.",
-    icon: "activity",
-    category: "Scheduler Design",
+    title: "Web UI for Human Oversight",
+    description: "Unified inbox across all projects, agent roster views, message detail with attachments, search with field filters, and an Overseer compose form for sending high-priority messages to redirect agents mid-session.",
+    icon: "blocks",
+    category: "Operator Tooling",
+  },
+  {
+    title: "Stress-Tested at Scale",
+    description: "30-agent message pipelines, 10-project concurrent ops, pool exhaustion recovery, thundering herd handling, sustained 49 RPS mixed workloads. Every scenario passes with zero errors in the stress gauntlet.",
+    icon: "lock",
+    category: "Reliability",
+  },
+  {
+    title: "12-Crate Rust Architecture",
+    description: "Modular workspace: core, db, storage, search-core, guard, share, tools, server, CLI, conformance, and WASM. Built on asupersync (structured concurrency), frankensearch, frankentui, and fastmcp_rust.",
+    icon: "cpu",
+    category: "Architecture",
   },
 ];
 
 // Comparison data
-export const comparisonData: ComparisonRow[] = [
-  { feature: "Structured Concurrency", asupersync: "First-class", tokio: "Manual", asyncStd: "Manual", smol: "Manual" },
-  { feature: "Cancel Protocol", asupersync: "3-phase", tokio: "Silent drop", asyncStd: "Silent drop", smol: "Silent drop" },
-  { feature: "Linear Obligations", asupersync: "Enforced", tokio: "No", asyncStd: "No", smol: "No" },
-  { feature: "Capability Security", asupersync: "Built-in", tokio: "No", asyncStd: "No", smol: "No" },
-  { feature: "Deterministic Testing", asupersync: "Lab Runtime", tokio: "No", asyncStd: "No", smol: "No" },
-  { feature: "Resource Leak Prevention", asupersync: "Compile-time", tokio: "Manual", asyncStd: "Manual", smol: "Manual" },
-  { feature: "Scheduler Priority", asupersync: "3-lane", tokio: "Work-stealing", asyncStd: "Work-stealing", smol: "Work-stealing" },
-  { feature: "Cancellation Priority", asupersync: "Guaranteed", tokio: "Best-effort", asyncStd: "Best-effort", smol: "Best-effort" },
-  { feature: "Built-in Protocols", asupersync: "8+", tokio: "Separate crates", asyncStd: "Partial", smol: "Minimal" },
-  { feature: "Formal Verification", asupersync: "12 proofs", tokio: "Loom tests", asyncStd: "No", smol: "No" },
-  { feature: "Two-Phase Effects", asupersync: "Reserve/Commit", tokio: "No", asyncStd: "No", smol: "No" },
-  { feature: "Formal Semantics", asupersync: "35 rules (Lean)", tokio: "No", asyncStd: "No", smol: "No" },
-  { feature: "Deadlock Detection", asupersync: "Spectral (real-time)", tokio: "No", asyncStd: "No", smol: "No" },
-  { feature: "Test Oracles", asupersync: "17 built-in", tokio: "No", asyncStd: "No", smol: "No" },
-  { feature: "Capability Attenuation", asupersync: "Macaroon (8 caveats)", tokio: "No", asyncStd: "No", smol: "No" },
-  { feature: "Statistical Monitoring", asupersync: "E-process (anytime)", tokio: "No", asyncStd: "No", smol: "No" },
-  { feature: "Saga Compensation", asupersync: "16 op kinds (CALM)", tokio: "No", asyncStd: "No", smol: "No" },
-  { feature: "Progress Proofs", asupersync: "Lyapunov + martingale", tokio: "No", asyncStd: "No", smol: "No" },
+export interface AgentMailComparisonRow {
+  feature: string;
+  agentMail: string;
+  gitWorktrees: string;
+  sharedDocs: string;
+  noCoordination: string;
+}
+
+export const comparisonData: AgentMailComparisonRow[] = [
+  { feature: "Agent Identity", agentMail: "Persistent, project-scoped", gitWorktrees: "None", sharedDocs: "Manual naming", noCoordination: "None" },
+  { feature: "Messaging", agentMail: "Threaded + searchable", gitWorktrees: "None", sharedDocs: "Append-only files", noCoordination: "None" },
+  { feature: "File Conflict Prevention", agentMail: "Advisory reservations + guard", gitWorktrees: "Isolated branches", sharedDocs: "None", noCoordination: "None" },
+  { feature: "Audit Trail", agentMail: "Git + SQLite", gitWorktrees: "Git history only", sharedDocs: "File history", noCoordination: "None" },
+  { feature: "Cross-Project Coordination", agentMail: "Product bus", gitWorktrees: "None", sharedDocs: "None", noCoordination: "None" },
+  { feature: "Search", agentMail: "Hybrid lexical + semantic", gitWorktrees: "Git log", sharedDocs: "Text search", noCoordination: "None" },
+  { feature: "Operator Visibility", agentMail: "15-screen TUI + Web UI", gitWorktrees: "Git log", sharedDocs: "File browser", noCoordination: "None" },
+  { feature: "MCP Integration", agentMail: "34 tools + 20 resources", gitWorktrees: "None", sharedDocs: "None", noCoordination: "None" },
+  { feature: "Agent Discovery", agentMail: "Auto-detect + register", gitWorktrees: "Manual", sharedDocs: "Manual", noCoordination: "Manual" },
+  { feature: "Acknowledgments", agentMail: "Built-in ack protocol", gitWorktrees: "None", sharedDocs: "None", noCoordination: "None" },
+  { feature: "Build Concurrency", agentMail: "Build slot management", gitWorktrees: "None", sharedDocs: "None", noCoordination: "Race conditions" },
+  { feature: "Stress Tested", agentMail: "10/10 gauntlet (30 agents)", gitWorktrees: "N/A", sharedDocs: "N/A", noCoordination: "N/A" },
 ];
 
-// Code example
-export const codeExample = `use asupersync::{Region, Cx, Outcome, Budget};
-use std::time::Duration;
+// Code example: Agent Mail session bootstrap
+export const codeExample = `# Start the MCP Agent Mail server with TUI
+am
 
-#[asupersync::main]
-async fn main(cx: &Cx) -> Outcome<()> {
-    // Open a region — all tasks scoped here
-    Region::open(cx, "server", async |cx| {
-        // Spawn a listener with cancel capability
-        let permit = cx.spawn("listener", async |cx| {
-            let listener = cx.tcp_bind("0.0.0.0:8080").await?;
-            loop {
-                let (stream, _) = listener.accept(cx).await?;
-                cx.spawn("conn", handle_connection(stream));
-            }
-        });
+# Bootstrap a session in one call (project + agent + inbox)
+macro_start_session(
+  human_key="/abs/path/to/repo",
+  program="claude-code",
+  model="opus-4.6",
+  task_description="Implementing auth module"
+)
+# Returns: { project, agent, file_reservations, inbox }
 
-        // Wait for shutdown signal
-        cx.shutdown_signal().await;
+# Reserve files before editing
+file_reservation_paths(
+  project_key="/abs/path/to/repo",
+  agent_name="GreenCastle",
+  paths=["src/auth/**/*.ts", "src/middleware/auth.ts"],
+  ttl_seconds=3600,
+  exclusive=true,
+  reason="bd-123"
+)
 
-        // Cancel with budget — tasks get 5s to drain
-        permit.cancel(Budget::timeout(Duration::from_secs(5)));
-    }).await
-}`;
+# Coordinate through threaded messages
+send_message(
+  project_key="/abs/path/to/repo",
+  sender_name="GreenCastle",
+  to=["BlueLake"],
+  subject="[bd-123] Starting auth refactor",
+  body_md="Reserved src/auth/**. Taking login + token rotation.",
+  thread_id="bd-123",
+  ack_required=true
+)`;
 
-// Second code example: Two-Phase Effects
-export const codeExampleTwoPhase = `use asupersync::{Region, Cx, Outcome, Effect};
+// Second code example: Robot Mode CLI
+export const codeExampleRobot = `# Check system status (agent-optimized output)
+am robot status --format toon
 
-async fn transfer_funds(cx: &Cx, from: Account, to: Account, amount: u64) -> Outcome<()> {
-    // Phase 1: Reserve — stage the side effects
-    let debit = cx.reserve(Effect::debit(&from, amount)).await?;
-    let credit = cx.reserve(Effect::credit(&to, amount)).await?;
+# Read inbox with priority ordering
+am robot inbox --format json --agent GreenCastle
 
-    // Cancellation checkpoint — if cancelled here,
-    // reservations are automatically rolled back. No money lost.
-    cx.cancel_checkpoint().await?;
+# Search across all messages
+am robot search --format json "auth refactor"
 
-    // Phase 2: Commit — atomically apply both effects
-    debit.commit().await?;
-    credit.commit().await?;
-    Outcome::ok(())
-}`;
+# View full thread conversation
+am robot thread --format md bd-123
 
-// Third code example: Saga Compensation
-export const codeExampleSaga = `use asupersync::{Cx, Outcome, Saga};
+# Check file reservations and TTL warnings
+am robot reservations --format json
 
-async fn provision_user(cx: &Cx, email: String) -> Outcome<()> {
-    let saga = Saga::begin(cx).await;
+# System health diagnostics
+am robot health --format json`;
 
-    // Step 1: Create account (monotone — no barrier needed)
-    let account = saga.step(
-        || db::create_account(&email),     // forward
-        |a| db::delete_account(a.id),      // compensate
-    ).await?;
+// Third code example: Cross-project coordination
+export const codeExampleCrossProject = `# Link two projects via product bus
+ensure_product(
+  product_key="my-platform",
+  project_keys=["/path/to/frontend", "/path/to/backend"]
+)
 
-    // Step 2: Send welcome email (monotone — batched with step 1)
-    saga.step(
-        || mailer::send_welcome(&email),   // forward
-        |_| mailer::send_retraction(&email), // compensate
-    ).await?;
+# Set up cross-project contacts
+macro_contact_handshake(
+  from_project="/path/to/frontend",
+  from_agent="GreenCastle",
+  to_project="/path/to/backend",
+  to_agent="BlueLake"
+)
 
-    // Step 3: Charge card (non-monotone — CALM inserts barrier here)
-    saga.step(
-        || billing::charge(account.id, 9_99),  // forward
-        |_| billing::refund(account.id, 9_99), // compensate
-    ).await?;
-
-    // If cancelled, steps unwind in LIFO order:
-    // refund → retract email → delete account
-    saga.commit().await
-}`;
+# Send cross-project message
+send_message(
+  project_key="/path/to/frontend",
+  sender_name="GreenCastle",
+  to=["BlueLake@backend"],
+  subject="API contract change",
+  body_md="Updated /api/auth/login response shape. See PR #42.",
+  thread_id="API-MIGRATION"
+)`;
 
 // Changelog
 export const changelog: ChangelogEntry[] = [
   {
     period: "Phase 1",
-    title: "Core Runtime & Region Model",
+    title: "Python Foundation (1,700+ stars)",
     items: [
-      "Designed the Region tree model with parent-child lifetime scoping",
-      "Implemented the three-phase cancel protocol (Request → Drain → Finalize)",
-      "Built the Cx capability context with spawn/IO/timer gates",
-      "Formal proofs for cancel-safety and region closure guarantees",
+      "Built original MCP Agent Mail in Python with SQLite storage",
+      "Designed agent identity, messaging, and file reservation primitives",
+      "Achieved 1,700+ GitHub stars and broad community adoption",
+      "Identified scalability bottlenecks: Git lock contention, SQLite pool exhaustion",
     ],
   },
   {
     period: "Phase 2",
-    title: "Linear Obligations & Permits",
+    title: "Rust Ground-Up Rewrite",
     items: [
-      "Designed the Permit/Lease linear type system",
-      "Implemented compile-time must-use enforcement",
-      "Built the three consumption paths: Send, Complete, Abort",
-      "Added Spork (spawn + fork) for structured task hierarchies",
+      "12-crate modular workspace architecture with zero unsafe code",
+      "Built on asupersync for structured async concurrency",
+      "SQLite WAL mode with connection pooling and PRAGMA tuning",
+      "Git-backed archive with commit coalescing (9x reduction)",
     ],
   },
   {
     period: "Phase 3",
-    title: "Three-Lane Scheduler",
+    title: "MCP Surface & Search V3",
     items: [
-      "Implemented Cancel/Timed/Ready lane architecture",
-      "Built priority inversion prevention for cancel propagation",
-      "Designed quiescence detection for region closure",
-      "Benchmarked against Tokio's work-stealing scheduler",
+      "Implemented 34 MCP tools across 9 clusters via fastmcp_rust",
+      "Added 20+ MCP resources for fast agent-discoverable lookups",
+      "Built hybrid search with two-tier fusion and reranking on frankensearch",
+      "Cross-project coordination via product bus and contact handshakes",
     ],
   },
   {
     period: "Phase 4",
-    title: "Lab Runtime & DPOR",
+    title: "Operations Console & CLI",
     items: [
-      "Built deterministic executor with seed-controlled ordering",
-      "Implemented Dynamic Partial Order Reduction for systematic testing",
-      "Added replay capability for reproducing concurrency bugs",
-      "Integrated with cargo test for seamless developer experience",
+      "15-screen TUI built on frankentui with 5 themes",
+      "Robot mode: 16 non-interactive subcommands for agent consumption",
+      "Web UI for human oversight with Overseer compose form",
+      "Pre-commit guard integration for reservation enforcement",
     ],
   },
   {
     period: "Phase 5",
-    title: "Built-in Protocols & Ecosystem",
+    title: "Stress Testing & Production Hardening",
     items: [
-      "Implemented cancel-correct TCP, HTTP/1.1, and WebSocket protocols",
-      "Built cancel-aware channels, mutexes, and semaphores",
-      "Added supervisor trees with restart policies",
-      "Published to crates.io with comprehensive documentation",
+      "10-scenario stress gauntlet: 30-agent pipelines, pool exhaustion, thundering herd",
+      "Sustained ~49 RPS with 1,494 ops in 30s mixed workloads",
+      "Commit coalescer achieving 9.1x write reduction",
+      "Cross-platform installers for Linux, macOS, and Windows",
     ],
   },
 ];
 
 // Glossary terms (alphabetically ordered)
 export const glossaryTerms: GlossaryTerm[] = [
-  { term: "Budget", short: "Countdown timer for task cleanups", long: "When cancellation strikes, tasks aren't killed instantly—they're given a 'Budget' (a specific amount of time, like 5 seconds) to clean up their mess during the Drain phase. If they run out of time, they are forcefully Finalized." },
-  { term: "Budget Algebra", short: "Product semiring for composing cancel budgets", long: "Cancel budgets compose algebraically as a product semiring. When regions nest, their budgets merge element-wise: min(deadlines), min(quotas), max(priority). This means the tightest deadline and smallest quota always win, while the highest priority propagates upward — guaranteeing consistent cancel timing across arbitrarily deep region hierarchies." },
-  { term: "CALM Analysis", short: "Identifies which operations need coordination", long: "Consistency As Logical Monotonicity — a principle that determines which operations can run coordination-free (monotone operations like Reserve and Send) and which require barriers (non-monotone operations like Commit and Release). Asupersync's Saga engine uses CALM to automatically batch consecutive monotone steps, inserting coordination barriers only where the math demands it." },
-  { term: "CALM Theorem", short: "Consistency As Logical Monotonicity", long: "A formal theorem from distributed systems theory: a program can be made eventually consistent without coordination if and only if it is monotone (i.e., it never retracts information). Asupersync applies this to classify operations: monotone operations (Reserve, Send, Acquire) can execute lock-free, while non-monotone operations (Commit, Release, RegionClose) require synchronization barriers." },
-  { term: "Cancel Contract", short: "Protocol compliance guarantee", long: "A strict promise that a given protocol (like TCP, HTTP, or channels) correctly implements the three-phase cancel protocol. All built-in Asupersync protocols satisfy this contract out of the box." },
-  { term: "Cancel Fuel", short: "Monotonically decreasing termination counter", long: "A counter that strictly decreases with each step of cancel propagation, serving as a termination proof. Like a rocket with a finite fuel tank — the cancel signal can only travel so far before the fuel runs out, mathematically guaranteeing that cancellation always finishes." },
-  { term: "Cancel-Correct", short: "Guaranteed safe shutdown", long: "In standard Rust, dropping a future might instantly stop it mid-execution, leaving connections open or data half-written. 'Cancel-Correct' means the runtime enforces a graceful 3-phase shutdown: tasks are asked to stop, given time to clean up, and finally swept away safely." },
-  { term: "CancelProtocol Oracle", short: "Verifies tasks obey the 3-phase cancel contract", long: "A specialized test oracle that monitors every task during Lab testing to ensure it correctly follows the three-phase cancel protocol. If a task tries to skip the Drain phase or ignores a cancel request, the oracle catches it immediately and reports the exact violation." },
-  { term: "Capability Gate", short: "Permission check on Cx", long: "A check on the Cx that determines whether a task has permission to perform a specific operation. Gates can be spawn, io, timer, or even custom application-defined capabilities." },
-  { term: "Capability Security", short: "Need-to-know task management", long: "A 'Zero Trust' model for concurrency. Tasks receive a 'Cx' token that explicitly grants them permissions—like the ability to spawn other tasks, use the network, or access timers. If a task is hijacked or buggy, its damage is contained to its specific capabilities." },
-  { term: "Capability Tier", short: "Hierarchical permission level for tasks", long: "A five-level permission hierarchy: FiberCap (compute-only), TaskCap (can spawn children), IoCap (network/filesystem access), RemoteCap (cross-machine communication), and SupervisorCap (can manage and restart other tasks). Each tier extends the one below it, enforcing the principle of least authority." },
-  { term: "Conformal Calibration", short: "Distribution-free prediction intervals for Lab metrics", long: "A statistical technique that produces valid prediction intervals without assuming any particular data distribution. The Lab runtime uses conformal calibration to set alert thresholds on runtime metrics — if a test run's timing falls outside the conformal band, the oracle flags it as anomalous, even if the underlying distribution is completely unknown." },
-  { term: "Cx", short: "Capability context token", long: "The magic key passed to every task. It controls what operations that task may perform. Spawning, I/O, timers, and other effects are gated by capabilities on the Cx. This enforces the principle of least authority." },
-  { term: "Coordination Barrier", short: "Sync point required before non-monotone operations", long: "A synchronization point that the Saga engine inserts before non-monotone operations (like Commit or Release). Monotone operations (like Reserve and Send) can execute without barriers because they're order-independent. CALM analysis determines exactly where barriers are needed, minimizing unnecessary synchronization." },
-  { term: "DPOR", short: "Dynamic Partial Order Reduction", long: "A smart algorithm used by the Lab Runtime. Instead of testing every single possible way tasks could overlap (which would take billions of years), DPOR only tests the interleavings that actually interact with each other. It finds the needle in the concurrency haystack mathematically." },
-  { term: "Drain Phase", short: "Graceful cleanup during cancellation", long: "The second phase of the cancel protocol. After a cancel request, tasks enter Drain where they can finish in-flight work, flush buffers, close connections, and release resources within their Budget." },
-  { term: "E-Process", short: "Anytime-valid statistical monitor using betting martingales", long: "A betting martingale that lets you continuously monitor a hypothesis and reject it the instant the evidence is strong enough — without any penalty for peeking. Unlike traditional p-values (which require a fixed sample size), an E-process stays valid no matter when you check it. Asupersync's Lab runtime uses E-processes to monitor three oracle invariants (task leak, obligation leak, quiescence) with guaranteed Type-I error control via Ville's inequality." },
-  { term: "EXP3 Scheduler", short: "Adaptive scheduling via exponential weights", long: "An online learning algorithm (Exponential-weight algorithm for Exploration and Exploitation) that adapts the scheduler's behavior based on observed cancellation patterns. The scheduler maintains 5 arms [4, 8, 16, 32, 64] representing cancel-streak thresholds. If certain thresholds consistently perform better, EXP3 shifts weight toward them with exploration rate γ=0.07, converging toward the optimal strategy over time." },
-  { term: "FiberCap", short: "Minimal capability: compute-only, no I/O", long: "The lowest capability tier. A task with only FiberCap can perform pure computation — no spawning, no I/O, no timers. It's the most restricted permission level, ideal for untrusted or sandboxed computations." },
-  { term: "Fiedler Value", short: "Eigenvalue that signals deadlock risk", long: "The second-smallest eigenvalue of the wait-graph's Laplacian matrix. When it's large, tasks flow freely (no bottleneck). When it drops near zero, the graph is about to split into disconnected components — meaning a deadlock is forming. Think of it as a 'traffic congestion score' for your concurrent system." },
-  { term: "Finalize Phase", short: "Final cleanup after draining", long: "The Finalize phase runs after Drain completes (or the Budget expires). It executes registered finalizers in LIFO order — similar to defer in Go but tightly integrated with the cancel protocol." },
-  { term: "Foata Fingerprint", short: "Canonical hash of concurrent execution traces", long: "A technique for canonicalizing concurrent execution traces using Foata normal form. Two interleavings that differ only in the order of independent (non-conflicting) operations produce the same fingerprint. DPOR uses this to detect when two different schedules are actually equivalent — pruning redundant exploration without missing real bugs." },
-  { term: "Fountain Code", short: "Rateless erasure code for data transfer", long: "A class of erasure codes where the sender generates a potentially infinite stream of encoded symbols, and the receiver can reconstruct the original data from any sufficient subset. Like a magic fountain — you just need to collect enough drops, regardless of which specific drops you catch." },
-  { term: "Hedge Algorithm", short: "Online learning for cancel-streak thresholds", long: "An online learning algorithm that tunes the scheduler's cancel-streak detection thresholds. When the runtime sees repeated cancellations in a region, Hedge adjusts how aggressively the scheduler pre-empts work there, minimizing wasted computation without over-reacting to transient patterns." },
-  { term: "IoCap", short: "Capability for network and filesystem access", long: "A mid-tier capability that extends TaskCap with permission to perform I/O operations: reading and writing files, opening network connections, and setting timers. Required for any task that needs to interact with the outside world." },
-  { term: "Lab Runtime", short: "Deterministic testing sandbox", long: "A virtual time-machine for your code. The Lab Runtime replaces the chaotic real-world scheduler with a perfectly controlled one. By feeding it a 'Seed', developers can reproduce insanely complex concurrency bugs (race conditions) every single time. Bye-bye flaky tests." },
-  { term: "Lyapunov Potential", short: "4-component energy function proving system progress", long: "A formal 'energy measure' composed of four terms: live task count, pending obligation age, draining region count, and deadline pressure. Like a ball's potential energy decreasing as it rolls downhill, this function strictly decreases with each scheduler step — mathematically proving the runtime always makes progress toward quiescence. The scheduler can tune weights (obligation-focused vs deadline-focused) to prioritize different workload patterns." },
-  { term: "Lease", short: "Scoped resource borrow", long: "Temporary ownership of a shared resource (like a database connection). Unlike standard Rust where drops are passive, if a Lease's owning Region is cancelled, the resource is actively and safely returned to its pool via the cancel protocol." },
-  { term: "Linear Obligations", short: "Mandatory return policy for resources", long: "A strict resource management system backed by Rust's type system. Think of it as a library book you must explicitly return. If a code path forgets to consume a resource (like a Permit or Lease), the program refuses to compile, preventing resource leaks at compile-time." },
-  { term: "Luby Transform", short: "Degree distribution for fountain codes", long: "A specific probability distribution that determines how many source symbols are combined into each encoded symbol in LT codes (a type of fountain code). Named after Michael Luby, it's the mathematical trick that makes fountain codes work efficiently with near-optimal overhead." },
-  { term: "Macaroon", short: "Decentralized capability token with attenuating caveats", long: "A bearer credential (inspired by Google's Macaroons paper) where anyone holding the token can add restrictions (caveats) but can never remove them. In Asupersync, capabilities are Macaroon-based: you can delegate a capability to a child task while attenuating it (e.g., adding a deadline, restricting to a specific Region, or limiting to N uses). The 8 caveat predicates include TimeBefore, TimeAfter, RegionScope, TaskScope, MaxUses, ResourceScope, RateLimit, and Custom." },
-  { term: "Mazurkiewicz Trace", short: "Equivalence class of concurrent interleavings", long: "A concept from concurrency theory: two execution traces are 'Mazurkiewicz equivalent' if they differ only in the order of independent (non-conflicting) operations. Asupersync's DPOR uses Mazurkiewicz traces to avoid redundantly testing schedules that produce identical outcomes — a massive reduction in the search space for concurrency testing." },
-  { term: "Martingale Progress Certificate", short: "Probabilistic proof of task completion", long: "A formal certificate based on supermartingale theory that proves tasks make monotonic progress toward completion. Like a ball rolling downhill — the certificate mathematically guarantees the ball can never roll back up, ensuring every task eventually finishes or is cleanly cancelled." },
-  { term: "Monotone Operation", short: "Order-independent operation that needs no coordination", long: "An operation whose result doesn't depend on the order it's executed relative to other monotone operations. Reserve, Send, Acquire, Renew, and CrdtMerge are all monotone in Asupersync's Saga engine. Because they're order-independent, they can be batched and executed without coordination barriers — a key performance optimization identified by CALM analysis." },
-  { term: "Obligation System", short: "Framework ensuring all resources are consumed", long: "The formal framework that tracks every Permit and Lease in the system and guarantees they are all explicitly consumed before their owning scope exits. If a resource escapes without being handled, the compiler or runtime catches it — no resource can silently leak." },
-  { term: "ObligationLeak Oracle", short: "Catches leaked Permits and Leases", long: "A test oracle that monitors for Permits or Leases that are dropped without being explicitly consumed (sent, completed, or aborted). When it catches one, it reports exactly which obligation was leaked and where it was created." },
-  { term: "Oracle", short: "Strict runtime referee", long: "A system component that watches over your application's execution. If an Oracle spots a broken promise—like a task ignoring a cancellation request, or a lease being dropped instead of properly returned—it halts the test and flags the exact line of code that violated the rules." },
-  { term: "Outcome", short: "Result type for async operations", long: "A super-powered Result enum. Instead of just Ok(T) or Err(E), Outcome explicitly includes Cancelled. It forces you to write code that consciously handles the scenario where an operation was interrupted." },
-  { term: "Permit", short: "Must-use lifecycle token", long: "When you spawn a task, you get a Permit. You can't just throw it away; you must explicitly wait for the task, detach it, or cancel it. It's how Asupersync enforces that you are always paying attention to the tasks you create." },
-  { term: "Product Semiring", short: "Algebraic structure for budget composition", long: "A mathematical structure where budgets compose element-wise using min and max operations. It's called a 'semiring' because it has two combining operations (like addition and multiplication, but using min and max instead). This gives budget composition clean algebraic properties: it's associative, commutative, and has identity elements." },
-  { term: "Quiescence", short: "When a region goes completely silent", long: "The state of a Region when all its tasks have finished, and no new tasks can possibly be created inside it. It's the equivalent of making sure everyone has left the building and the doors are locked before turning off the lights." },
-  { term: "RaptorQ", short: "RFC 6330 fountain code for erasure-coded transfer", long: "An advanced fountain code standardized in RFC 6330 that Asupersync uses for erasure-coded data transfer. It generates repair symbols so efficiently that receivers can reconstruct original data from any sufficient subset of symbols, with less than 1% overhead beyond the theoretical minimum." },
-  { term: "Region", short: "A structured concurrency scope", long: "A lifetime-bounded scope that owns tasks. When a Region closes, all tasks within it are cancelled (via the cancel protocol), awaited to completion, and their resources cleaned up. Regions nest hierarchically, forming a tree." },
-  { term: "Region Tree", short: "Hierarchy of nested scopes", long: "A family tree for tasks. Instead of tasks floating around independently, every task in Asupersync belongs to a 'Region'. When a parent Region is cancelled, the entire branch of child Regions and tasks is cleanly pruned from the bottom up. No task is ever orphaned." },
-  { term: "Saga", short: "Distributed operation with automatic compensation on failure", long: "A pattern for long-running operations that span multiple steps. Each step has a forward action and a compensating action. If any step fails (or cancellation arrives), the Saga automatically runs compensating actions for all completed steps in LIFO order. Asupersync's Saga engine classifies its 16 operation kinds into monotone and non-monotone using CALM analysis, minimizing the coordination overhead." },
-  { term: "Regret Bound", short: "Convergence guarantee for adaptive scheduling", long: "A mathematical proof that the EXP3 adaptive scheduler's cumulative 'regret' (difference between its performance and the best fixed strategy in hindsight) grows sublinearly. In practice, this means the scheduler converges to optimal behavior — it can't be fooled for long by adversarial workloads." },
-  { term: "Seed", short: "Deterministic execution parameter", long: "An integer that controls the Lab runtime's scheduling decisions. The exact same seed always produces the exact same task interleaving, enabling perfectly reproducible testing and bug replay." },
-  { term: "Small-Step Semantics", short: "Formal rules defining single computation steps", long: "A mathematical framework where each computation step is defined by a transition rule of the form \u27E8e, \u03C3\u27E9 \u2192 \u27E8e\u2032, \u03C3\u2032\u27E9 (expression e in state \u03C3 steps to expression e\u2032 in state \u03C3\u2032). Asupersync has 35 such rules covering spawning, cancellation, effect reservation, region closure, and more — each mechanized in Lean 4 for machine-checked correctness." },
-  { term: "Spectral Wait-Graph Analysis", short: "Eigenvalue-based deadlock prediction", long: "A technique that analyzes the eigenvalues of the wait-graph's Laplacian matrix to predict deadlocks before they fully form. Instead of waiting for tasks to actually freeze, it detects the mathematical signature of an emerging deadlock (the Fiedler value approaching zero) and intervenes proactively." },
-  { term: "Spork", short: "Spawn + Fork primitive", long: "A portmanteau of Spawn and Fork. It creates a new task while simultaneously branching off a new child Region. The new task inherits a subset of the parent's capabilities and is tightly bound to its new Region's lifecycle." },
-  { term: "Supermartingale", short: "Stochastic process proving termination", long: "A mathematical sequence of values that, on average, decreases over time. Asupersync uses supermartingales as termination proofs: by showing that a certain measure of 'remaining work' is a supermartingale, it mathematically proves that tasks always make progress and eventually complete." },
-  { term: "Supervisor", short: "Fault-tolerant task manager", long: "A task that monitors child tasks and applies restart policies when they fail. Crucially, Supervisors respect the cancel protocol: during Region cancellation, they stop restarting and allow children to drain gracefully." },
-  { term: "TaskLeak Oracle", short: "Detects tasks escaping their Region scope", long: "A test oracle that catches tasks which outlive their owning Region — the concurrent equivalent of a dangling pointer. If a task is still running after its Region has closed, the TaskLeak oracle flags it immediately, preventing 'zombie' tasks from silently consuming resources." },
-  { term: "Test Oracle", short: "Runtime correctness monitor for Lab testing", long: "A specialized runtime monitor that checks a specific class of correctness invariant during Lab testing. Each of the 17 built-in oracles watches for a different kind of bug — from resource leaks to protocol violations to budget overruns — acting as an automated auditor for your concurrent code." },
-  { term: "Three-Lane Scheduler", short: "Cancel / Timed / Ready priorities", long: "A traffic control system for tasks. The 'Cancel Lane' is the ambulance: it always gets priority so cleanups happen instantly. The 'Timed Lane' is for scheduled events, and the 'Ready Lane' handles normal traffic." },
-  { term: "Three-Phase Cancel Protocol", short: "Request \u2192 Drain \u2192 Finalize", long: "A rigorous lifecycle for stopping tasks. Phase 1: Request (signal intent to stop). Phase 2: Drain (allow tasks to finish writing to disk, closing network sockets, etc.). Phase 3: Finalize (force-release all remaining resources). This prevents the 'silent drop' problem." },
-  { term: "Transition Rule", short: "One formal rule in the small-step semantics", long: "A single rule in the small-step operational semantics that defines how one kind of computation step works. For example, the SPAWN rule defines what happens when a task is created, and the CANCEL-PROPAGATE rule defines how cancellation flows through the Region tree. Asupersync has 35 such rules, all mechanized in Lean 4." },
-  { term: "Two-Phase Effect", short: "Reserve/commit pattern preventing partial side-effects", long: "A pattern where side effects are split into two stages: Reserve (stage the effect, making it reversible) and Commit (apply it permanently). If cancellation arrives between Reserve and Commit, the reservation is automatically rolled back. Think of it like a bank placing a hold on your account before transferring — if the transfer is cancelled, the hold is simply released." },
-  { term: "Wait-Graph", short: "Directed graph of task dependencies", long: "A directed graph where nodes are tasks and edges represent 'task A is waiting on task B'. The runtime maintains this graph in real time and uses spectral analysis on its Laplacian matrix to detect deadlocks before they fully form." },
-  { term: "GenServer", short: "Generic Server for stateful actors", long: "A battle-tested server pattern borrowed from Erlang/OTP used to encapsulate state, handle concurrent requests, and manage a mailbox. In Asupersync, GenServers are supercharged with compile-time Reply Obligations, meaning a server can mathematically never 'forget' to respond to a client." },
-  { term: "Mailbox", short: "Message queue for actor tasks", long: "The receiving queue for a GenServer. While standard Erlang uses unbounded mailboxes that can silently grow until the system runs out of memory and crashes, Asupersync mailboxes are explicitly bounded and enforce backpressure safely." },
-  { term: "Monotone Operation", short: "Coordination-free action", long: "An operation that only ever adds information (like appending an item to a set or moving forward in a state machine). Because it never relies on checking if something is 'empty' or 'missing', it can execute concurrently without any locks. It is infinitely scalable." },
-  { term: "Non-Monotone Operation", short: "Barrier-requiring action", long: "An operation that checks a threshold or relies on negation (e.g., 'close this region only if zero tasks remain'). Because it must ensure no other thread is secretly adding a task while it checks, it fundamentally requires a heavy synchronization lock to execute safely." },
+  { term: "Acknowledgment", short: "Confirmation that a message was received", long: "When a message is sent with ack_required=true, the recipient agent must explicitly acknowledge receipt. The system tracks ack status and can surface overdue acknowledgments to operators." },
+  { term: "Advisory Lock", short: "Non-blocking coordination signal", long: "File reservations in Agent Mail are advisory \u2014 they surface conflicts and enable the pre-commit guard, but they can always be bypassed. This prevents deadlocks while still making ownership visible." },
+  { term: "Agent Identity", short: "Memorable persistent name for an agent", long: "Each agent gets an adjective+noun identity (GreenCastle, BlueLake, RedHarbor) that persists across sessions. Identities are project-scoped and carry program/model metadata for context." },
+  { term: "Agent Mail", short: "Coordination infrastructure for AI coding agents", long: "MCP Agent Mail provides the full operational fabric for multi-agent coding: identities, threaded messaging, file reservations, search, audit trails, and operator tooling \u2014 all backed by SQLite + Git." },
+  { term: "Build Slot", short: "Concurrency control for compilation", long: "A lease that controls how many agents can run resource-intensive operations (like cargo build) simultaneously. Agents acquire, renew, and release build slots to prevent contention." },
+  { term: "Commit Coalescer", short: "Batches Git commits for efficiency", long: "Instead of creating a Git commit for every write operation, the storage layer batches multiple writes into fewer commits. Stress tests show a 9.1x reduction (100 writes \u2192 11 commits)." },
+  { term: "Contact Handshake", short: "Protocol for establishing cross-agent communication", long: "Before agents in different projects can message each other, they perform a contact handshake: request_contact sends the invitation, respond_contact accepts or denies. Contact policies can auto-accept or block by default." },
+  { term: "Exclusive Reservation", short: "Sole ownership of files during editing", long: "When an agent reserves files with exclusive=true, no other agent can reserve overlapping paths until the reservation expires or is released. The pre-commit guard enforces this at commit time." },
+  { term: "File Reservation", short: "Advisory lease on file paths", long: "An agent declares intent to edit specific file patterns (globs like src/auth/**/*.ts) for a given TTL. Other agents see the reservation and can coordinate accordingly. Conflicts are surfaced but not hard-blocked." },
+  { term: "Human Overseer", short: "Web UI for operator intervention", long: "The web interface at localhost:8765/mail allows humans to compose and send high-priority messages to agents, view all inboxes, search messages, and monitor file reservations across projects." },
+  { term: "Inbox", short: "Per-agent message queue", long: "Each registered agent has a project-scoped inbox where incoming messages are delivered. Agents fetch their inbox via fetch_inbox or the resource://inbox/{agent} MCP resource." },
+  { term: "Macro", short: "Multi-step MCP operation in one call", long: "Agent Mail provides four macros that combine common multi-tool workflows into single calls: macro_start_session, macro_prepare_thread, macro_file_reservation_cycle, and macro_contact_handshake." },
+  { term: "MCP", short: "Model Context Protocol", long: "An open standard for connecting AI models to external tools and data sources. Agent Mail exposes its 34 tools and 20+ resources via MCP, making it compatible with any MCP-capable coding agent." },
+  { term: "MCP Resource", short: "Read-only data surface discoverable by agents", long: "Unlike tools (which perform actions), MCP resources provide fast read access to data: resource://inbox/{agent}, resource://thread/{id}, resource://agents, etc. No tool call overhead." },
+  { term: "Pre-Commit Guard", short: "Git hook enforcing file reservations", long: "The mcp-agent-mail-guard binary installs as a Git pre-commit hook. It checks whether committed files overlap with another agent\u2019s active reservations and blocks the commit if so. Bypassable with AGENT_MAIL_BYPASS=1." },
+  { term: "Product Bus", short: "Cross-repository coordination layer", long: "Links multiple Git repositories under a single product umbrella. Enables cross-project search, unified inbox aggregation, and inter-project contact management." },
+  { term: "Project Key", short: "Absolute path identifying a repository", long: "The canonical identifier for a project in Agent Mail \u2014 the absolute filesystem path to the repository root. Used in all tool calls and resource URIs." },
+  { term: "Robot Mode", short: "Non-interactive CLI for agent consumption", long: "The \u2018am robot\u2019 subcommand provides 16 commands (status, inbox, timeline, thread, search, etc.) that output token-efficient toon, JSON, or Markdown. Designed for agent consumption, not human interaction." },
+  { term: "Shared Reservation", short: "Non-exclusive file access declaration", long: "When an agent reserves files with exclusive=false, other agents can also create overlapping reservations. Useful for read-heavy access patterns where coordination is desired but exclusivity isn\u2019t required." },
+  { term: "Stress Gauntlet", short: "10-scenario production readiness test suite", long: "A comprehensive stress test suite covering: 30-agent message pipelines, 10-project concurrent ops, commit coalescer batching, stale lock recovery, mixed reservations + messages, pool exhaustion, sustained throughput, thundering herd, and inbox reads during storms." },
+  { term: "Thread", short: "Conversation grouping by thread_id", long: "Messages sharing the same thread_id form a conversation thread. Threads enable context-aware communication \u2014 agents can review the full conversation history before replying. Thread IDs often map to bead/issue IDs (e.g., bd-123)." },
+  { term: "Tool Cluster", short: "Logical grouping of MCP tools", long: "Agent Mail\u2019s 34 tools are organized into 9 clusters: Infrastructure, Identity, Messaging, Contacts, File Reservations, Search, Macros, Product Bus, and Build Slots. Each cluster handles a distinct coordination concern." },
+  { term: "Toon Format", short: "Token-efficient robot output format", long: "The default output format for robot mode at a TTY. Compact, human-scannable, and designed to minimize token consumption when agents parse the output. Alternative formats: json and md." },
+  { term: "TTL", short: "Time-to-live for reservations", long: "File reservations and build slots expire after their TTL (default 3600 seconds). Agents can renew before expiration. Expired reservations are automatically cleaned up, preventing stale locks." },
+  { term: "TUI", short: "Terminal User Interface operations console", long: "A 15-screen interactive terminal interface built on frankentui. Provides real-time dashboards, message browsing, thread exploration, agent roster, search, reservation management, and system health monitoring." },
+  { term: "Web UI", short: "Browser-based operator interface", long: "Served at http://127.0.0.1:8765/mail, the web interface provides unified inbox, project overview, message details, search, file reservations, and the Human Overseer compose form for sending messages to agents." },
 ];
 
 // Flywheel
@@ -510,8 +481,8 @@ export interface FlywheelTool {
 
 export const flywheelDescription = {
   title: "The AI Flywheel",
-  subtitle: "A high-velocity AI engineering ecosystem that built Asupersync.",
-  description: "Asupersync wasn't built manually. It was architected and implemented through a recursive feedback loop of specialized AI agents, each handling a different layer of the runtime's formal verification, testing, and implementation pipeline.",
+  subtitle: "A high-velocity AI engineering ecosystem that built Agent Mail.",
+  description: "Agent Mail wasn't built manually. It was architected and implemented through a recursive feedback loop of specialized AI agents, each coordinating through the very system they were building.",
 };
 
 export const flywheelTools: FlywheelTool[] = [
@@ -821,67 +792,43 @@ export const flywheelTools: FlywheelTool[] = [
 // FAQ
 export const faq: FaqItem[] = [
   {
-    question: "When should I use Asupersync instead of Tokio?",
-    answer: "Use Asupersync when correctness matters more than raw throughput. If you're building servers, pipelines, or systems where resource leaks, orphaned tasks, or silent cancellation failures would be bugs — Asupersync makes those bugs impossible by construction. Tokio is better for maximum single-server throughput where you're willing to handle cancellation safety manually.",
+    question: "When should I use Agent Mail instead of git worktrees?",
+    answer: "Use Agent Mail when multiple agents need to work on the same branch simultaneously. Git worktrees isolate agents completely, which prevents conflicts but also prevents coordination. Agent Mail gives agents shared visibility into who's working on what, advisory file reservations, and threaded messaging \u2014 enabling real collaboration rather than just isolation.",
   },
   {
-    question: "Can I use Tokio crates with Asupersync?",
-    answer: "Not directly — Asupersync uses its own runtime and async primitives. However, we provide bridge adapters for common Tokio ecosystem crates. The built-in protocol library covers most needs (TCP, HTTP, channels, mutexes) with cancel-correctness guarantees that Tokio wrappers can't provide.",
+    question: "Does Agent Mail work with Claude Code, Codex, and Gemini?",
+    answer: "Yes. Running 'am' auto-detects all installed coding agents (Claude Code, Codex CLI, Gemini CLI, GitHub Copilot CLI) and configures their MCP connections. Agents communicate through the MCP standard, so any MCP-capable coding agent can use Agent Mail.",
   },
   {
-    question: "How does performance compare to Tokio?",
-    answer: "For I/O-bound workloads, Asupersync is within 5-15% of Tokio's throughput. The three-lane scheduler adds minimal overhead, and the cancel protocol only activates during actual cancellation. The Lab runtime (deterministic mode) is slower by design — it's for testing, not production.",
+    question: "Are file reservations mandatory locks?",
+    answer: "No \u2014 they are advisory coordination primitives. Reservations surface conflicts and enable the optional pre-commit guard, but they can always be bypassed with AGENT_MAIL_BYPASS=1. This prevents deadlocks while still making file ownership visible.",
   },
   {
-    question: "Is Asupersync production-ready?",
-    answer: "Asupersync is currently in v0.2.x — suitable for new projects and experimentation, but not yet battle-tested at scale. The core runtime has 12 formal proofs and extensive property-based testing. We recommend it for greenfield projects where you want correctness guarantees from day one.",
+    question: "How does the pre-commit guard work?",
+    answer: "The mcp-agent-mail-guard binary installs as a Git pre-commit hook. When you commit, it checks whether any committed files overlap with another agent's active reservations. If they do, the commit is blocked with a clear conflict message. You can bypass it with AGENT_MAIL_BYPASS=1 or set AGENT_MAIL_GUARD_MODE=warn for warning-only mode.",
   },
   {
-    question: "What does 'cancel-correct' mean?",
-    answer: "Cancel-correct means that when a task is cancelled, it always gets a chance to clean up (Drain phase), its finalizers always run (Finalize phase), and resources are never silently leaked. In Tokio, dropping a future just... stops it. Buffers may not flush. Connections may not close. Locks may not release. Asupersync makes this impossible.",
+    question: "How does Agent Mail prevent message history from filling up context windows?",
+    answer: "Messages are stored externally in SQLite (for query speed) and Git (for audit trails). Agents only fetch what they need via fetch_inbox or search_messages. The full conversation history lives outside agent context windows, so agents can coordinate across thousands of messages without consuming tokens.",
   },
   {
-    question: "How does the Lab runtime find bugs?",
-    answer: "The Lab runtime uses Dynamic Partial Order Reduction (DPOR) to systematically explore task interleavings. Given a concurrent program, it identifies which interleavings produce different outcomes and tests a representative subset. This is far more effective than random testing — it can find bugs that might take billions of random runs to hit.",
+    question: "Can Agent Mail coordinate across multiple repositories?",
+    answer: "Yes. The product bus links multiple repositories under a single umbrella. Agents in different repos can discover each other via contact handshakes, exchange messages across project boundaries, and search across all linked projects.",
   },
   {
-    question: "Do I need to learn a new async syntax?",
-    answer: "No — Asupersync uses standard Rust async/await. The main difference is that your main function receives a Cx (capability context) parameter, and you use Region::open instead of bare task spawning. If you've used structured concurrency in Kotlin (coroutineScope) or Swift (TaskGroup), the patterns will feel familiar.",
+    question: "What happens when a reservation expires?",
+    answer: "Reservations have a TTL (default 3600 seconds). When the TTL expires, the reservation is automatically cleaned up and other agents can reserve the same files. Agents can renew reservations before expiration to extend their work window.",
   },
   {
-    question: "What's the minimum Rust version?",
-    answer: "Asupersync requires Rust 1.75+ for async trait support and RPITIT. We track stable Rust and don't require nightly features.",
+    question: "How is Agent Mail different from the Python version?",
+    answer: "The Rust rewrite is a ground-up reimplementation that eliminates the Python version's scalability bottlenecks: Git lock contention, SQLite pool exhaustion, and GIL limitations. The Rust version adds hybrid search (V3), a 15-screen TUI, robot mode CLI, build slot management, and passes a 10-scenario stress gauntlet including 30-agent pipelines and sustained 49 RPS workloads.",
   },
   {
-    question: "What are Two-Phase Effects?",
-    answer: "Two-Phase Effects split side effects into Reserve (stage the change, making it reversible) and Commit (apply it permanently). Think of a bank transfer: first, the money is placed on hold (Reserve). If the operation is cancelled before it finishes, the hold is simply released — no money lost. Only after a cancellation checkpoint confirms no cancel is pending does the transfer actually go through (Commit). This prevents the half-executed side-effects that plague traditional async runtimes.",
+    question: "How do I monitor what my agents are doing?",
+    answer: "Three ways: (1) The 15-screen TUI provides real-time dashboards, message browsing, thread exploration, and system health monitoring. (2) The web UI at localhost:8765/mail gives browser-based oversight with inbox, search, and the Human Overseer compose form. (3) Robot mode (am robot status) provides machine-readable output for automation.",
   },
   {
-    question: "How does the spectral deadlock detector work?",
-    answer: "Asupersync maintains a real-time wait-graph — a directed graph where edges mean 'task A is waiting on task B'. The runtime continuously computes the Fiedler value (second-smallest eigenvalue of the graph's Laplacian matrix). When this value drops near zero, the graph is about to split into disconnected components — the mathematical signature of an emerging deadlock. Think of it like a traffic congestion sensor: it detects gridlock forming before cars actually stop, letting the scheduler intervene proactively.",
-  },
-  {
-    question: "What makes the formal semantics useful in practice?",
-    answer: "The 35 small-step transition rules aren't just academic exercises — they're mechanized in Lean 4, which means a computer has verified they're logically consistent. This bridges the gap between the spec document (what Asupersync should do) and the runtime implementation (what it actually does). When a bug is found, the formal rules precisely identify whether it's a spec error or an implementation error. It also enables automated property-based testing: the Lab runtime generates random programs and checks that every execution trace conforms to the formal rules.",
-  },
-  {
-    question: "How do the 17 test oracles work together?",
-    answer: "Each oracle is an independent correctness monitor that watches for one specific class of bug during Lab testing. TaskLeak catches tasks that outlive their Region. ObligationLeak catches dropped Permits or Leases. CancelProtocol verifies the 3-phase shutdown is followed correctly. BudgetOverrun catches tasks that exceed their Drain budget. When you run a Lab test, all 17 oracles are active simultaneously — like having 17 specialized auditors reviewing every step of your concurrent program's execution.",
-  },
-  {
-    question: "How does Macaroon-based capability attenuation work?",
-    answer: "Capabilities in Asupersync are bearer tokens inspired by Google's Macaroons paper. The key property: anyone holding a capability can add restrictions (caveats) but can never remove them. When you delegate a capability to a child task, you can attenuate it — for example, adding a TimeBefore deadline, restricting it to a specific Region, limiting it to N uses, or applying a rate limit. There are 8 caveat predicates in total, including a Custom(key, value) escape hatch for application-specific restrictions. This means delegation is always safe: you can hand out capabilities freely, knowing they can only become more restricted, never less.",
-  },
-  {
-    question: "What are E-processes and why do they matter for testing?",
-    answer: "E-processes are a modern statistical technique (betting martingales) that let you continuously monitor a hypothesis and reject it the instant evidence is strong enough — without any penalty for 'peeking' at intermediate results. Traditional p-values require you to commit to a fixed sample size upfront. E-processes don't. The Lab runtime uses them to monitor three critical invariants (task leak, obligation leak, quiescence) during testing. Via Ville's inequality, if the E-value ever exceeds 1/α, you know with mathematical certainty that an invariant was violated — no matter when you checked.",
-  },
-  {
-    question: "How does Saga compensation handle distributed failures?",
-    answer: "When a multi-step operation spans several services (create account → send email → charge card), failure at any step triggers automatic LIFO compensation — unwinding completed steps in reverse order. What makes Asupersync's Saga engine special is CALM analysis: it classifies each of the 16 operation kinds as either monotone (coordination-free, like Reserve and Send) or non-monotone (barrier-required, like Commit and Release). Consecutive monotone steps are batched without synchronization, and barriers are inserted only before non-monotone steps. This minimizes coordination overhead while maintaining correctness.",
-  },
-  {
-    question: "What is the Lyapunov potential function?",
-    answer: "It's a 4-component 'energy measure' that the scheduler uses to formally prove the system always makes progress. The four components are: (1) live task count, (2) pending obligation age, (3) draining region count, and (4) deadline pressure. Like a ball rolling downhill, this function strictly decreases with each scheduler step — mathematically guaranteeing the runtime converges toward quiescence. The scheduler can tune the component weights: obligation-focused mode prioritizes clearing aged obligations, while deadline-focused mode prioritizes tasks approaching their deadlines.",
+    question: "What is the stress gauntlet?",
+    answer: "A 10-scenario test suite that validates production readiness: 30-agent message pipelines, 10-project concurrent operations, commit coalescer efficiency, stale Git lock recovery, mixed reservation + messaging loads, connection pool exhaustion recovery, sustained 30-second throughput, thundering herd handling, and inbox reads during message storms. All scenarios pass with zero errors.",
   },
 ];
