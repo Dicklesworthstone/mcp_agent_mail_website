@@ -49,7 +49,11 @@ export default function GettingStartedPage() {
   return (
     <main id="main-content">
       {/* Cinematic Header */}
-      <section className="relative pt-32 pb-20 overflow-hidden">
+      <section
+        id="getting-started-hero"
+        data-scaffold-slot="hero"
+        className="relative pt-32 pb-20 overflow-hidden"
+      >
         <div className="absolute inset-0 z-0">
           <div className="absolute top-0 left-1/4 w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[100px]" />
         </div>
@@ -177,7 +181,11 @@ export default function GettingStartedPage() {
       </SectionShell>
 
       {/* Navigation */}
-      <div className="mx-auto max-w-7xl px-6 py-20 flex flex-col sm:flex-row gap-4 justify-center">
+      <section
+        id="getting-started-next-steps"
+        data-scaffold-slot="next-steps"
+        className="mx-auto max-w-7xl px-6 py-20 flex flex-col sm:flex-row gap-4 justify-center"
+      >
         <Link href="/architecture" className="group inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-6 py-3 text-sm font-bold text-slate-300 hover:border-blue-500/30 hover:text-white transition-all">
           <BookOpen className="h-4 w-4" />
           Read the System Architecture
@@ -187,7 +195,7 @@ export default function GettingStartedPage() {
           Explore Interactive Demos
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
         </Link>
-      </div>
+      </section>
     </main>
   );
 }

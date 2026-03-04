@@ -46,7 +46,11 @@ function VizLoader() {
 export default function ShowcasePage() {
   return (
     <main id="main-content">
-      <section className="relative pt-32 pb-20 overflow-hidden">
+      <section
+        id="showcase-hero"
+        data-scaffold-slot="hero"
+        className="relative pt-32 pb-20 overflow-hidden"
+      >
         <div className="absolute inset-0 z-0">
           <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px]" />
         </div>
@@ -69,6 +73,7 @@ export default function ShowcasePage() {
         </div>
       </section>
 
+      <div id="showcase-viz-gallery" data-scaffold-slot="visualizations">
       {/* ================================================================
           1. Region Tree
           ================================================================ */}
@@ -1163,6 +1168,7 @@ export default function ShowcasePage() {
           </div>
         </div>
       </SectionShell>
+      </div>
     </main>
   );
 }

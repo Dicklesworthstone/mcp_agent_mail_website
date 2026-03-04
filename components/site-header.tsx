@@ -34,7 +34,7 @@ export default function SiteHeader() {
   const getIcon = (label: string) => {
     switch (label.toLowerCase()) {
       case 'home': return Home;
-      case 'interactive demos': return Sparkles;
+      case 'showcase': return Sparkles;
       case 'architecture': return Cpu;
       case 'spec explorer': return BookOpen;
       case 'glossary': return BookOpen;
@@ -144,7 +144,7 @@ export default function SiteHeader() {
             const Icon = getIcon(item.label);
             const shortLabel: Record<string, string> = {
               "Home": "Home",
-              "Interactive Demos": "Demos",
+              "Showcase": "Show",
               "Architecture": "Arch.",
               "Get Started": "Start",
               "Glossary": "Gloss.",

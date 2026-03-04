@@ -81,7 +81,11 @@ const ORACLE_LIST = [
 export default function ArchitecturePage() {
   return (
     <main id="main-content">
-      <section className="relative pt-32 pb-20 overflow-hidden">
+      <section
+        id="architecture-hero"
+        data-scaffold-slot="hero"
+        className="relative pt-32 pb-20 overflow-hidden"
+      >
         <div className="absolute inset-0 z-0">
           <div className="absolute top-0 left-1/3 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px]" />
         </div>
@@ -505,7 +509,11 @@ Region::open(cx, "server", async |cx| {
       </SectionShell>
 
       {/* CTA */}
-      <div className="mx-auto max-w-7xl px-6 py-20 flex flex-col sm:flex-row gap-4 justify-center">
+      <section
+        id="architecture-next-steps"
+        data-scaffold-slot="next-steps"
+        className="mx-auto max-w-7xl px-6 py-20 flex flex-col sm:flex-row gap-4 justify-center"
+      >
         <Link href="/showcase" className="group inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-6 py-3 text-sm font-bold text-slate-300 hover:border-blue-500/30 hover:text-white transition-all">
           Interactive Demos
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -514,7 +522,7 @@ Region::open(cx, "server", async |cx| {
           Get Started
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
         </Link>
-      </div>
+      </section>
     </main>
   );
 }

@@ -1,7 +1,11 @@
 import { ImageResponse } from "next/og";
+import { siteConfig } from "@/lib/content";
 
 export const runtime = "edge";
-export const alt = "Asupersync — The Cancel-Correct Async Runtime for Rust";
+const subtitle = "Coordination Infrastructure for AI Coding Agents";
+const siteHost = new URL(siteConfig.url).hostname;
+
+export const alt = `${siteConfig.name} — ${subtitle}`;
 export const size = { width: 1200, height: 600 };
 export const contentType = "image/png";
 
@@ -84,7 +88,7 @@ export default function Image() {
               fontWeight: 900,
             }}
           >
-            A
+            {siteConfig.name.charAt(0).toUpperCase()}
           </span>
         </div>
 
@@ -92,14 +96,14 @@ export default function Image() {
         <div
           style={{
             display: "flex",
-            fontSize: "68px",
+            fontSize: "56px",
             fontWeight: 800,
             color: "#F1F5F9",
             letterSpacing: "-2px",
             lineHeight: 1.1,
           }}
         >
-          Asupersync
+          {siteConfig.name}
         </div>
 
         {/* Decorative blue line */}
@@ -119,13 +123,13 @@ export default function Image() {
         <div
           style={{
             display: "flex",
-            fontSize: "26px",
+            fontSize: "24px",
             fontWeight: 500,
             color: "#93C5FD",
             letterSpacing: "-0.5px",
           }}
         >
-          The Cancel-Correct Async Runtime for Rust
+          {subtitle}
         </div>
 
         {/* Bottom URL */}
@@ -142,7 +146,7 @@ export default function Image() {
           }}
         >
           <span style={{ color: "#F97316" }}>{">"}</span>
-          <span>asupersync.com</span>
+          <span>{siteHost}</span>
         </div>
       </div>
     ),

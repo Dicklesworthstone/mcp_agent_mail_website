@@ -76,7 +76,11 @@ export default function HomePage() {
       {/* ================================================================
           1. LIVING HERO
           ================================================================ */}
-      <section className="relative flex flex-col items-center pt-24 pb-32 overflow-hidden text-left">
+      <section
+        id="home-hero"
+        data-scaffold-slot="hero"
+        className="relative flex flex-col items-center pt-24 pb-32 overflow-hidden text-left"
+      >
         <div className="absolute inset-0 z-0">
           <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-[80px]" />
           <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-600/10 rounded-full blur-[100px]" />
@@ -205,14 +209,18 @@ export default function HomePage() {
       </section>
 
       {/* Hero stats */}
-      <div className="max-w-7xl mx-auto px-6 mb-32">
+      <section id="home-proof-strip" data-scaffold-slot="proof-strip" className="max-w-7xl mx-auto px-6 mb-32">
         <StatsGrid stats={heroStats} />
-      </div>
+      </section>
 
       {/* ================================================================
           2. DEEP DIVE: INTERACTIVE ARCHITECTURE
           ================================================================ */}
-      <section className="relative py-24 md:py-32 overflow-hidden border-y border-white/5 bg-white/[0.01]">
+      <section
+        id="home-concepts"
+        data-scaffold-slot="concepts"
+        className="relative py-24 md:py-32 overflow-hidden border-y border-white/5 bg-white/[0.01]"
+      >
         <div className="absolute inset-0 z-0">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-blue-950/10 blur-[120px]" />
         </div>
@@ -753,7 +761,7 @@ export default function HomePage() {
       >
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 md:gap-6">
           {features.map((feature) => (
-            <FeatureCard key={feature.title} feature={feature} />
+            <FeatureCard key={feature.id} feature={feature} />
           ))}
         </div>
       </SectionShell>
@@ -812,7 +820,7 @@ export default function HomePage() {
       {/* ================================================================
           7. GET STARTED CTA
           ================================================================ */}
-      <section className="relative overflow-hidden py-28 md:py-36 lg:py-44">
+      <section id="home-cta" data-scaffold-slot="next-steps" className="relative overflow-hidden py-28 md:py-36 lg:py-44">
         <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
           <div className="absolute inset-0 bg-gradient-to-t from-blue-950/20 via-transparent to-transparent" />
           <div className="absolute bottom-0 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-blue-500/10 blur-3xl" />

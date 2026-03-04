@@ -1,9 +1,11 @@
 import { ImageResponse } from "next/og";
+import { siteConfig } from "@/lib/content";
 
 export const size = { width: 32, height: 32 };
 export const contentType = "image/png";
 
 export default function Icon() {
+  const brandGlyph = siteConfig.name.charAt(0).toUpperCase();
   return new ImageResponse(
     (
       <div
@@ -17,7 +19,7 @@ export default function Icon() {
           justifyContent: "center",
         }}
       >
-        <span style={{ color: "white", fontSize: 20, fontWeight: 900, fontFamily: "sans-serif" }}>A</span>
+        <span style={{ color: "white", fontSize: 20, fontWeight: 900, fontFamily: "sans-serif" }}>{brandGlyph}</span>
       </div>
     ),
     { ...size }

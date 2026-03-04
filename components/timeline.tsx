@@ -13,7 +13,7 @@ export default function Timeline({ items }: { items: ChangelogEntry[] }) {
         {items.map((item, index) => {
           return (
             <motion.div
-              key={item.period}
+              key={item.id}
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true, margin: "-20px" }}

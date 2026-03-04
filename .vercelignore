@@ -1,0 +1,8 @@
+.next
+node_modules
+.beads
+.git
+.bv
+core.*
+storage.sqlite3*
+*.tsbuildinfo

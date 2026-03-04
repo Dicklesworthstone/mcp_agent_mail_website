@@ -14,21 +14,105 @@ export const siteConfig = {
 
 export const navItems = [
   { href: "/", label: "Home" },
-  { href: "/showcase", label: "Interactive Demos" },
+  { href: "/showcase", label: "Showcase" },
   { href: "/architecture", label: "Architecture" },
   { href: "/spec-explorer", label: "Spec Explorer" },
   { href: "/getting-started", label: "Get Started" },
   { href: "/glossary", label: "Glossary" },
 ];
 
+export interface RouteScaffoldSection {
+  id: string;
+  description: string;
+}
+
+export interface RouteScaffold {
+  route: string;
+  label: string;
+  sections: RouteScaffoldSection[];
+}
+
+// Canonical route scaffold map used for composition + test invariants.
+export const routeScaffolds: RouteScaffold[] = [
+  {
+    route: "/",
+    label: "Home",
+    sections: [
+      { id: "home-hero", description: "Primary value proposition + hero media" },
+      { id: "home-proof-strip", description: "At-a-glance trust metrics" },
+      { id: "home-concepts", description: "Interactive conceptual deep-dive" },
+      { id: "features", description: "Core feature grid" },
+      { id: "comparison", description: "Comparative positioning table" },
+      { id: "code", description: "Quickstart/API proof snippet" },
+      { id: "architecture-preview", description: "Architecture teaser + timeline" },
+      { id: "home-cta", description: "Primary conversion CTA" },
+      { id: "flywheel", description: "Ecosystem/flywheel module" },
+    ],
+  },
+  {
+    route: "/showcase",
+    label: "Showcase",
+    sections: [
+      { id: "showcase-hero", description: "Gallery framing + orientation" },
+      { id: "showcase-viz-gallery", description: "Visualization section stack" },
+    ],
+  },
+  {
+    route: "/architecture",
+    label: "Architecture",
+    sections: [
+      { id: "architecture-hero", description: "Architecture framing + summary" },
+      { id: "overview", description: "System overview diagram" },
+      { id: "regions", description: "Structured execution model" },
+      { id: "cancel", description: "Cancel protocol model" },
+      { id: "architecture-next-steps", description: "Navigation CTAs" },
+    ],
+  },
+  {
+    route: "/getting-started",
+    label: "Getting Started",
+    sections: [
+      { id: "getting-started-hero", description: "Onboarding framing" },
+      { id: "install", description: "Install command block" },
+      { id: "example", description: "First operational workflow" },
+      { id: "config", description: "MCP configuration snippet" },
+      { id: "pillars", description: "Operational principles" },
+      { id: "faq", description: "Setup troubleshooting FAQ" },
+      { id: "getting-started-next-steps", description: "Progression CTAs" },
+    ],
+  },
+  {
+    route: "/glossary",
+    label: "Glossary",
+    sections: [
+      { id: "glossary-hero", description: "Glossary context + scope" },
+      { id: "glossary-search", description: "Term search controls" },
+      { id: "glossary-index", description: "Virtualized term list" },
+      { id: "glossary-empty-state", description: "No-results fallback" },
+      { id: "glossary-faq-placeholder", description: "Reserved slot for glossary-adjacent FAQ module" },
+    ],
+  },
+  {
+    route: "/spec-explorer",
+    label: "Spec Explorer",
+    sections: [
+      { id: "spec-explorer-hero", description: "Spec explorer framing + expectations" },
+      { id: "spec-explorer-shell", description: "Search/index/reader shell" },
+      { id: "spec-explorer-workspace", description: "Responsive document workspace" },
+    ],
+  },
+];
+
 // Types
 export interface Stat {
+  id: string;
   label: string;
   value: string;
   helper?: string;
 }
 
 export interface Feature {
+  id: string;
   title: string;
   description: string;
   icon: string;
@@ -44,6 +128,7 @@ export interface ComparisonRow {
 }
 
 export interface ChangelogEntry {
+  id: string;
   period: string;
   title: string;
   items: string[];
@@ -170,105 +255,121 @@ export const gettingStartedFaq: GettingStartedFaqItem[] = [
 
 // Hero stats
 export const heroStats: Stat[] = [
-  { label: "MCP Tools", value: "34", helper: "Coordination primitives across messaging/search/reservations" },
-  { label: "Resources", value: "20+", helper: "Agent-discoverable resource surfaces" },
-  { label: "Stress Gauntlet", value: "10/10", helper: "Representative high-load scenarios passed" },
-  { label: "Sustained Throughput", value: "~49 RPS", helper: "HTTP stress profile baseline (context-dependent)" },
+  { id: "mcp-tools", label: "MCP Tools", value: "34", helper: "Coordination primitives across messaging/search/reservations" },
+  { id: "resources", label: "Resources", value: "20+", helper: "Agent-discoverable resource surfaces" },
+  { id: "stress-gauntlet", label: "Stress Gauntlet", value: "10/10", helper: "Representative high-load scenarios passed" },
+  { id: "throughput", label: "Sustained Throughput", value: "~49 RPS", helper: "HTTP stress profile baseline (context-dependent)" },
 ];
 
 // Features
 export const features: Feature[] = [
   {
+    id: "agent-identity-discovery",
     title: "Agent Identity & Discovery",
     description: "Agents get memorable persistent identities (GreenCastle, BlueLake) with project-scoped registration, program/model metadata, and automatic roster management. No more anonymous processes colliding in the dark.",
     icon: "blocks",
     category: "Identity",
   },
   {
+    id: "threaded-messaging",
     title: "Threaded Messaging",
     description: "Asynchronous, threaded conversations with subjects, recipients, CC/BCC, importance levels, and acknowledgment requirements. Messages stored in Git-backed archive, never consuming agent context windows.",
     icon: "activity",
     category: "Messaging",
   },
   {
+    id: "advisory-file-reservations",
     title: "Advisory File Reservations",
     description: "Agents declare exclusive or shared leases on file globs before editing. TTL-based expiration, pattern matching, and optional pre-commit guard enforcement prevent conflicts while remaining bypassable.",
     icon: "shield",
     category: "Coordination",
   },
   {
+    id: "mcp-tools-clusters",
     title: "34 MCP Tools in 9 Clusters",
     description: "Infrastructure, Identity, Messaging, Contacts, File Reservations, Search, Macros, Product Bus, and Build Slots. Every coordination primitive exposed via the Model Context Protocol standard.",
     icon: "cpu",
     category: "MCP Surface",
   },
   {
+    id: "hybrid-search-v3",
     title: "Hybrid Search (V3)",
     description: "Two-tier fusion combining lexical and semantic search with reranking. Field-based filters (subject:, body:, from:), cross-project search via product bus, and relevance scoring built on frankensearch.",
     icon: "sparkles",
     category: "Search",
   },
   {
+    id: "tui-operations-console",
     title: "15-Screen Operations TUI",
     description: "Real-time dashboard, message browser, thread explorer, agent roster, unified search, reservation manager, tool metrics, system health, timeline views, contact graph, and more. Five themes including Cyberpunk Aurora.",
     icon: "activity",
     category: "Operator Tooling",
   },
   {
+    id: "git-audit-trail",
     title: "Git-Backed Audit Trail",
     description: "Every message, reservation, and agent profile stored as files in per-project Git repositories. Human-auditable, diffable, fully recoverable. Date-partitioned messages with advisory locking for safe concurrent access.",
     icon: "lock",
     category: "Storage",
   },
   {
+    id: "cross-repo-coordination",
     title: "Cross-Repository Coordination",
     description: "Product bus links multiple repositories. Contact handshake protocol enables inter-project messaging. Shared thread IDs and contact policy management across your entire codebase.",
     icon: "globe",
     category: "Multi-Project",
   },
   {
+    id: "robot-mode-cli",
     title: "Robot Mode CLI",
     description: "16 non-interactive subcommands optimized for agent consumption. Token-efficient output in toon, JSON, or Markdown formats. Status, inbox, timeline, search, reservations, metrics, and health at your fingertips.",
     icon: "cpu",
     category: "CLI",
   },
   {
+    id: "pre-commit-guard",
     title: "Pre-Commit Guard",
     description: "Git hook (mcp-agent-mail-guard) blocks commits touching files reserved by other agents. Prevents accidental conflicts while remaining bypassable with AGENT_MAIL_BYPASS=1 for emergencies.",
     icon: "shield",
     category: "Coordination",
   },
   {
+    id: "build-slot-management",
     title: "Build Slot Management",
     description: "Acquire, renew, and release build slots to control compilation concurrency across agents. Prevents resource contention on shared build infrastructure.",
     icon: "activity",
     category: "Resource Management",
   },
   {
+    id: "session-macros",
     title: "Four Session Macros",
     description: "macro_start_session bootstraps project + agent + inbox in one call. macro_prepare_thread joins existing conversations. macro_file_reservation_cycle manages reserve-work-release flows. macro_contact_handshake sets up cross-agent contacts.",
     icon: "sparkles",
     category: "Developer Experience",
   },
   {
+    id: "mcp-resources",
     title: "20+ MCP Resources",
     description: "Fast lookup surfaces for inbox, threads, agents, reservations, metrics, and health \u2014 all accessible without tool calls. resource://inbox/{Agent}, resource://thread/{id}, and more.",
     icon: "globe",
     category: "MCP Surface",
   },
   {
+    id: "web-ui-overseer",
     title: "Web UI for Human Oversight",
     description: "Unified inbox across all projects, agent roster views, message detail with attachments, search with field filters, and an Overseer compose form for sending high-priority messages to redirect agents mid-session.",
     icon: "blocks",
     category: "Operator Tooling",
   },
   {
+    id: "stress-tested-scale",
     title: "Stress-Tested at Scale",
     description: "30-agent message pipelines, 10-project concurrent ops, pool exhaustion recovery, thundering herd handling, sustained 49 RPS mixed workloads. Every scenario passes with zero errors in the stress gauntlet.",
     icon: "lock",
     category: "Reliability",
   },
   {
+    id: "rust-workspace-architecture",
     title: "12-Crate Rust Architecture",
     description: "Modular workspace: core, db, storage, search-core, guard, share, tools, server, CLI, conformance, and WASM. Built on asupersync (structured concurrency), frankensearch, frankentui, and fastmcp_rust.",
     icon: "cpu",
@@ -278,6 +379,7 @@ export const features: Feature[] = [
 
 // Comparison data
 export interface AgentMailComparisonRow {
+  id: string;
   feature: string;
   agentMail: string;
   gitWorktrees: string;
@@ -285,19 +387,48 @@ export interface AgentMailComparisonRow {
   noCoordination: string;
 }
 
+export type ComparisonStatus = "positive" | "partial" | "negative";
+
+export const comparisonStatusByValue: Record<string, ComparisonStatus> = {
+  "Persistent, project-scoped": "positive",
+  "Threaded + searchable": "positive",
+  "Advisory reservations + guard": "positive",
+  "Git + SQLite": "positive",
+  "Product bus": "positive",
+  "Hybrid lexical + semantic": "positive",
+  "15-screen TUI + Web UI": "positive",
+  "34 tools + 20 resources": "positive",
+  "Auto-detect + register": "positive",
+  "Built-in ack protocol": "positive",
+  "Build slot management": "positive",
+  "10/10 gauntlet (30 agents)": "positive",
+  "Isolated branches": "partial",
+  "Git history only": "partial",
+  "Git log": "partial",
+  "File history": "partial",
+  "File browser": "partial",
+  "Text search": "partial",
+  "Append-only files": "partial",
+  "Manual naming": "partial",
+  "None": "negative",
+  "Manual": "negative",
+  "N/A": "negative",
+  "Race conditions": "negative",
+};
+
 export const comparisonData: AgentMailComparisonRow[] = [
-  { feature: "Agent Identity", agentMail: "Persistent, project-scoped", gitWorktrees: "None", sharedDocs: "Manual naming", noCoordination: "None" },
-  { feature: "Messaging", agentMail: "Threaded + searchable", gitWorktrees: "None", sharedDocs: "Append-only files", noCoordination: "None" },
-  { feature: "File Conflict Prevention", agentMail: "Advisory reservations + guard", gitWorktrees: "Isolated branches", sharedDocs: "None", noCoordination: "None" },
-  { feature: "Audit Trail", agentMail: "Git + SQLite", gitWorktrees: "Git history only", sharedDocs: "File history", noCoordination: "None" },
-  { feature: "Cross-Project Coordination", agentMail: "Product bus", gitWorktrees: "None", sharedDocs: "None", noCoordination: "None" },
-  { feature: "Search", agentMail: "Hybrid lexical + semantic", gitWorktrees: "Git log", sharedDocs: "Text search", noCoordination: "None" },
-  { feature: "Operator Visibility", agentMail: "15-screen TUI + Web UI", gitWorktrees: "Git log", sharedDocs: "File browser", noCoordination: "None" },
-  { feature: "MCP Integration", agentMail: "34 tools + 20 resources", gitWorktrees: "None", sharedDocs: "None", noCoordination: "None" },
-  { feature: "Agent Discovery", agentMail: "Auto-detect + register", gitWorktrees: "Manual", sharedDocs: "Manual", noCoordination: "Manual" },
-  { feature: "Acknowledgments", agentMail: "Built-in ack protocol", gitWorktrees: "None", sharedDocs: "None", noCoordination: "None" },
-  { feature: "Build Concurrency", agentMail: "Build slot management", gitWorktrees: "None", sharedDocs: "None", noCoordination: "Race conditions" },
-  { feature: "Stress Tested", agentMail: "10/10 gauntlet (30 agents)", gitWorktrees: "N/A", sharedDocs: "N/A", noCoordination: "N/A" },
+  { id: "agent-identity", feature: "Agent Identity", agentMail: "Persistent, project-scoped", gitWorktrees: "None", sharedDocs: "Manual naming", noCoordination: "None" },
+  { id: "messaging", feature: "Messaging", agentMail: "Threaded + searchable", gitWorktrees: "None", sharedDocs: "Append-only files", noCoordination: "None" },
+  { id: "file-conflict-prevention", feature: "File Conflict Prevention", agentMail: "Advisory reservations + guard", gitWorktrees: "Isolated branches", sharedDocs: "None", noCoordination: "None" },
+  { id: "audit-trail", feature: "Audit Trail", agentMail: "Git + SQLite", gitWorktrees: "Git history only", sharedDocs: "File history", noCoordination: "None" },
+  { id: "cross-project-coordination", feature: "Cross-Project Coordination", agentMail: "Product bus", gitWorktrees: "None", sharedDocs: "None", noCoordination: "None" },
+  { id: "search", feature: "Search", agentMail: "Hybrid lexical + semantic", gitWorktrees: "Git log", sharedDocs: "Text search", noCoordination: "None" },
+  { id: "operator-visibility", feature: "Operator Visibility", agentMail: "15-screen TUI + Web UI", gitWorktrees: "Git log", sharedDocs: "File browser", noCoordination: "None" },
+  { id: "mcp-integration", feature: "MCP Integration", agentMail: "34 tools + 20 resources", gitWorktrees: "None", sharedDocs: "None", noCoordination: "None" },
+  { id: "agent-discovery", feature: "Agent Discovery", agentMail: "Auto-detect + register", gitWorktrees: "Manual", sharedDocs: "Manual", noCoordination: "Manual" },
+  { id: "acknowledgments", feature: "Acknowledgments", agentMail: "Built-in ack protocol", gitWorktrees: "None", sharedDocs: "None", noCoordination: "None" },
+  { id: "build-concurrency", feature: "Build Concurrency", agentMail: "Build slot management", gitWorktrees: "None", sharedDocs: "None", noCoordination: "Race conditions" },
+  { id: "stress-tested", feature: "Stress Tested", agentMail: "10/10 gauntlet (30 agents)", gitWorktrees: "N/A", sharedDocs: "N/A", noCoordination: "N/A" },
 ];
 
 // Code example: Agent Mail session bootstrap
@@ -378,9 +509,290 @@ send_message(
   thread_id="API-MIGRATION"
 )`;
 
+export interface ToolClusterCopy {
+  id: string;
+  cluster: string;
+  purpose: string;
+  whenToUse: string;
+  representativeTools: string[];
+}
+
+export interface ResourceSurfaceCopy {
+  id: string;
+  uriPattern: string;
+  purpose: string;
+  operatorValue: string;
+}
+
+export interface TuiScreenCopy {
+  id: string;
+  screen: string;
+  coreQuestion: string;
+  primarySignals: string[];
+}
+
+export interface RobotCommandTrackCopy {
+  id: string;
+  track: string;
+  objective: string;
+  commandExamples: string[];
+}
+
+export const toolClusterCopy: ToolClusterCopy[] = [
+  {
+    id: "cluster-infrastructure",
+    cluster: "Infrastructure",
+    purpose: "Bootstrap project context, health checks, and server lifecycle visibility.",
+    whenToUse: "Use first when an agent joins a repo or diagnostics indicate environment drift.",
+    representativeTools: ["health_check", "ensure_project", "macro_start_session"],
+  },
+  {
+    id: "cluster-identity",
+    cluster: "Identity",
+    purpose: "Create or update persistent agent identities and profile metadata.",
+    whenToUse: "Use before sending mail or reserving files so actions are attributable.",
+    representativeTools: ["register_agent", "create_agent_identity", "whois"],
+  },
+  {
+    id: "cluster-messaging",
+    cluster: "Messaging",
+    purpose: "Coordinate work asynchronously with durable, threaded, auditable messages.",
+    whenToUse: "Use for handoffs, blockers, design decisions, and escalation paths.",
+    representativeTools: ["send_message", "reply_message", "fetch_inbox", "acknowledge_message"],
+  },
+  {
+    id: "cluster-contacts",
+    cluster: "Contacts",
+    purpose: "Control who can message whom across teams and projects.",
+    whenToUse: "Use when adding a new collaborator edge or enforcing contact policy.",
+    representativeTools: ["request_contact", "respond_contact", "set_contact_policy"],
+  },
+  {
+    id: "cluster-file-reservations",
+    cluster: "File Reservations",
+    purpose: "Advertise file ownership intent and avoid stepping on parallel edits.",
+    whenToUse: "Use before starting edits and renew/release throughout execution.",
+    representativeTools: ["file_reservation_paths", "renew_file_reservations", "release_file_reservations"],
+  },
+  {
+    id: "cluster-search",
+    cluster: "Search",
+    purpose: "Recover context rapidly from message history and thread archives.",
+    whenToUse: "Use before asking teammates for status and before planning new work.",
+    representativeTools: ["search_messages", "summarize_thread", "search_messages_product"],
+  },
+  {
+    id: "cluster-macros",
+    cluster: "Macros",
+    purpose: "Collapse common multi-step workflows into one predictable tool call.",
+    whenToUse: "Use when optimizing token budget or reducing orchestration mistakes.",
+    representativeTools: ["macro_start_session", "macro_prepare_thread", "macro_file_reservation_cycle", "macro_contact_handshake"],
+  },
+  {
+    id: "cluster-product-bus",
+    cluster: "Product Bus",
+    purpose: "Link multiple repos under one product-level coordination surface.",
+    whenToUse: "Use when architecture spans multiple services/repos with shared releases.",
+    representativeTools: ["ensure_product", "products_link", "fetch_inbox_product"],
+  },
+  {
+    id: "cluster-build-slots",
+    cluster: "Build Slots",
+    purpose: "Throttle expensive builds/tests to prevent CI or machine contention.",
+    whenToUse: "Use on shared runners or large swarms doing parallel compile-heavy work.",
+    representativeTools: ["acquire_build_slot", "renew_build_slot", "release_build_slot"],
+  },
+];
+
+export const resourceSurfaceCopy: ResourceSurfaceCopy[] = [
+  {
+    id: "resource-inbox",
+    uriPattern: "resource://inbox/{agent}",
+    purpose: "Read latest inbox messages without issuing tool calls.",
+    operatorValue: "Fast pull-based coordination with low token overhead.",
+  },
+  {
+    id: "resource-thread",
+    uriPattern: "resource://thread/{thread_id}",
+    purpose: "Retrieve thread history in one structured snapshot.",
+    operatorValue: "Prevents context loss before replying or escalating.",
+  },
+  {
+    id: "resource-agents",
+    uriPattern: "resource://agents/{project_key}",
+    purpose: "Enumerate known agents and their contactable identities.",
+    operatorValue: "Improves discoverability for new or restarted agents.",
+  },
+  {
+    id: "resource-reservations",
+    uriPattern: "resource://file_reservations/{project_key}",
+    purpose: "Inspect active lease ownership and expiry windows.",
+    operatorValue: "Immediate conflict awareness before code edits or commits.",
+  },
+  {
+    id: "resource-contacts",
+    uriPattern: "resource://contacts/{agent}",
+    purpose: "Show contact graph and approval state.",
+    operatorValue: "Clarifies who can be pinged directly vs. needs handshake.",
+  },
+  {
+    id: "resource-metrics",
+    uriPattern: "resource://metrics/{project_key}",
+    purpose: "Expose throughput/error/latency telemetry snapshots.",
+    operatorValue: "Supports operator triage and regression detection.",
+  },
+  {
+    id: "resource-health",
+    uriPattern: "resource://health",
+    purpose: "Report service readiness and degraded-mode signals.",
+    operatorValue: "Early warning for transport/storage/search instability.",
+  },
+];
+
+export const tuiScreenCopy: TuiScreenCopy[] = [
+  {
+    id: "screen-dashboard",
+    screen: "Dashboard",
+    coreQuestion: "Is the system healthy and active right now?",
+    primarySignals: ["inbound message rate", "reservation conflicts", "service health"],
+  },
+  {
+    id: "screen-inbox",
+    screen: "Inbox Browser",
+    coreQuestion: "What requires my immediate response?",
+    primarySignals: ["importance", "ack_required", "thread continuity"],
+  },
+  {
+    id: "screen-threads",
+    screen: "Thread Explorer",
+    coreQuestion: "How did this decision evolve over time?",
+    primarySignals: ["participants", "open action items", "decision checkpoints"],
+  },
+  {
+    id: "screen-roster",
+    screen: "Agent Roster",
+    coreQuestion: "Who is online and what are they doing?",
+    primarySignals: ["last active", "task description", "program/model"],
+  },
+  {
+    id: "screen-reservations",
+    screen: "Reservation Manager",
+    coreQuestion: "Where are file ownership conflicts emerging?",
+    primarySignals: ["path overlaps", "exclusive holders", "TTL expiration"],
+  },
+  {
+    id: "screen-search",
+    screen: "Unified Search",
+    coreQuestion: "Where is the prior context for this topic?",
+    primarySignals: ["query relevance", "thread_id", "sender filters"],
+  },
+  {
+    id: "screen-contacts",
+    screen: "Contact Graph",
+    coreQuestion: "Can this agent message that agent right now?",
+    primarySignals: ["approval state", "policy mode", "cross-project links"],
+  },
+  {
+    id: "screen-macros",
+    screen: "Macro Inspector",
+    coreQuestion: "Which high-level workflows are available and safe?",
+    primarySignals: ["macro preconditions", "side effects", "result payload shape"],
+  },
+  {
+    id: "screen-build-slots",
+    screen: "Build Slots",
+    coreQuestion: "Are build leases saturating shared infrastructure?",
+    primarySignals: ["active holders", "expiry", "exclusive contention"],
+  },
+  {
+    id: "screen-product-bus",
+    screen: "Product Bus",
+    coreQuestion: "How are projects linked under shared products?",
+    primarySignals: ["linked repos", "cross-project traffic", "search scope"],
+  },
+  {
+    id: "screen-audit",
+    screen: "Audit Timeline",
+    coreQuestion: "What happened and when?",
+    primarySignals: ["message lifecycle", "reservation changes", "identity updates"],
+  },
+  {
+    id: "screen-health",
+    screen: "System Health",
+    coreQuestion: "Which subsystem is degraded?",
+    primarySignals: ["DB pool pressure", "search fallback", "transport status"],
+  },
+  {
+    id: "screen-overseer",
+    screen: "Human Overseer",
+    coreQuestion: "How can an operator redirect execution quickly?",
+    primarySignals: ["compose path", "recipient targeting", "importance overrides"],
+  },
+  {
+    id: "screen-tool-metrics",
+    screen: "Tool Metrics",
+    coreQuestion: "Which tools are hot or failing?",
+    primarySignals: ["call volume", "error rate", "tail latency"],
+  },
+  {
+    id: "screen-theme-status",
+    screen: "Theme + Session Status",
+    coreQuestion: "Is this session readable and context-aligned?",
+    primarySignals: ["active theme", "connection status", "time windows"],
+  },
+];
+
+export const robotCommandTrackCopy: RobotCommandTrackCopy[] = [
+  {
+    id: "track-situational-awareness",
+    track: "Situational Awareness",
+    objective: "Get fast status before taking action.",
+    commandExamples: ["am robot status --format toon", "am robot health --format json"],
+  },
+  {
+    id: "track-message-triage",
+    track: "Message Triage",
+    objective: "Prioritize and acknowledge inbound coordination tasks.",
+    commandExamples: ["am robot inbox --format json --agent GreenCastle", "am robot thread --format md bd-123"],
+  },
+  {
+    id: "track-history-retrieval",
+    track: "History Retrieval",
+    objective: "Recover past decisions before proposing changes.",
+    commandExamples: ["am robot search --format json \"auth refactor\"", "am robot thread --format md bd-123"],
+  },
+  {
+    id: "track-edit-safety",
+    track: "Edit Safety",
+    objective: "Inspect ownership and avoid reservation collisions.",
+    commandExamples: ["am robot reservations --format json", "am robot health --format json"],
+  },
+  {
+    id: "track-operator-reporting",
+    track: "Operator Reporting",
+    objective: "Produce machine-readable snapshots for automation and dashboards.",
+    commandExamples: ["am robot status --format json > status.snapshot.json", "am robot health --format json > health.snapshot.json"],
+  },
+];
+
+export interface TechnicalSurfaceCopy {
+  toolClusters: ToolClusterCopy[];
+  resources: ResourceSurfaceCopy[];
+  tuiScreens: TuiScreenCopy[];
+  robotTracks: RobotCommandTrackCopy[];
+}
+
+export const technicalSurfaceCopy: TechnicalSurfaceCopy = {
+  toolClusters: toolClusterCopy,
+  resources: resourceSurfaceCopy,
+  tuiScreens: tuiScreenCopy,
+  robotTracks: robotCommandTrackCopy,
+};
+
 // Changelog
 export const changelog: ChangelogEntry[] = [
   {
+    id: "python-foundation",
     period: "Phase 1",
     title: "Python Foundation (1,700+ stars)",
     items: [
@@ -391,6 +803,7 @@ export const changelog: ChangelogEntry[] = [
     ],
   },
   {
+    id: "rust-rewrite",
     period: "Phase 2",
     title: "Rust Ground-Up Rewrite",
     items: [
@@ -401,6 +814,7 @@ export const changelog: ChangelogEntry[] = [
     ],
   },
   {
+    id: "mcp-surface-search",
     period: "Phase 3",
     title: "MCP Surface & Search V3",
     items: [
@@ -411,6 +825,7 @@ export const changelog: ChangelogEntry[] = [
     ],
   },
   {
+    id: "ops-console-cli",
     period: "Phase 4",
     title: "Operations Console & CLI",
     items: [
@@ -421,6 +836,7 @@ export const changelog: ChangelogEntry[] = [
     ],
   },
   {
+    id: "stress-hardening",
     period: "Phase 5",
     title: "Stress Testing & Production Hardening",
     items: [
@@ -431,6 +847,21 @@ export const changelog: ChangelogEntry[] = [
     ],
   },
 ];
+
+export interface CoreContentDatasets {
+  heroStats: Stat[];
+  features: Feature[];
+  comparisonRows: AgentMailComparisonRow[];
+  changelog: ChangelogEntry[];
+}
+
+// Single import point for route composition and contract-style tests.
+export const coreContentDatasets: CoreContentDatasets = {
+  heroStats,
+  features,
+  comparisonRows: comparisonData,
+  changelog,
+};
 
 // Glossary terms (alphabetically ordered)
 export const glossaryTerms: GlossaryTerm[] = [
@@ -460,6 +891,216 @@ export const glossaryTerms: GlossaryTerm[] = [
   { term: "TTL", short: "Time-to-live for reservations", long: "File reservations and build slots expire after their TTL (default 3600 seconds). Agents can renew before expiration. Expired reservations are automatically cleaned up, preventing stale locks." },
   { term: "TUI", short: "Terminal User Interface operations console", long: "A 15-screen interactive terminal interface built on frankentui. Provides real-time dashboards, message browsing, thread exploration, agent roster, search, reservation management, and system health monitoring." },
   { term: "Web UI", short: "Browser-based operator interface", long: "Served at http://127.0.0.1:8765/mail, the web interface provides unified inbox, project overview, message details, search, file reservations, and the Human Overseer compose form for sending messages to agents." },
+];
+
+// General FAQ (broader than getting-started, covers architecture and operational questions)
+export const generalFaq: FaqItem[] = [
+  {
+    question: "How does Agent Mail differ from just using Git branches?",
+    answer: "Git branches isolate code changes but provide no communication, identity, or coordination between agents. Agent Mail adds threaded messaging, file reservations, search, and operator visibility on top of your existing Git workflow.",
+  },
+  {
+    question: "Does Agent Mail work with any AI coding agent?",
+    answer: "Yes. Agent Mail exposes 34 MCP tools and 20+ resources via the Model Context Protocol standard. Any MCP-capable agent (Claude Code, Codex CLI, Gemini CLI, Cursor, etc.) can connect with a single config snippet.",
+  },
+  {
+    question: "What happens if an agent crashes mid-reservation?",
+    answer: "All file reservations have a TTL (default 3600 seconds). If an agent crashes, its reservations expire automatically. The stress gauntlet specifically tests stale lock recovery scenarios.",
+  },
+  {
+    question: "Is the pre-commit guard mandatory?",
+    answer: "No. The guard is opt-in and bypassable (AGENT_MAIL_BYPASS=1). File reservations are advisory by design, giving you conflict visibility without hard locks that could cause deadlocks.",
+  },
+  {
+    question: "How does cross-project coordination work?",
+    answer: "The product bus links multiple repositories under a single umbrella. Agents perform a contact handshake to establish communication channels, then can send messages and search across project boundaries.",
+  },
+  {
+    question: "What is the performance overhead?",
+    answer: "Minimal. The stress gauntlet sustains ~49 RPS with 30 concurrent agents. SQLite WAL mode with connection pooling keeps latency low, and the commit coalescer reduces Git write overhead by 9.1x.",
+  },
+  {
+    question: "Can I use Agent Mail for a solo project?",
+    answer: "Absolutely. Even solo developers benefit from the audit trail, structured search, and the ability to spin up multiple agents on different tasks within the same project without file conflicts.",
+  },
+  {
+    question: "How is message history preserved?",
+    answer: "Messages are stored in SQLite for fast queries and simultaneously archived to per-project Git repositories as date-partitioned files. This gives you both search speed and durable, diffable history.",
+  },
+  {
+    question: "What are the 9 tool clusters?",
+    answer: "Infrastructure (health, config), Identity (register, list agents), Messaging (send, reply, fetch inbox), Contacts (request, respond, list), File Reservations (reserve, release, query), Search (messages, cross-project), Macros (start session, prepare thread), Product Bus (link repos), and Build Slots (acquire, renew, release).",
+  },
+  {
+    question: "Does Agent Mail require a separate server?",
+    answer: "Agent Mail runs as a single binary (am) that serves both the MCP interface and the HTTP/Web UI. No external databases, message brokers, or cloud services required. Everything is local-first.",
+  },
+];
+
+// Documentation cross-links: map glossary terms to relevant site sections
+export interface DocCrossLink {
+  term: string;
+  links: { label: string; href: string }[];
+}
+
+export const glossaryCrossLinks: DocCrossLink[] = [
+  { term: "Agent Identity", links: [{ label: "Getting Started", href: "/getting-started" }, { label: "Architecture", href: "/architecture" }] },
+  { term: "File Reservation", links: [{ label: "Getting Started", href: "/getting-started" }, { label: "Showcase", href: "/showcase" }] },
+  { term: "MCP", links: [{ label: "Spec Explorer", href: "/spec-explorer" }, { label: "Architecture", href: "/architecture" }] },
+  { term: "TUI", links: [{ label: "Showcase", href: "/showcase" }, { label: "Architecture", href: "/architecture" }] },
+  { term: "Robot Mode", links: [{ label: "Getting Started", href: "/getting-started" }, { label: "Showcase", href: "/showcase" }] },
+  { term: "Pre-Commit Guard", links: [{ label: "Getting Started", href: "/getting-started" }] },
+  { term: "Product Bus", links: [{ label: "Architecture", href: "/architecture" }] },
+  { term: "Stress Gauntlet", links: [{ label: "Showcase", href: "/showcase" }] },
+  { term: "Macro", links: [{ label: "Getting Started", href: "/getting-started" }, { label: "Spec Explorer", href: "/spec-explorer" }] },
+  { term: "Web UI", links: [{ label: "Showcase", href: "/showcase" }] },
+  { term: "Thread", links: [{ label: "Architecture", href: "/architecture" }] },
+  { term: "Build Slot", links: [{ label: "Architecture", href: "/architecture" }] },
+];
+
+// Persona-driven marketing narrative
+export interface UserPersona {
+  id: string;
+  name: string;
+  role: string;
+  context: string;
+  painPoints: string[];
+  valueProps: string[];
+  cta: string;
+}
+
+export const userPersonas: UserPersona[] = [
+  {
+    id: "solo-builder",
+    name: "Solo Builder",
+    role: "Individual developer running multiple AI agents",
+    context: "You launch 3-5 Claude Code or Codex sessions on a single repo. Without coordination, agents overwrite each other's work, create merge conflicts, and waste tokens re-doing lost changes.",
+    painPoints: [
+      "Agents silently overwrite files another agent just edited",
+      "No way to know which agent is working on what",
+      "Merge conflicts after every parallel session",
+      "Lost work when two agents edit the same function",
+    ],
+    valueProps: [
+      "File reservations prevent edit collisions before they happen",
+      "Agent roster shows who is working on what, right now",
+      "Threaded messages let agents coordinate task boundaries",
+      "Git-backed audit trail means no work is ever silently lost",
+    ],
+    cta: "Start coordinating your agents in 60 seconds",
+  },
+  {
+    id: "team-lead",
+    name: "Team Lead",
+    role: "Engineering lead managing a team using AI coding tools",
+    context: "Your team runs agent swarms across multiple repositories. You need visibility into what agents are doing, the ability to redirect them mid-session, and confidence that agent-written code follows your standards.",
+    painPoints: [
+      "No visibility into what agents are doing across repos",
+      "Cannot redirect an agent that is going down the wrong path",
+      "Agent-written code sometimes contradicts team conventions",
+      "No audit trail for who changed what and why",
+    ],
+    valueProps: [
+      "15-screen TUI and Web UI give real-time operational visibility",
+      "Human Overseer lets you send urgent redirects to any agent",
+      "Pre-commit guard enforces file ownership boundaries",
+      "Every message, reservation, and action is searchable and auditable",
+    ],
+    cta: "Get operational control over your agent fleet",
+  },
+  {
+    id: "platform-engineer",
+    name: "Platform Engineer",
+    role: "Building internal tooling and multi-agent infrastructure",
+    context: "You are building or evaluating coordination infrastructure for AI agents at scale. You need something that is production-hardened, extensible via MCP, and does not require cloud dependencies or vendor lock-in.",
+    painPoints: [
+      "Existing solutions require cloud services or vendor APIs",
+      "No standard protocol for agent-to-agent communication",
+      "Coordination tools that work at demo scale but break under load",
+      "Integration complexity with diverse agent runtimes",
+    ],
+    valueProps: [
+      "Local-first: single binary, no cloud dependencies, SQLite + Git",
+      "MCP standard: 34 tools + 20 resources, works with any MCP-capable agent",
+      "Stress-tested: 30-agent pipelines, ~49 RPS sustained, 10/10 gauntlet",
+      "12-crate Rust workspace you can extend, fork, or embed",
+    ],
+    cta: "Evaluate the production-ready coordination fabric",
+  },
+];
+
+export interface Objection {
+  id: string;
+  objection: string;
+  response: string;
+  evidence: string;
+}
+
+export const objectionHandlers: Objection[] = [
+  {
+    id: "just-use-branches",
+    objection: "We already use Git branches for isolation",
+    response: "Branches isolate code but not communication. When Agent A needs to tell Agent B it changed an API, branches have no mechanism for that. Agent Mail adds the coordination layer that Git lacks.",
+    evidence: "The comparison table shows 12 capabilities where Git worktrees have gaps in messaging, identity, search, and operator visibility.",
+  },
+  {
+    id: "too-complex",
+    objection: "This adds too much complexity to our workflow",
+    response: "Agent Mail is a single binary (am) with a one-line install. The macro_start_session call bootstraps everything in one step. You do not need to configure databases, message brokers, or cloud services.",
+    evidence: "Install: curl | bash. Start: am. Bootstrap: one tool call. The getting-started path is under 60 seconds.",
+  },
+  {
+    id: "wont-scale",
+    objection: "Advisory locks will not work at scale",
+    response: "The stress gauntlet runs 30 concurrent agents across 10 projects with mixed workloads. Advisory reservations with TTL expiration prevent deadlocks while the guard hook provides enforcement when needed.",
+    evidence: "10/10 stress gauntlet scenarios pass: 1,494 ops in 30s, pool exhaustion recovery, thundering herd handling.",
+  },
+  {
+    id: "vendor-lockin",
+    objection: "I do not want to depend on another tool",
+    response: "Agent Mail is open source (MIT), local-first, and stores everything in Git + SQLite. There are no cloud dependencies, no API keys, no accounts. If you stop using it, your data is still in standard formats.",
+    evidence: "MIT license, all data in Git repos and SQLite databases, no network calls required for core functionality.",
+  },
+  {
+    id: "agents-dont-need-coordination",
+    objection: "Our agents work fine without coordination",
+    response: "They work fine until they do not. The first time two agents edit the same file, you lose hours of work. Agent Mail prevents that failure mode while adding structured communication that makes multi-agent workflows more productive.",
+    evidence: "Every team that has run 3+ concurrent agents has hit file collision issues. Reservations make these impossible.",
+  },
+];
+
+export interface ConversionMessage {
+  id: string;
+  headline: string;
+  subhead: string;
+  personaIds: string[];
+}
+
+export const conversionMessages: ConversionMessage[] = [
+  {
+    id: "stop-losing-work",
+    headline: "Stop Losing Agent Work to File Collisions",
+    subhead: "File reservations prevent the most common multi-agent failure mode.",
+    personaIds: ["solo-builder", "team-lead"],
+  },
+  {
+    id: "see-everything",
+    headline: "See Everything Your Agents Are Doing",
+    subhead: "Real-time dashboards, searchable message history, and operator controls.",
+    personaIds: ["team-lead", "platform-engineer"],
+  },
+  {
+    id: "zero-config",
+    headline: "One Binary. One Command. Zero Cloud Dependencies.",
+    subhead: "Install in seconds, coordinate in minutes. No accounts, no API keys, no vendor lock-in.",
+    personaIds: ["solo-builder", "platform-engineer"],
+  },
+  {
+    id: "production-ready",
+    headline: "Stress-Tested With 30 Concurrent Agents",
+    subhead: "Not a prototype. Battle-tested coordination infrastructure backed by a 10-scenario stress gauntlet.",
+    personaIds: ["platform-engineer"],
+  },
 ];
 
 // Flywheel

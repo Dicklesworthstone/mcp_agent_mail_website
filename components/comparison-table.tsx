@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
-import { comparisonData } from "@/lib/content";
+import { comparisonData, comparisonStatusByValue } from "@/lib/content";
 import type { AgentMailComparisonRow } from "@/lib/content";
 import { cn } from "@/lib/utils";
 import { SyncContainer } from "./sync-elements";
@@ -10,17 +10,10 @@ import GlitchText from "./glitch-text";
 import { motion } from "framer-motion";
 
 function StatusCell({ value }: { value: string }) {
-  const isPositive = [
-    "Persistent, project-scoped", "Threaded + searchable", "Advisory reservations + guard",
-    "Git + SQLite", "Product bus", "Hybrid lexical + semantic", "15-screen TUI + Web UI",
-    "34 tools + 20 resources", "Auto-detect + register", "Built-in ack protocol",
-    "Build slot management", "10/10 gauntlet (30 agents)",
-  ].includes(value);
-  const isPartial = [
-    "Isolated branches", "Git history only", "Git log", "File history",
-    "File browser", "Text search", "Append-only files",
-  ].includes(value);
-  const isNegative = ["None", "Manual", "N/A", "Race conditions"].includes(value);
+  const status = comparisonStatusByValue[value] ?? "negative";
+  const isPositive = status === "positive";
+  const isPartial = status === "partial";
+  const isNegative = status === "negative";
 
   return (
     <td
@@ -63,7 +56,7 @@ export default function ComparisonTable() {
     data: comparisonData,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getRowId: (row) => row.feature,
+    getRowId: (row) => row.id,
   });
 
   return (

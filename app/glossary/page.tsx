@@ -7,11 +7,42 @@ import { Search, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import GlitchText from "@/components/glitch-text";
 import { SyncContainer } from "@/components/sync-elements";
-import { glossaryTerms } from "@/lib/content";
+import { glossaryTerms, generalFaq, glossaryCrossLinks } from "@/lib/content";
 
 type GlossaryRow =
   | { id: string; type: "heading"; letter: string }
   | { id: string; type: "term"; letter: string; term: (typeof glossaryTerms)[number] };
+
+function FaqAccordion({ question, answer }: { question: string; answer: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <button
+      onClick={() => setOpen(!open)}
+      className="w-full text-left rounded-xl border border-white/5 bg-white/[0.02] p-6 hover:border-blue-500/20 hover:bg-white/[0.04] transition-all"
+    >
+      <div className="flex items-center justify-between">
+        <h3 className="text-base font-bold text-white pr-4">{question}</h3>
+        <span aria-hidden="true" className="text-[10px] font-bold text-slate-600 uppercase tracking-widest shrink-0">
+          {open ? "\u25BC" : "\u25B6"}
+        </span>
+      </div>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <p className="text-sm text-slate-300 mt-4 pt-4 border-t border-white/5 leading-relaxed">
+              {answer}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </button>
+  );
+}
 
 export default function GlossaryPage() {
   const searchForm = useForm({
@@ -75,7 +106,11 @@ export default function GlossaryPage() {
 
   return (
     <main id="main-content">
-      <section className="relative pt-32 pb-20 overflow-hidden">
+      <section
+        id="glossary-hero"
+        data-scaffold-slot="hero"
+        className="relative pt-32 pb-20 overflow-hidden"
+      >
         <div className="absolute inset-0 z-0">
           <div className="absolute top-0 right-1/4 w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[100px]" />
         </div>
@@ -87,35 +122,38 @@ export default function GlossaryPage() {
             </h1>
           </GlitchText>
           <p className="text-xl text-slate-400 font-medium max-w-2xl mx-auto">
-            Key terms and concepts in the Asupersync runtime.
+            Key terms and concepts in MCP Agent Mail.
           </p>
         </div>
       </section>
 
       <div className="mx-auto max-w-4xl px-6 pb-32">
-        {/* Search */}
-        <div className="sticky top-24 z-30 mb-12">
-          <SyncContainer withNodes={false} withLines={false} className="glass-modern p-2">
-            <div className="flex items-center gap-3 px-4">
-              <Search className="h-5 w-5 text-slate-500 shrink-0" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => searchForm.setFieldValue("query", e.target.value)}
-                placeholder="Search terms..."
-                className="flex-1 bg-transparent text-white placeholder:text-slate-600 text-sm font-medium py-3 outline-none"
-              />
-              {search && (
-                <button onClick={() => searchForm.setFieldValue("query", "")} className="text-slate-500 hover:text-white transition-colors">
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          </SyncContainer>
-        </div>
+        <section id="glossary-search" data-scaffold-slot="search-controls">
+          <div className="sticky top-24 z-30 mb-12">
+            <SyncContainer withNodes={false} withLines={false} className="glass-modern p-2">
+              <div className="flex items-center gap-3 px-4">
+                <Search className="h-5 w-5 text-slate-500 shrink-0" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => searchForm.setFieldValue("query", e.target.value)}
+                  placeholder="Search terms..."
+                  className="flex-1 bg-transparent text-white placeholder:text-slate-600 text-sm font-medium py-3 outline-none"
+                />
+                {search && (
+                  <button
+                    onClick={() => searchForm.setFieldValue("query", "")}
+                    className="text-slate-500 hover:text-white transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </SyncContainer>
+          </div>
+        </section>
 
-        {/* Terms */}
-        <div className="space-y-12">
+        <section id="glossary-index" data-scaffold-slot="term-index" className="space-y-12">
           {virtualRows.length > 0 && (
             <div ref={listRef} className="max-h-[72vh] overflow-y-auto pr-2 custom-scrollbar">
               <div
@@ -163,6 +201,20 @@ export default function GlossaryPage() {
                                 <p className="text-sm text-slate-300 mt-4 pt-4 border-t border-white/5 leading-relaxed">
                                   {row.term.long}
                                 </p>
+                                {(() => {
+                                  const crossLink = glossaryCrossLinks.find(cl => cl.term === row.term.term);
+                                  if (!crossLink) return null;
+                                  return (
+                                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
+                                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">See also:</span>
+                                      {crossLink.links.map(link => (
+                                        <a key={link.href} href={link.href} className="text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors">
+                                          {link.label}
+                                        </a>
+                                      ))}
+                                    </div>
+                                  );
+                                })()}
                               </motion.div>
                             )}
                           </AnimatePresence>
@@ -174,13 +226,31 @@ export default function GlossaryPage() {
               </div>
             </div>
           )}
-        </div>
+        </section>
 
-        {filtered.length === 0 && (
-          <div className="text-center py-20">
-            <p className="text-slate-500 text-lg">No terms match &ldquo;{search}&rdquo;</p>
+        <section
+          id="glossary-empty-state"
+          data-scaffold-slot="empty-state"
+          aria-live="polite"
+          className={filtered.length === 0 ? "text-center py-20" : "hidden"}
+        >
+          <p className="text-slate-500 text-lg">No terms match &ldquo;{search}&rdquo;</p>
+        </section>
+
+        <section
+          id="glossary-faq"
+          data-scaffold-slot="faq-module"
+          className="mt-16"
+        >
+          <h2 className="text-3xl font-black tracking-tight text-white mb-8">
+            Frequently Asked Questions
+          </h2>
+          <div className="space-y-4">
+            {generalFaq.map((item, i) => (
+              <FaqAccordion key={i} question={item.question} answer={item.answer} />
+            ))}
           </div>
-        )}
+        </section>
       </div>
     </main>
   );

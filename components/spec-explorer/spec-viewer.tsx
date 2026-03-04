@@ -136,12 +136,17 @@ export default function SpecViewer() {
   }, [activeDoc]);
 
   return (
-    <div className="min-h-[80vh]">
+    <div
+      id="spec-explorer-workspace"
+      data-scaffold-slot="workspace"
+      className="min-h-[80vh]"
+    >
       {/* Mobile: full-width list → detail pattern */}
-      <div className="lg:hidden">
+      <section id="spec-mobile-shell" className="lg:hidden">
         <AnimatePresence mode="wait">
           {activeDoc ? (
             <motion.div
+              id="spec-mobile-reader"
               key="detail"
               initial={{ opacity: 0, x: 40 }}
               animate={{ opacity: 1, x: 0 }}
@@ -160,6 +165,7 @@ export default function SpecViewer() {
             </motion.div>
           ) : (
             <motion.div
+              id="spec-mobile-index"
               key="list"
               initial={{ opacity: 0, x: -40 }}
               animate={{ opacity: 1, x: 0 }}
@@ -179,11 +185,11 @@ export default function SpecViewer() {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </section>
 
       {/* Desktop: sidebar + panel */}
-      <div className="hidden lg:grid lg:grid-cols-[340px,1fr] gap-0">
-        <div className="border-r border-white/5 pr-0 overflow-y-auto max-h-[85vh] custom-scrollbar">
+      <section id="spec-desktop-shell" className="hidden lg:grid lg:grid-cols-[340px,1fr] gap-0">
+        <aside id="spec-desktop-index" className="border-r border-white/5 pr-0 overflow-y-auto max-h-[85vh] custom-scrollbar">
           <div className="pr-6">
             <Sidebar
               activeCategory={activeCategory}
@@ -196,8 +202,8 @@ export default function SpecViewer() {
               onPrefetch={prefetchDoc}
             />
           </div>
-        </div>
-        <div className="pl-8 overflow-y-auto max-h-[85vh] custom-scrollbar">
+        </aside>
+        <section id="spec-desktop-reader" className="pl-8 overflow-y-auto max-h-[85vh] custom-scrollbar">
           <AnimatePresence mode="wait">
             {activeDoc ? (
               <motion.div
@@ -212,6 +218,7 @@ export default function SpecViewer() {
               </motion.div>
             ) : (
               <motion.div
+                id="spec-desktop-empty-state"
                 key="empty"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -226,8 +233,8 @@ export default function SpecViewer() {
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
-      </div>
+        </section>
+      </section>
     </div>
   );
 }

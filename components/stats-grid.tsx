@@ -65,7 +65,7 @@ export default function StatsGrid({ stats }: { stats: Stat[] }) {
       >
         {parsedStats.map(({ stat, parsed }, index) => (
           <div
-            key={stat.label}
+            key={stat.id}
             className="group relative bg-[#020a14]/80 px-6 py-10 backdrop-blur transition-all duration-500 hover:bg-[#020a14]/40"
           >
             <DataPulse className="opacity-0 group-hover:opacity-40 transition-opacity" />
