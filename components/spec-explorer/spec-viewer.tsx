@@ -1,12 +1,15 @@
 "use client";
 
 import {
+  Fragment,
   useState,
   useEffect,
   useMemo,
   useRef,
   useCallback,
   type ComponentType,
+  type MouseEvent,
+  type ReactNode,
 } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -16,7 +19,7 @@ import {
   getFilteredRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   FileText,
   ChevronRight,
@@ -29,15 +32,23 @@ import {
   Network,
   RefreshCw,
   AlertTriangle,
+  Copy,
+  Check,
+  ArrowUpRight,
+  Hash,
+  Quote,
+  Code2,
+  TableProperties,
+  Workflow,
 } from "lucide-react";
 import { marked } from "marked";
-import DOMPurify from "dompurify";
 import { cn, isTextInputLike } from "@/lib/utils";
 import {
   specDocs,
   specCategories,
   type SpecDoc,
   type SpecCategory,
+  resolveSpecDocFromHref,
   toSpecDocPublicHref,
 } from "@/lib/spec-docs";
 import { SyncContainer } from "@/components/sync-elements";
@@ -63,18 +74,113 @@ const CATEGORY_COUNTS: Record<SpecCategory, number> = Object.fromEntries(
   specCategories.map((cat) => [cat, specDocs.filter((doc) => doc.category === cat).length]),
 ) as Record<SpecCategory, number>;
 
+const PANEL_TRANSITION = { duration: 0.24, ease: "easeOut" } as const;
+const SPEC_DOC_FILENAME_PATTERN = /^[A-Za-z0-9._-]+\.md$/;
+
 type GroupedDocs = Partial<Record<SpecCategory, SpecDoc[]>>;
 
 type SidebarItem =
   | { id: string; type: "heading"; category: SpecCategory }
   | { id: string; type: "doc"; category: SpecCategory; doc: SpecDoc };
 
-const PANEL_TRANSITION = { duration: 0.24, ease: "easeOut" } as const;
-const SPEC_DOC_FILENAME_PATTERN = /^[A-Za-z0-9._-]+\.md$/;
-const SANITIZED_URI_REGEXP =
-  /^(?:(?:(?:https?|mailto|tel):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$)))/i;
+type MarkdownToken = ReturnType<typeof marked.lexer>[number];
 
-async function loadSpecDocHtml(filename: string, signal?: AbortSignal): Promise<string> {
+type MarkdownInlineToken = {
+  type: string;
+  raw?: string;
+  text?: string;
+  href?: string;
+  title?: string | null;
+  depth?: number;
+  tokens?: MarkdownInlineToken[];
+};
+
+type MarkdownListItem = {
+  text?: string;
+  tokens?: MarkdownToken[];
+};
+
+type MarkdownTableCell = {
+  text?: string;
+  tokens?: MarkdownInlineToken[];
+};
+
+type ParsedDocSection = {
+  id: string;
+  title: string;
+  blocks: MarkdownToken[];
+};
+
+type ParsedSpecDoc = {
+  leadQuote: Extract<MarkdownToken, { type: "blockquote" }> | null;
+  preamble: MarkdownToken[];
+  sections: ParsedDocSection[];
+  stats: {
+    sectionCount: number;
+    codeBlocks: number;
+    tableCount: number;
+    linkCount: number;
+    wordCount: number;
+    readMinutes: number;
+  };
+};
+
+type SectionTone = {
+  accentColor: string;
+  borderClass: string;
+  chipClass: string;
+  iconClass: string;
+  navClass: string;
+  haloClass: string;
+  textClass: string;
+};
+
+const SECTION_TONES: SectionTone[] = [
+  {
+    accentColor: "#60A5FA",
+    borderClass: "border-blue-500/20",
+    chipClass: "border-blue-400/30 bg-blue-500/10 text-blue-200",
+    iconClass: "border-blue-400/20 bg-blue-500/10 text-blue-200",
+    navClass: "border-blue-400/25 bg-blue-500/10 text-blue-100",
+    haloClass:
+      "bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.16),transparent_48%),radial-gradient(circle_at_bottom_right,rgba(56,189,248,0.1),transparent_42%)]",
+    textClass: "text-blue-200",
+  },
+  {
+    accentColor: "#22D3EE",
+    borderClass: "border-cyan-500/20",
+    chipClass: "border-cyan-400/30 bg-cyan-500/10 text-cyan-200",
+    iconClass: "border-cyan-400/20 bg-cyan-500/10 text-cyan-200",
+    navClass: "border-cyan-400/25 bg-cyan-500/10 text-cyan-100",
+    haloClass:
+      "bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.16),transparent_48%),radial-gradient(circle_at_bottom_right,rgba(96,165,250,0.08),transparent_40%)]",
+    textClass: "text-cyan-200",
+  },
+  {
+    accentColor: "#F59E0B",
+    borderClass: "border-amber-500/20",
+    chipClass: "border-amber-400/30 bg-amber-500/10 text-amber-200",
+    iconClass: "border-amber-400/20 bg-amber-500/10 text-amber-200",
+    navClass: "border-amber-400/25 bg-amber-500/10 text-amber-100",
+    haloClass:
+      "bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.14),transparent_48%),radial-gradient(circle_at_bottom_right,rgba(249,115,22,0.08),transparent_40%)]",
+    textClass: "text-amber-200",
+  },
+  {
+    accentColor: "#34D399",
+    borderClass: "border-emerald-500/20",
+    chipClass: "border-emerald-400/30 bg-emerald-500/10 text-emerald-200",
+    iconClass: "border-emerald-400/20 bg-emerald-500/10 text-emerald-200",
+    navClass: "border-emerald-400/25 bg-emerald-500/10 text-emerald-100",
+    haloClass:
+      "bg-[radial-gradient(circle_at_top_left,rgba(52,211,153,0.14),transparent_48%),radial-gradient(circle_at_bottom_right,rgba(34,197,94,0.08),transparent_40%)]",
+    textClass: "text-emerald-200",
+  },
+];
+
+const DOC_INDEX_BY_FILENAME = new Map(specDocs.map((doc) => [doc.filename.toLowerCase(), doc]));
+
+async function loadSpecDocSource(filename: string, signal?: AbortSignal): Promise<string> {
   if (!SPEC_DOC_FILENAME_PATTERN.test(filename)) {
     throw new Error("Invalid spec document filename");
   }
@@ -84,56 +190,263 @@ async function loadSpecDocHtml(filename: string, signal?: AbortSignal): Promise<
     throw new Error(`Failed to load ${filename}`);
   }
 
-  const markdown = await response.text();
-  const html = await marked.parse(markdown);
-  const sanitized = DOMPurify.sanitize(html, {
-    USE_PROFILES: { html: true },
-    FORBID_TAGS: [
-      "script",
-      "style",
-      "form",
-      "input",
-      "button",
-      "textarea",
-      "select",
-      "option",
-      "fieldset",
-      "legend",
-    ],
-    FORBID_ATTR: ["style", "onerror", "onload", "onclick", "action", "formaction"],
-    ALLOWED_URI_REGEXP: SANITIZED_URI_REGEXP,
-  });
-  return normalizeRenderedLinks(sanitized);
+  return response.text();
 }
 
-function normalizeRenderedLinks(html: string): string {
-  if (typeof DOMParser === "undefined") {
-    return html;
+function slugifyHeading(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/["']/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function extractFragmentId(href: string): string | null {
+  const hashIndex = href.indexOf("#");
+  if (hashIndex < 0) return null;
+
+  const fragment = href.slice(hashIndex + 1).trim();
+  return fragment ? fragment : null;
+}
+
+function getInlineTokens(value: { tokens?: unknown } | null | undefined): MarkdownInlineToken[] {
+  return Array.isArray(value?.tokens) ? (value.tokens as MarkdownInlineToken[]) : [];
+}
+
+function getBlockTokens(value: { tokens?: unknown } | null | undefined): MarkdownToken[] {
+  return Array.isArray(value?.tokens) ? (value.tokens as MarkdownToken[]) : [];
+}
+
+function hasTokenList(value: unknown): value is { tokens?: unknown } {
+  return typeof value === "object" && value !== null && "tokens" in value;
+}
+
+function countWords(markdown: string): number {
+  const plainText = markdown
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`[^`]*`/g, " ")
+    .replace(/[#>*_\-|\[\]()]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!plainText) return 0;
+  return plainText.split(" ").filter(Boolean).length;
+}
+
+function flattenInlineText(tokens: MarkdownInlineToken[]): string {
+  return tokens
+    .map((token) => {
+      if (token.type === "br") return " ";
+      if (token.type === "strong" || token.type === "em" || token.type === "link") {
+        return flattenInlineText(token.tokens ?? []);
+      }
+      return token.text ?? token.raw ?? "";
+    })
+    .join("")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function flattenBlockText(tokens: MarkdownToken[]): string {
+  return tokens
+    .map((token) => {
+      switch (token.type) {
+        case "paragraph":
+        case "heading":
+        case "text":
+          return flattenInlineText(getInlineTokens(token));
+        case "blockquote":
+          return flattenBlockText(getBlockTokens(token));
+        case "list":
+          return ((token.items as MarkdownListItem[] | undefined) ?? [])
+            .map((item) => flattenBlockText(item.tokens ?? []))
+            .join(" ");
+        case "table": {
+          const header = (token.header as MarkdownTableCell[] | undefined) ?? [];
+          const rows = (token.rows as MarkdownTableCell[][] | undefined) ?? [];
+          return [
+            ...header.map((cell) => flattenInlineText(cell.tokens ?? [])),
+            ...rows.flat().map((cell) => flattenInlineText(cell.tokens ?? [])),
+          ].join(" ");
+        }
+        case "code":
+          return token.text ?? "";
+        default:
+          return "text" in token && typeof token.text === "string" ? token.text : "";
+      }
+    })
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function countInlineLinks(tokens: MarkdownInlineToken[]): number {
+  return tokens.reduce((count, token) => {
+    if (token.type === "link") {
+      return count + 1 + countInlineLinks(token.tokens ?? []);
+    }
+    return count + countInlineLinks(token.tokens ?? []);
+  }, 0);
+}
+
+function summarizeDocStats(tokens: MarkdownToken[], markdown: string): ParsedSpecDoc["stats"] {
+  let codeBlocks = 0;
+  let tableCount = 0;
+  let linkCount = 0;
+
+  const walk = (blocks: MarkdownToken[]) => {
+    for (const token of blocks) {
+      switch (token.type) {
+        case "paragraph":
+        case "heading":
+        case "text":
+          linkCount += countInlineLinks(getInlineTokens(token));
+          break;
+        case "blockquote":
+          walk(getBlockTokens(token));
+          break;
+        case "list":
+          for (const item of (token.items as MarkdownListItem[] | undefined) ?? []) {
+            walk(item.tokens ?? []);
+          }
+          break;
+        case "table": {
+          tableCount += 1;
+          const header = (token.header as MarkdownTableCell[] | undefined) ?? [];
+          const rows = (token.rows as MarkdownTableCell[][] | undefined) ?? [];
+          for (const cell of header) {
+            linkCount += countInlineLinks(cell.tokens ?? []);
+          }
+          for (const row of rows) {
+            for (const cell of row) {
+              linkCount += countInlineLinks(cell.tokens ?? []);
+            }
+          }
+          break;
+        }
+        case "code":
+          codeBlocks += 1;
+          break;
+        default:
+          break;
+      }
+    }
+  };
+
+  walk(tokens);
+
+  const wordCount = countWords(markdown);
+  return {
+    sectionCount: tokens.filter((token) => token.type === "heading" && token.depth === 2).length,
+    codeBlocks,
+    tableCount,
+    linkCount,
+    wordCount,
+    readMinutes: Math.max(1, Math.ceil(wordCount / 220)),
+  };
+}
+
+function parseSpecDoc(markdown: string): ParsedSpecDoc {
+  const tokens = marked.lexer(markdown).filter((token) => token.type !== "space") as MarkdownToken[];
+  const workingTokens = [...tokens];
+
+  if (workingTokens[0]?.type === "heading") {
+    workingTokens.shift();
   }
 
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  for (const anchor of doc.querySelectorAll("a[href]")) {
-    const href = anchor.getAttribute("href")?.trim() ?? "";
-    if (!href) {
+  let leadQuote: Extract<MarkdownToken, { type: "blockquote" }> | null = null;
+  if (workingTokens[0]?.type === "blockquote") {
+    leadQuote =
+      (workingTokens.shift() as Extract<MarkdownToken, { type: "blockquote" }> | undefined) ??
+      null;
+  }
+
+  const preamble: MarkdownToken[] = [];
+  const sections: ParsedDocSection[] = [];
+  let currentSection: ParsedDocSection | null = null;
+
+  for (const token of workingTokens) {
+    if (token.type === "heading" && token.depth === 2) {
+      if (currentSection) {
+        sections.push(currentSection);
+      }
+
+      currentSection = {
+        id: slugifyHeading(token.text),
+        title: token.text,
+        blocks: [],
+      };
       continue;
     }
 
-    const specDocHref = toSpecDocPublicHref(href);
-    if (specDocHref) {
-      anchor.setAttribute("href", specDocHref);
+    if (currentSection) {
+      currentSection.blocks.push(token);
+    } else {
+      preamble.push(token);
     }
-
-    const normalizedHref = anchor.getAttribute("href")?.trim() ?? "";
-    if (!/^(?:https?:)?\/\//i.test(normalizedHref)) continue;
-
-    anchor.setAttribute("target", "_blank");
-    const rel = new Set((anchor.getAttribute("rel") ?? "").split(/\s+/).filter(Boolean));
-    rel.add("noopener");
-    rel.add("noreferrer");
-    anchor.setAttribute("rel", Array.from(rel).join(" "));
   }
 
-  return doc.body.innerHTML;
+  if (currentSection) {
+    sections.push(currentSection);
+  }
+
+  return {
+    leadQuote,
+    preamble,
+    sections,
+    stats: summarizeDocStats(tokens, markdown),
+  };
+}
+
+function getSectionTone(index: number): SectionTone {
+  return SECTION_TONES[index % SECTION_TONES.length] ?? SECTION_TONES[0];
+}
+
+function sectionKind(title: string): "default" | "jargon" | "read-next" | "site-links" {
+  const normalized = title.trim().toLowerCase();
+  if (normalized === "jargon anchors") return "jargon";
+  if (normalized === "what to read next") return "read-next";
+  if (normalized === "where to see it on the site") return "site-links";
+  return "default";
+}
+
+function findFirstLinkToken(tokens: MarkdownInlineToken[]): MarkdownInlineToken | null {
+  for (const token of tokens) {
+    if (token.type === "link") {
+      return token;
+    }
+    const nested = findFirstLinkToken(token.tokens ?? []);
+    if (nested) return nested;
+  }
+
+  return null;
+}
+
+function getListItemInlineTokens(item: MarkdownListItem): MarkdownInlineToken[] {
+  const paragraphLike = (item.tokens ?? []).find((token) =>
+    token.type === "paragraph" || token.type === "text",
+  );
+  return hasTokenList(paragraphLike) ? getInlineTokens(paragraphLike) : [];
+}
+
+function formatRouteLabel(href: string): string {
+  const [pathname, fragment = ""] = href.split("#");
+  const section = pathname.replace(/^\//, "") || "home";
+  const sectionLabel = section
+    .split("/")
+    .filter(Boolean)
+    .map((part) => part.split("-").map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1)).join(" "))
+    .join(" / ");
+
+  if (!fragment) return sectionLabel;
+
+  const fragmentLabel = fragment
+    .split("-")
+    .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
+    .join(" ");
+
+  return `${sectionLabel} / ${fragmentLabel}`;
 }
 
 export default function SpecViewer() {
@@ -141,6 +454,7 @@ export default function SpecViewer() {
   const [activeDoc, setActiveDoc] = useState<SpecDoc | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<SpecCategory | "All">("All");
+  const [pendingFragment, setPendingFragment] = useState<string | null>(null);
 
   const specColumns = useMemo<ColumnDef<SpecDoc>[]>(
     () => [
@@ -199,10 +513,10 @@ export default function SpecViewer() {
   }, [filteredDocs]);
 
   const activeFilename = activeDoc?.filename ?? null;
-  const { data: markdown = "", isPending: loading, error: queryError } = useQuery({
+  const { data: source = "", isPending: loading, error: queryError } = useQuery({
     queryKey: ["spec-doc", activeFilename],
     queryFn: ({ signal }) =>
-      activeFilename ? loadSpecDocHtml(activeFilename, signal) : Promise.resolve(""),
+      activeFilename ? loadSpecDocSource(activeFilename, signal) : Promise.resolve(""),
     enabled: Boolean(activeFilename),
     staleTime: Infinity,
     gcTime: Infinity,
@@ -213,7 +527,7 @@ export default function SpecViewer() {
     (doc: SpecDoc) => {
       void queryClient.prefetchQuery({
         queryKey: ["spec-doc", doc.filename],
-        queryFn: ({ signal }) => loadSpecDocHtml(doc.filename, signal),
+        queryFn: ({ signal }) => loadSpecDocSource(doc.filename, signal),
         staleTime: Infinity,
         gcTime: Infinity,
       });
@@ -221,11 +535,17 @@ export default function SpecViewer() {
     [queryClient],
   );
 
+  const openDoc = useCallback((doc: SpecDoc, fragment?: string | null) => {
+    setPendingFragment(fragment ? fragment.replace(/^#/, "") : null);
+    setActiveDoc(doc);
+  }, []);
+
   useEffect(() => {
     if (!activeDoc) return;
     const stillVisible = filteredDocs.some((doc) => doc.slug === activeDoc.slug);
     if (!stillVisible) {
       setActiveDoc(null);
+      setPendingFragment(null);
     }
   }, [activeDoc, filteredDocs]);
 
@@ -249,6 +569,7 @@ export default function SpecViewer() {
       if (event.defaultPrevented || isTextInputLike(document.activeElement)) return;
       if (event.key === "Escape" && activeDoc) {
         setActiveDoc(null);
+        setPendingFragment(null);
       }
     };
 
@@ -304,7 +625,10 @@ export default function SpecViewer() {
             >
               <button
                 type="button"
-                onClick={() => setActiveDoc(null)}
+                onClick={() => {
+                  setActiveDoc(null);
+                  setPendingFragment(null);
+                }}
                 className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/[0.03] px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-200 transition-colors hover:border-blue-400/40 hover:text-blue-200"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -312,7 +636,15 @@ export default function SpecViewer() {
               </button>
               <article className="rounded-2xl border border-white/10 bg-black/30 p-5">
                 <DocHeader doc={activeDoc} />
-                <DocContent html={markdown} loading={loading} error={error} />
+                <DocContent
+                  doc={activeDoc}
+                  source={source}
+                  loading={loading}
+                  error={error}
+                  pendingFragment={pendingFragment}
+                  onConsumePendingFragment={() => setPendingFragment(null)}
+                  onOpenDoc={openDoc}
+                />
               </article>
             </motion.div>
           ) : (
@@ -364,6 +696,7 @@ export default function SpecViewer() {
 
         <section
           id="spec-desktop-reader"
+          data-spec-reader-scroll="true"
           className="min-h-0 overflow-y-auto bg-slate-950/40 p-8 custom-scrollbar"
         >
           <AnimatePresence mode="wait">
@@ -374,10 +707,18 @@ export default function SpecViewer() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
                 transition={PANEL_TRANSITION}
-                className="mx-auto max-w-4xl"
+                className="mx-auto max-w-5xl"
               >
                 <DocHeader doc={activeDoc} />
-                <DocContent html={markdown} loading={loading} error={error} />
+                <DocContent
+                  doc={activeDoc}
+                  source={source}
+                  loading={loading}
+                  error={error}
+                  pendingFragment={pendingFragment}
+                  onConsumePendingFragment={() => setPendingFragment(null)}
+                  onOpenDoc={openDoc}
+                />
               </motion.article>
             ) : (
               <motion.div
@@ -391,7 +732,7 @@ export default function SpecViewer() {
                   <FileText className="mx-auto mb-5 h-14 w-14 text-blue-300/40" />
                   <h3 className="text-2xl font-black text-white">Select a Document</h3>
                   <p className="mt-3 text-sm text-slate-400">
-                    Pick a spec from the left rail to load the rendered markdown view. Use
+                    Pick a spec from the left rail to load the structured reader. Use
                     <kbd className="mx-1 rounded border border-white/15 bg-white/5 px-1.5 py-0.5 text-[10px] font-bold text-slate-300">
                       /
                     </kbd>
@@ -653,14 +994,95 @@ function DocHeader({ doc }: { doc: SpecDoc }) {
 }
 
 function DocContent({
-  html,
+  doc,
+  source,
   loading,
   error,
+  pendingFragment,
+  onConsumePendingFragment,
+  onOpenDoc,
 }: {
-  html: string;
+  doc: SpecDoc;
+  source: string;
   loading: boolean;
   error: string | null;
+  pendingFragment: string | null;
+  onConsumePendingFragment: () => void;
+  onOpenDoc: (doc: SpecDoc, fragment?: string | null) => void;
 }) {
+  const prefersReducedMotion = useReducedMotion();
+  const contentRef = useRef<HTMLDivElement>(null);
+  const parsed = useMemo(() => (source ? parseSpecDoc(source) : null), [source]);
+  const [activeSection, setActiveSection] = useState<string | null>(null);
+  const currentSection =
+    parsed?.sections.some((section) => section.id === activeSection)
+      ? activeSection
+      : parsed?.sections[0]?.id ?? null;
+
+  useEffect(() => {
+    if (!parsed?.sections.length) return;
+
+    const nodes = parsed.sections
+      .map((section) => document.getElementById(section.id))
+      .filter((node): node is HTMLElement => Boolean(node));
+
+    if (!nodes.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+
+        if (visible[0]) {
+          setActiveSection(visible[0].target.id);
+        }
+      },
+      {
+        rootMargin: "-16% 0px -62% 0px",
+        threshold: [0.15, 0.4, 0.7],
+      },
+    );
+
+    for (const node of nodes) {
+      observer.observe(node);
+    }
+
+    return () => observer.disconnect();
+  }, [doc.slug, parsed]);
+
+  useEffect(() => {
+    if (loading || !parsed) return;
+
+    const scrollHost = contentRef.current?.closest<HTMLElement>("[data-spec-reader-scroll]");
+    const anchorId = pendingFragment?.replace(/^#/, "") ?? null;
+
+    const rafId = window.requestAnimationFrame(() => {
+      if (anchorId) {
+        document.getElementById(anchorId)?.scrollIntoView({
+          behavior: prefersReducedMotion ? "auto" : "smooth",
+          block: "start",
+        });
+        onConsumePendingFragment();
+        return;
+      }
+
+      scrollHost?.scrollTo({ top: 0, behavior: "auto" });
+    });
+
+    return () => window.cancelAnimationFrame(rafId);
+  }, [doc.slug, loading, parsed, pendingFragment, prefersReducedMotion, onConsumePendingFragment]);
+
+  const scrollToSection = useCallback(
+    (sectionId: string) => {
+      document.getElementById(sectionId)?.scrollIntoView({
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+        block: "start",
+      });
+    },
+    [prefersReducedMotion],
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -678,7 +1100,819 @@ function DocContent({
     );
   }
 
-  return <article className="spec-prose pb-16" dangerouslySetInnerHTML={{ __html: html }} />;
+  if (!parsed) {
+    return null;
+  }
+
+  return (
+    <div ref={contentRef} data-spec-doc-body="true" className="pb-16">
+      <ReaderOverview
+        doc={doc}
+        parsed={parsed}
+        activeSection={currentSection}
+        onScrollToSection={scrollToSection}
+      />
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr),250px]">
+        <div className="space-y-6">
+          {parsed.leadQuote ? <LeadQuoteCard quote={parsed.leadQuote} onOpenDoc={onOpenDoc} /> : null}
+          {parsed.preamble.length > 0 ? (
+            <PreludeCard blocks={parsed.preamble} onOpenDoc={onOpenDoc} />
+          ) : null}
+
+          {parsed.sections.map((section, index) => (
+            <DocSectionCard
+              key={section.id}
+              section={section}
+              index={index}
+              onOpenDoc={onOpenDoc}
+            />
+          ))}
+        </div>
+
+        <aside className="hidden lg:block">
+          <div className="sticky top-6 space-y-4">
+            <SectionRail
+              sections={parsed.sections}
+              activeSection={currentSection}
+              onScrollToSection={scrollToSection}
+            />
+            <ReaderSignalsCard stats={parsed.stats} />
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+function ReaderOverview({
+  doc,
+  parsed,
+  activeSection,
+  onScrollToSection,
+}: {
+  doc: SpecDoc;
+  parsed: ParsedSpecDoc;
+  activeSection: string | null;
+  onScrollToSection: (sectionId: string) => void;
+}) {
+  return (
+    <SyncContainer
+      withPulse={true}
+      accentColor="#60A5FA"
+      className="overflow-hidden border-blue-500/15 bg-black/35"
+    >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.14),transparent_48%),radial-gradient(circle_at_85%_18%,rgba(56,189,248,0.1),transparent_38%)]" />
+      <div className="relative p-5 md:p-6">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr),320px] xl:items-start">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-blue-300/75">
+              Document Anatomy
+            </p>
+            <h2 className="mt-2 text-xl font-black tracking-tight text-white md:text-2xl">
+              Structured reading mode for {doc.title}
+            </h2>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300">
+              Each section is rendered as a native React surface with targeted layouts for
+              diagrams, jargon bridges, linked follow-ups, and site route jump-offs.
+            </p>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              {parsed.sections.map((section, index) => {
+                const tone = getSectionTone(index);
+                const isActive = activeSection === section.id;
+                return (
+                  <button
+                    key={section.id}
+                    type="button"
+                    onClick={() => onScrollToSection(section.id)}
+                    className={cn(
+                      "rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] transition-all",
+                      isActive
+                        ? tone.navClass
+                        : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-white/20 hover:text-white",
+                    )}
+                  >
+                    {section.title}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-2">
+            <MetricCard label="Sections" value={String(parsed.stats.sectionCount)} />
+            <MetricCard label="Read Time" value={`${parsed.stats.readMinutes} min`} />
+            <MetricCard label="Code Blocks" value={String(parsed.stats.codeBlocks)} />
+            <MetricCard label="Linkouts" value={String(parsed.stats.linkCount)} />
+          </div>
+        </div>
+      </div>
+    </SyncContainer>
+  );
+}
+
+function MetricCard({ label, value }: { label: string; value: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3"
+    >
+      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">{label}</p>
+      <p className="mt-2 text-lg font-black text-white">{value}</p>
+    </motion.div>
+  );
+}
+
+function LeadQuoteCard({
+  quote,
+  onOpenDoc,
+}: {
+  quote: Extract<MarkdownToken, { type: "blockquote" }>;
+  onOpenDoc: (doc: SpecDoc, fragment?: string | null) => void;
+}) {
+  return (
+    <SyncContainer
+      accentColor="#60A5FA"
+      withPulse={true}
+      className="overflow-hidden border-blue-500/15 bg-blue-500/[0.05]"
+    >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.15),transparent_46%),radial-gradient(circle_at_bottom_right,rgba(14,165,233,0.08),transparent_40%)]" />
+      <div className="relative p-5 md:p-6">
+        <div className="flex items-start gap-4">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-blue-400/20 bg-blue-500/10 text-blue-200">
+            <Quote className="h-5 w-5" />
+          </div>
+          <div className="space-y-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-blue-300/80">
+              Start Here
+            </p>
+            <div className="text-lg font-semibold leading-8 text-slate-100 md:text-xl">
+              {renderBlockTokens(getBlockTokens(quote), onOpenDoc, true)}
+            </div>
+          </div>
+        </div>
+      </div>
+    </SyncContainer>
+  );
+}
+
+function PreludeCard({
+  blocks,
+  onOpenDoc,
+}: {
+  blocks: MarkdownToken[];
+  onOpenDoc: (doc: SpecDoc, fragment?: string | null) => void;
+}) {
+  return (
+    <SyncContainer accentColor="#22D3EE" className="overflow-hidden border-cyan-500/15 bg-black/30">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.12),transparent_45%)]" />
+      <div className="relative p-5 md:p-6">
+        <p className="text-[10px] font-black uppercase tracking-[0.28em] text-cyan-300/80">
+          Orientation Layer
+        </p>
+        <div className="mt-4 space-y-4 text-slate-200">
+          {renderBlockTokens(blocks, onOpenDoc)}
+        </div>
+      </div>
+    </SyncContainer>
+  );
+}
+
+function DocSectionCard({
+  section,
+  index,
+  onOpenDoc,
+}: {
+  section: ParsedDocSection;
+  index: number;
+  onOpenDoc: (doc: SpecDoc, fragment?: string | null) => void;
+}) {
+  const tone = getSectionTone(index);
+  const Icon = section.title.toLowerCase() === "jargon anchors"
+    ? Hash
+    : section.title.toLowerCase() === "what to read next"
+      ? ArrowUpRight
+      : section.title.toLowerCase() === "where to see it on the site"
+        ? Workflow
+        : section.title.toLowerCase() === "visual mental model"
+          ? Network
+          : BookOpen;
+
+  return (
+    <motion.section
+      id={section.id}
+      data-spec-section={section.id}
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.32, delay: index * 0.035 }}
+    >
+      <SyncContainer
+        accentColor={tone.accentColor}
+        withPulse={true}
+        className={cn("overflow-hidden bg-black/35", tone.borderClass)}
+      >
+        <div className={cn("pointer-events-none absolute inset-0", tone.haloClass)} />
+        <div className="relative p-5 md:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className={cn("mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border", tone.iconClass)}>
+                <Icon className="h-5 w-5" />
+              </div>
+              <div>
+                <p className={cn("text-[10px] font-black uppercase tracking-[0.26em]", tone.textClass)}>
+                  Section {String(index + 1).padStart(2, "0")}
+                </p>
+                <h2 className="mt-2 text-2xl font-black tracking-tight text-white md:text-[1.9rem]">
+                  {section.title}
+                </h2>
+              </div>
+            </div>
+            <span className={cn("rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em]", tone.chipClass)}>
+              {sectionKind(section.title).replace("-", " ")}
+            </span>
+          </div>
+
+          <div className="mt-6 space-y-5 text-slate-100">
+            <SectionBody section={section} onOpenDoc={onOpenDoc} />
+          </div>
+        </div>
+      </SyncContainer>
+    </motion.section>
+  );
+}
+
+function SectionBody({
+  section,
+  onOpenDoc,
+}: {
+  section: ParsedDocSection;
+  onOpenDoc: (doc: SpecDoc, fragment?: string | null) => void;
+}) {
+  const kind = sectionKind(section.title);
+  const listIndex = section.blocks.findIndex((token) => token.type === "list");
+  const listToken = listIndex >= 0 ? section.blocks[listIndex] : null;
+  const beforeBlocks = listIndex >= 0 ? section.blocks.slice(0, listIndex) : section.blocks;
+  const afterBlocks = listIndex >= 0 ? section.blocks.slice(listIndex + 1) : [];
+
+  if (kind === "jargon" && listToken?.type === "list") {
+    return (
+      <>
+        {renderBlockTokens(beforeBlocks, onOpenDoc)}
+        <JargonAnchorGrid items={(listToken.items as MarkdownListItem[] | undefined) ?? []} />
+        {renderBlockTokens(afterBlocks, onOpenDoc)}
+      </>
+    );
+  }
+
+  if (kind === "read-next" && listToken?.type === "list") {
+    return (
+      <>
+        {renderBlockTokens(beforeBlocks, onOpenDoc)}
+        <ReadNextGrid
+          items={(listToken.items as MarkdownListItem[] | undefined) ?? []}
+          onOpenDoc={onOpenDoc}
+        />
+        {renderBlockTokens(afterBlocks, onOpenDoc)}
+      </>
+    );
+  }
+
+  if (kind === "site-links" && listToken?.type === "list") {
+    return (
+      <>
+        {renderBlockTokens(beforeBlocks, onOpenDoc)}
+        <SiteRouteGrid items={(listToken.items as MarkdownListItem[] | undefined) ?? []} />
+        {renderBlockTokens(afterBlocks, onOpenDoc)}
+      </>
+    );
+  }
+
+  return <>{renderBlockTokens(section.blocks, onOpenDoc)}</>;
+}
+
+function JargonAnchorGrid({ items }: { items: MarkdownListItem[] }) {
+  return (
+    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      {items.map((item, index) => {
+        const text = flattenBlockText(item.tokens ?? []);
+        const match = text.match(/^`?([^`:]+)`?:\s*(.+)$/);
+        const term = match?.[1]?.trim() ?? `Term ${index + 1}`;
+        const description = match?.[2]?.trim() ?? text;
+        const tone = getSectionTone(index);
+
+        return (
+          <div
+            key={`${term}-${index}`}
+            className={cn(
+              "rounded-2xl border bg-black/35 p-4",
+              tone.borderClass,
+            )}
+          >
+            <p className="text-[10px] font-black uppercase tracking-[0.26em] text-slate-500">
+              Jargon Anchor
+            </p>
+            <div className="mt-3 inline-flex rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5 font-mono text-sm text-white">
+              {term}
+            </div>
+            <p className="mt-3 text-sm leading-7 text-slate-300">{description}</p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ReadNextGrid({
+  items,
+  onOpenDoc,
+}: {
+  items: MarkdownListItem[];
+  onOpenDoc: (doc: SpecDoc, fragment?: string | null) => void;
+}) {
+  const docs = items
+    .map((item) => {
+      const link = findFirstLinkToken(getListItemInlineTokens(item));
+      if (!link?.href) return null;
+      const doc = resolveSpecDocFromHref(link.href);
+      return doc ?? DOC_INDEX_BY_FILENAME.get(link.href.toLowerCase()) ?? null;
+    })
+    .filter((doc): doc is SpecDoc => Boolean(doc));
+
+  return (
+    <div className="grid gap-3 md:grid-cols-2">
+      {docs.map((linkedDoc, index) => {
+        const tone = getSectionTone(index + 1);
+        const Icon = categoryIcons[linkedDoc.category as SpecCategory] ?? FileText;
+        return (
+          <button
+            key={linkedDoc.slug}
+            type="button"
+            onClick={() => onOpenDoc(linkedDoc)}
+            className={cn(
+              "w-full rounded-2xl border bg-black/35 p-4 text-left transition-colors hover:bg-white/[0.04]",
+              tone.borderClass,
+            )}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em]", tone.chipClass)}>
+                  <Icon className="h-3 w-3" />
+                  {linkedDoc.category}
+                </span>
+                <h3 className="mt-3 text-lg font-black text-white">{linkedDoc.title}</h3>
+              </div>
+              <ArrowUpRight className="mt-1 h-4 w-4 text-slate-500" />
+            </div>
+            <p className="mt-3 text-sm leading-7 text-slate-300">{linkedDoc.description}</p>
+            <p className="mt-4 font-mono text-[11px] text-slate-500">{linkedDoc.filename}</p>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function SiteRouteGrid({ items }: { items: MarkdownListItem[] }) {
+  return (
+    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      {items.map((item, index) => {
+        const href = flattenBlockText(item.tokens ?? []);
+        const tone = getSectionTone(index);
+        return (
+          <a
+            key={`${href}-${index}`}
+            href={href}
+            className={cn(
+              "group rounded-2xl border bg-black/35 p-4 transition-all hover:-translate-y-0.5 hover:bg-white/[0.04]",
+              tone.borderClass,
+            )}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className={cn("text-[10px] font-black uppercase tracking-[0.24em]", tone.textClass)}>
+                  Site Route
+                </p>
+                <h3 className="mt-2 text-base font-black text-white">{formatRouteLabel(href)}</h3>
+              </div>
+              <ArrowUpRight className="mt-1 h-4 w-4 text-slate-500 transition-colors group-hover:text-white" />
+            </div>
+            <p className="mt-4 font-mono text-[11px] text-slate-400">{href}</p>
+          </a>
+        );
+      })}
+    </div>
+  );
+}
+
+function SectionRail({
+  sections,
+  activeSection,
+  onScrollToSection,
+}: {
+  sections: ParsedDocSection[];
+  activeSection: string | null;
+  onScrollToSection: (sectionId: string) => void;
+}) {
+  return (
+    <SyncContainer accentColor="#60A5FA" className="overflow-hidden border-white/10 bg-black/35">
+      <div className="p-4">
+        <p className="text-[10px] font-black uppercase tracking-[0.26em] text-slate-400">
+          On This Page
+        </p>
+        <div className="mt-4 space-y-2">
+          {sections.map((section, index) => {
+            const tone = getSectionTone(index);
+            const active = activeSection === section.id;
+            return (
+              <Magnetic key={section.id} strength={0.03}>
+                <button
+                  type="button"
+                  onClick={() => onScrollToSection(section.id)}
+                  className={cn(
+                    "w-full rounded-2xl border px-3 py-3 text-left transition-all",
+                    active
+                      ? tone.navClass
+                      : "border-white/10 bg-white/[0.02] text-slate-300 hover:border-white/20 hover:bg-white/[0.04]",
+                  )}
+                >
+                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">
+                    {String(index + 1).padStart(2, "0")}
+                  </p>
+                  <p className="mt-1 text-sm font-bold text-inherit">{section.title}</p>
+                </button>
+              </Magnetic>
+            );
+          })}
+        </div>
+      </div>
+    </SyncContainer>
+  );
+}
+
+function ReaderSignalsCard({ stats }: { stats: ParsedSpecDoc["stats"] }) {
+  return (
+    <SyncContainer accentColor="#22D3EE" className="overflow-hidden border-cyan-500/15 bg-black/35">
+      <div className="p-4">
+        <p className="text-[10px] font-black uppercase tracking-[0.26em] text-cyan-300/80">
+          Reading Signals
+        </p>
+        <div className="mt-4 space-y-3 text-sm text-slate-300">
+          <SignalRow icon={BookOpen} label="Words" value={String(stats.wordCount)} />
+          <SignalRow icon={Code2} label="Code Panels" value={String(stats.codeBlocks)} />
+          <SignalRow icon={TableProperties} label="Tables" value={String(stats.tableCount)} />
+          <SignalRow icon={ArrowUpRight} label="Links" value={String(stats.linkCount)} />
+        </div>
+      </div>
+    </SyncContainer>
+  );
+}
+
+function SignalRow({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+      <div className="flex items-center gap-2 text-slate-300">
+        <Icon className="h-4 w-4 text-cyan-300/70" />
+        <span>{label}</span>
+      </div>
+      <span className="font-mono text-xs text-white">{value}</span>
+    </div>
+  );
+}
+
+function renderBlockTokens(
+  blocks: MarkdownToken[],
+  onOpenDoc: (doc: SpecDoc, fragment?: string | null) => void,
+  compact = false,
+): ReactNode[] {
+  return blocks.flatMap((token, index) => {
+    const key = `${token.type}-${index}`;
+
+    switch (token.type) {
+      case "paragraph":
+      case "text":
+        return [
+          <p
+            key={key}
+            className={cn(
+              compact ? "text-base leading-8 text-slate-100" : "text-[0.98rem] leading-8 text-slate-200",
+            )}
+          >
+            {renderInlineTokens(getInlineTokens(token), onOpenDoc)}
+          </p>,
+        ];
+      case "heading": {
+        const headingId = slugifyHeading(token.text);
+        const depth = Math.min(token.depth ?? 3, 4);
+        if (depth <= 2) return [];
+
+        const Tag = depth === 3 ? "h3" : "h4";
+        return [
+          <Tag
+            key={key}
+            id={headingId}
+            className={cn(
+              depth === 3
+                ? "pt-2 text-xl font-black tracking-tight text-white"
+                : "pt-1 text-lg font-black tracking-tight text-slate-100",
+            )}
+          >
+            {renderInlineTokens(getInlineTokens(token), onOpenDoc)}
+          </Tag>,
+        ];
+      }
+      case "blockquote":
+        return [<InlineCallout key={key} blocks={getBlockTokens(token)} onOpenDoc={onOpenDoc} />];
+      case "code":
+        return [<SpecCodeBlock key={key} code={token.text ?? ""} language={token.lang ?? "text"} />];
+      case "list":
+        return [
+          <ListBlock
+            key={key}
+            ordered={Boolean(token.ordered)}
+            items={(token.items as MarkdownListItem[] | undefined) ?? []}
+            onOpenDoc={onOpenDoc}
+          />,
+        ];
+      case "table":
+        return [
+          <SpecTable
+            key={key}
+            table={token as Extract<MarkdownToken, { type: "table" }>}
+            onOpenDoc={onOpenDoc}
+          />,
+        ];
+      case "hr":
+        return [<div key={key} className="h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />];
+      default:
+        return [];
+    }
+  });
+}
+
+function renderInlineTokens(
+  tokens: MarkdownInlineToken[],
+  onOpenDoc: (doc: SpecDoc, fragment?: string | null) => void,
+): ReactNode[] {
+  return tokens.map((token, index) => {
+    const key = `${token.type}-${index}-${token.raw ?? token.text ?? ""}`;
+
+    switch (token.type) {
+      case "strong":
+        return (
+          <strong key={key} className="font-black text-white">
+            {renderInlineTokens(token.tokens ?? [], onOpenDoc)}
+          </strong>
+        );
+      case "em":
+        return (
+          <em key={key} className="font-medium italic text-slate-100">
+            {renderInlineTokens(token.tokens ?? [], onOpenDoc)}
+          </em>
+        );
+      case "codespan":
+        return (
+          <code
+            key={key}
+            className="rounded-lg border border-white/10 bg-white/[0.05] px-1.5 py-0.5 font-mono text-[0.82em] text-blue-100"
+          >
+            {token.text}
+          </code>
+        );
+      case "link":
+        return (
+          <DocInlineLink key={key} href={token.href ?? ""} title={token.title ?? undefined} onOpenDoc={onOpenDoc}>
+            {renderInlineTokens(token.tokens ?? [], onOpenDoc)}
+          </DocInlineLink>
+        );
+      case "br":
+        return <br key={key} />;
+      case "escape":
+      case "text":
+      default:
+        return <Fragment key={key}>{token.text ?? token.raw ?? ""}</Fragment>;
+    }
+  });
+}
+
+function DocInlineLink({
+  href,
+  title,
+  children,
+  onOpenDoc,
+}: {
+  href: string;
+  title?: string;
+  children: ReactNode;
+  onOpenDoc: (doc: SpecDoc, fragment?: string | null) => void;
+}) {
+  const targetDoc = resolveSpecDocFromHref(href);
+  const normalizedHref = targetDoc ? toSpecDocPublicHref(href) ?? href : href;
+  const isExternal = /^(?:https?:)?\/\//i.test(normalizedHref);
+
+  const handleClick = useCallback(
+    (event: MouseEvent<HTMLAnchorElement>) => {
+      if (!targetDoc) return;
+      event.preventDefault();
+      onOpenDoc(targetDoc, extractFragmentId(href));
+    },
+    [href, onOpenDoc, targetDoc],
+  );
+
+  return (
+    <a
+      href={normalizedHref}
+      title={title}
+      onClick={handleClick}
+      target={isExternal ? "_blank" : undefined}
+      rel={isExternal ? "noopener noreferrer" : undefined}
+      className="font-semibold text-blue-200 underline decoration-blue-400/35 underline-offset-4 transition-colors hover:text-blue-100 hover:decoration-blue-300"
+    >
+      {children}
+    </a>
+  );
+}
+
+function InlineCallout({
+  blocks,
+  onOpenDoc,
+}: {
+  blocks: MarkdownToken[];
+  onOpenDoc: (doc: SpecDoc, fragment?: string | null) => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.05] text-blue-200">
+          <Quote className="h-4 w-4" />
+        </div>
+        <div className="space-y-3 text-sm leading-7 text-slate-300">
+          {renderBlockTokens(blocks, onOpenDoc, true)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ListBlock({
+  ordered,
+  items,
+  onOpenDoc,
+}: {
+  ordered: boolean;
+  items: MarkdownListItem[];
+  onOpenDoc: (doc: SpecDoc, fragment?: string | null) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      {items.map((item, index) => (
+        <div
+          key={`${item.text ?? index}-${index}`}
+          className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3"
+        >
+          <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/40 text-[11px] font-black text-blue-200">
+            {ordered ? String(index + 1) : <span className="h-2.5 w-2.5 rounded-full bg-blue-300" />}
+          </div>
+          <div className="min-w-0 flex-1 space-y-2 text-sm leading-7 text-slate-300">
+            {(item.tokens ?? []).map((token, tokenIndex) => {
+              if (token.type === "paragraph" || token.type === "text") {
+                return (
+                  <p key={`${token.type}-${tokenIndex}`} className="text-sm leading-7 text-slate-300">
+                    {renderInlineTokens(getInlineTokens(token), onOpenDoc)}
+                  </p>
+                );
+              }
+
+              return <Fragment key={`${token.type}-${tokenIndex}`}>{renderBlockTokens([token], onOpenDoc)}</Fragment>;
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SpecCodeBlock({ code, language }: { code: string; language: string }) {
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!copied) return;
+    const timeoutId = window.setTimeout(() => setCopied(false), 1800);
+    return () => window.clearTimeout(timeoutId);
+  }, [copied]);
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+  }, [code]);
+
+  const label = language === "text" ? "System Sketch" : language.toUpperCase();
+  const lines = code.replace(/\n$/, "").split("\n");
+
+  return (
+    <div className="overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#030812]/95 shadow-[0_25px_60px_-35px_rgba(2,8,23,0.9)]">
+      <div className="flex items-center justify-between border-b border-white/8 bg-white/[0.03] px-5 py-3">
+        <div className="flex items-center gap-4">
+          <div className="flex gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-red-400/50" />
+            <span className="h-2.5 w-2.5 rounded-full bg-amber-300/50" />
+            <span className="h-2.5 w-2.5 rounded-full bg-blue-400/50" />
+          </div>
+          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
+            {label}
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => void handleCopy()}
+          className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-slate-300 transition-colors hover:border-white/20 hover:text-white"
+        >
+          {copied ? <Check className="h-3.5 w-3.5 text-blue-300" /> : <Copy className="h-3.5 w-3.5" />}
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+
+      <div className="overflow-x-auto px-5 py-5">
+        <pre className={cn(
+          "min-w-max font-mono text-[13px] leading-7 text-slate-200",
+          language === "text" && "text-[12.5px] text-cyan-100",
+        )}>
+          <code>
+            {lines.map((line, index) => (
+              <span key={`${line}-${index}`} className="flex">
+                <span className="mr-6 inline-block w-6 select-none text-right text-[10px] font-black text-slate-700">
+                  {(index + 1).toString().padStart(2, "0")}
+                </span>
+                <span>{line || " "}</span>
+              </span>
+            ))}
+          </code>
+        </pre>
+      </div>
+    </div>
+  );
+}
+
+function SpecTable({
+  table,
+  onOpenDoc,
+}: {
+  table: Extract<MarkdownToken, { type: "table" }>;
+  onOpenDoc: (doc: SpecDoc, fragment?: string | null) => void;
+}) {
+  const header = (table.header as MarkdownTableCell[] | undefined) ?? [];
+  const rows = (table.rows as MarkdownTableCell[][] | undefined) ?? [];
+
+  return (
+    <div className="overflow-hidden rounded-[1.35rem] border border-white/10 bg-black/35">
+      <div className="flex items-center gap-2 border-b border-white/8 bg-white/[0.04] px-5 py-3 text-[10px] font-black uppercase tracking-[0.26em] text-slate-500">
+        <TableProperties className="h-4 w-4 text-blue-300/70" />
+        Structured Matrix
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-left text-sm">
+          <thead>
+            <tr className="border-b border-white/8 bg-white/[0.02]">
+              {header.map((cell, index) => (
+                <th
+                  key={`header-${index}`}
+                  className="px-4 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400"
+                >
+                  {renderInlineTokens(cell.tokens ?? [], onOpenDoc)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, rowIndex) => (
+              <tr key={`row-${rowIndex}`} className="border-b border-white/6 last:border-b-0 even:bg-white/[0.015]">
+                {row.map((cell, cellIndex) => (
+                  <td key={`cell-${rowIndex}-${cellIndex}`} className="px-4 py-3 align-top text-slate-300">
+                    {renderInlineTokens(cell.tokens ?? [], onOpenDoc)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 }
 
 function StatusPill({ label, value }: { label: string; value: string }) {

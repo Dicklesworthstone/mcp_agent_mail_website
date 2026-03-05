@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useIntersectionObserver } from "@/hooks/use-intersection-observer";
 import { motion, useTransform, useSpring, useMotionValue, useReducedMotion } from "framer-motion";
 
@@ -13,6 +13,7 @@ export default function GlowOrbits() {
     triggerOnce: false,
   });
   const prefersReducedMotion = useReducedMotion();
+  const [parallaxReady, setParallaxReady] = useState(false);
 
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
@@ -28,6 +29,17 @@ export default function GlowOrbits() {
     if (typeof window === "undefined") return 0;
     return (val / window.innerHeight - 0.5) * -60;
   });
+
+  useEffect(() => {
+    if (typeof window === "undefined" || prefersReducedMotion) {
+      setParallaxReady(false);
+      return;
+    }
+
+    mouseX.set(window.innerWidth / 2);
+    mouseY.set(window.innerHeight / 2);
+    setParallaxReady(true);
+  }, [mouseX, mouseY, prefersReducedMotion]);
 
   useEffect(() => {
     if (prefersReducedMotion) return undefined;
@@ -76,7 +88,7 @@ export default function GlowOrbits() {
         rootRef.current = node as HTMLDivElement;
         observerRef(node as HTMLDivElement);
       }}
-      style={prefersReducedMotion ? undefined : { x: parallaxX, y: parallaxY }}
+      style={!prefersReducedMotion && parallaxReady ? { x: parallaxX, y: parallaxY } : undefined}
       className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
     >
       <div className="glow-ring absolute -top-[20%] -left-[10%] h-[60%] w-[60%] rounded-full blur-[120px]"
