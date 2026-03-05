@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "@/components/motion";
 
 /**
  * An interactive robot mascot with cursor-tracking eyes.

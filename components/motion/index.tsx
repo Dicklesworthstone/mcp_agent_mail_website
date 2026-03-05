@@ -1,6 +1,7 @@
 "use client";
 
-import { motion, AnimatePresence, useReducedMotion, type Variants } from "framer-motion";
+import { useSyncExternalStore } from "react";
+import { motion, AnimatePresence, useReducedMotion as useFramerReducedMotion, type Variants } from "framer-motion";
 
 export const springs = {
   smooth: { type: "spring", stiffness: 200, damping: 25 } as const,
@@ -41,5 +42,16 @@ export const sheetEntrance: Variants = {
   exit: { y: "100%", opacity: 0.8, transition: { duration: 0.2 } },
 };
 
-export { motion, AnimatePresence, useReducedMotion };
+const subscribe = () => () => {};
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
+
+export function useReducedMotion() {
+  const prefersReducedMotion = useFramerReducedMotion() ?? false;
+  const isHydrated = useSyncExternalStore(subscribe, getClientSnapshot, getServerSnapshot);
+
+  return isHydrated ? prefersReducedMotion : false;
+}
+
+export { motion, AnimatePresence };
 export type { Variants };

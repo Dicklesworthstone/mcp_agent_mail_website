@@ -62,8 +62,47 @@ test.describe("Smoke tests", () => {
     diagnostics.breadcrumb(`Opening doc from list: ${selectedSlug ?? "unknown"}`);
     await firstDocButton.click();
 
+    await expect(page).toHaveURL(/doc=product-bus-and-cross-project/);
     await expect(page.locator('[data-spec-doc-body=\"true\"]:visible').first()).toBeVisible();
     diagnostics.breadcrumb("Document content rendered");
+  });
+
+  test("spec explorer restores deep links and preserves related-doc navigation history", async ({ page, diagnostics }) => {
+    diagnostics.setRoute("/spec-explorer");
+    const deepLink = "/spec-explorer?doc=product-bus-and-cross-project&category=Coordination%20Flows#typical-cross-project-flow";
+    diagnostics.breadcrumb(`Navigating to deep link ${deepLink}`);
+    await page.goto(deepLink);
+
+    const docBody = page.locator('[data-spec-doc-body=\"true\"]:visible').first();
+    await expect(docBody).toBeVisible();
+    await expect(page).toHaveURL(/doc=product-bus-and-cross-project/);
+    await expect(page).toHaveURL(/category=Coordination(?:%20|\+)Flows/);
+    await expect(page).toHaveURL(/#typical-cross-project-flow/);
+    await expect(docBody).toHaveAttribute("data-spec-current-section", "typical-cross-project-flow");
+    await expect(page.locator('[data-spec-reader-progress=\"true\"]:visible').first()).toBeVisible();
+    diagnostics.breadcrumb("Deep-linked doc and section restored");
+
+    const viewportWidth = page.viewportSize()?.width ?? 0;
+    if (viewportWidth >= 1024) {
+      await expect(page.locator('[data-spec-progress-bar=\"true\"]:visible').first()).toBeVisible();
+      await expect(page.locator('[data-spec-rail-active=\"true\"]:visible')).toHaveCount(1);
+      diagnostics.breadcrumb("Desktop rail progress and active state visible");
+    }
+
+    const relatedDoc = page.locator('[data-spec-related-doc=\"system-topology\"]:visible').first();
+    await relatedDoc.scrollIntoViewIfNeeded();
+    await expect(relatedDoc).toBeVisible();
+    await relatedDoc.click();
+
+    await expect(page).toHaveURL(/doc=system-topology/);
+    diagnostics.breadcrumb("Navigated to related doc");
+
+    await page.goBack();
+
+    await expect(page).toHaveURL(/doc=product-bus-and-cross-project/);
+    await expect(page).toHaveURL(/#typical-cross-project-flow/);
+    await expect(docBody).toHaveAttribute("data-spec-current-section", "typical-cross-project-flow");
+    diagnostics.breadcrumb("Back navigation restored original deep-linked state");
   });
 
   test("no console errors on home page", async ({ page, diagnostics }) => {

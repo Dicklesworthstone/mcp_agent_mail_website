@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useMemo, useRef } from "react";
-import { motion, useMotionValue, AnimatePresence, useReducedMotion, type MotionValue } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "@/components/motion";
+import { useMotionValue, type MotionValue } from "framer-motion";
 
 function prng(seed: number): number {
   const x = Math.sin(seed) * 10000;
@@ -228,8 +229,6 @@ export default function CustomCursor() {
       };
     }
   }, [mouseX, mouseY, prefersReducedMotion]);
-
-  if (prefersReducedMotion) return null;
 
   return (
     <>

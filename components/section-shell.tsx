@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "@/components/motion";
 import {
   ArrowRight, BarChart3, Blocks, Bomb, Braces, Bug, Calculator, Clock, Cpu, Droplets,
   Eye, FileText, Flame, GitCommit, GitCompare, GitMerge, Globe, Key, Keyboard, Layers,

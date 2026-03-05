@@ -76,6 +76,9 @@ const CATEGORY_COUNTS: Record<SpecCategory, number> = Object.fromEntries(
 
 const PANEL_TRANSITION = { duration: 0.24, ease: "easeOut" } as const;
 const SPEC_DOC_FILENAME_PATTERN = /^[A-Za-z0-9._-]+\.md$/;
+const DOC_QUERY_PARAM = "doc";
+const CATEGORY_QUERY_PARAM = "category";
+const SEARCH_QUERY_PARAM = "q";
 
 type GroupedDocs = Partial<Record<SpecCategory, SpecDoc[]>>;
 
@@ -135,6 +138,13 @@ type SectionTone = {
   textClass: string;
 };
 
+type ViewerUrlState = {
+  category: SpecCategory | "All";
+  docSlug: string | null;
+  fragment: string | null;
+  query: string;
+};
+
 const SECTION_TONES: SectionTone[] = [
   {
     accentColor: "#60A5FA",
@@ -179,6 +189,88 @@ const SECTION_TONES: SectionTone[] = [
 ];
 
 const DOC_INDEX_BY_FILENAME = new Map(specDocs.map((doc) => [doc.filename.toLowerCase(), doc]));
+const DOC_INDEX_BY_SLUG = new Map(specDocs.map((doc) => [doc.slug, doc]));
+
+function isSpecCategory(value: string): value is SpecCategory {
+  return specCategories.includes(value as SpecCategory);
+}
+
+function defaultViewerUrlState(): ViewerUrlState {
+  return {
+    category: "All",
+    docSlug: null,
+    fragment: null,
+    query: "",
+  };
+}
+
+function parseViewerUrlState(url: URL): ViewerUrlState {
+  const nextState = defaultViewerUrlState();
+  const docSlug = url.searchParams.get(DOC_QUERY_PARAM)?.trim() ?? "";
+  const category = url.searchParams.get(CATEGORY_QUERY_PARAM)?.trim() ?? "";
+  const query = url.searchParams.get(SEARCH_QUERY_PARAM) ?? "";
+  const fragment = url.hash.replace(/^#/, "").trim();
+
+  if (docSlug && DOC_INDEX_BY_SLUG.has(docSlug)) {
+    nextState.docSlug = docSlug;
+  }
+
+  if (category && isSpecCategory(category)) {
+    nextState.category = category;
+  }
+
+  if (query.trim()) {
+    nextState.query = query;
+  }
+
+  if (fragment) {
+    nextState.fragment = fragment;
+  }
+
+  return nextState;
+}
+
+function readViewerUrlState(): ViewerUrlState {
+  if (typeof window === "undefined") {
+    return defaultViewerUrlState();
+  }
+
+  return parseViewerUrlState(new URL(window.location.href));
+}
+
+function currentBrowserRelativeUrl(): string {
+  if (typeof window === "undefined") {
+    return "/spec-explorer";
+  }
+
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
+function buildViewerRelativeUrl(state: ViewerUrlState): string {
+  if (typeof window === "undefined") {
+    return "/spec-explorer";
+  }
+
+  const url = new URL(window.location.href);
+  url.searchParams.delete(DOC_QUERY_PARAM);
+  url.searchParams.delete(CATEGORY_QUERY_PARAM);
+  url.searchParams.delete(SEARCH_QUERY_PARAM);
+
+  if (state.docSlug) {
+    url.searchParams.set(DOC_QUERY_PARAM, state.docSlug);
+  }
+
+  if (state.category !== "All") {
+    url.searchParams.set(CATEGORY_QUERY_PARAM, state.category);
+  }
+
+  if (state.query.trim()) {
+    url.searchParams.set(SEARCH_QUERY_PARAM, state.query.trim());
+  }
+
+  url.hash = state.docSlug && state.fragment ? `#${state.fragment}` : "";
+  return `${url.pathname}${url.search}${url.hash}`;
+}
 
 async function loadSpecDocSource(filename: string, signal?: AbortSignal): Promise<string> {
   if (!SPEC_DOC_FILENAME_PATTERN.test(filename)) {
@@ -451,10 +543,25 @@ function formatRouteLabel(href: string): string {
 
 export default function SpecViewer() {
   const queryClient = useQueryClient();
-  const [activeDoc, setActiveDoc] = useState<SpecDoc | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState<SpecCategory | "All">("All");
-  const [pendingFragment, setPendingFragment] = useState<string | null>(null);
+  const initialUrlStateRef = useRef<ViewerUrlState | null>(null);
+  if (initialUrlStateRef.current === null) {
+    initialUrlStateRef.current = readViewerUrlState();
+  }
+
+  const initialUrlState = initialUrlStateRef.current;
+  const historyModeRef = useRef<"push" | "replace">("replace");
+  const suppressUrlSyncRef = useRef(false);
+  const [activeDocSlug, setActiveDocSlug] = useState<string | null>(initialUrlState.docSlug);
+  const [searchQuery, setSearchQuery] = useState(initialUrlState.query);
+  const [activeCategory, setActiveCategory] = useState<SpecCategory | "All">(initialUrlState.category);
+  const [requestedFragment, setRequestedFragment] = useState<string | null>(initialUrlState.fragment);
+  const [currentSectionFragment, setCurrentSectionFragment] = useState<string | null>(
+    initialUrlState.fragment,
+  );
+  const activeDoc = useMemo(
+    () => (activeDocSlug ? DOC_INDEX_BY_SLUG.get(activeDocSlug) ?? null : null),
+    [activeDocSlug],
+  );
 
   const specColumns = useMemo<ColumnDef<SpecDoc>[]>(
     () => [
@@ -535,19 +642,29 @@ export default function SpecViewer() {
     [queryClient],
   );
 
-  const openDoc = useCallback((doc: SpecDoc, fragment?: string | null) => {
-    setPendingFragment(fragment ? fragment.replace(/^#/, "") : null);
-    setActiveDoc(doc);
+  const applyViewerUrlState = useCallback((state: ViewerUrlState) => {
+    suppressUrlSyncRef.current = true;
+    setSearchQuery(state.query);
+    setActiveCategory(state.category);
+    setActiveDocSlug(state.docSlug);
+    setRequestedFragment(state.fragment);
+    setCurrentSectionFragment(state.fragment);
   }, []);
 
-  useEffect(() => {
-    if (!activeDoc) return;
-    const stillVisible = filteredDocs.some((doc) => doc.slug === activeDoc.slug);
-    if (!stillVisible) {
-      setActiveDoc(null);
-      setPendingFragment(null);
-    }
-  }, [activeDoc, filteredDocs]);
+  const openDoc = useCallback((doc: SpecDoc, fragment?: string | null) => {
+    historyModeRef.current = "push";
+    const normalizedFragment = fragment ? fragment.replace(/^#/, "") : null;
+    setRequestedFragment(normalizedFragment);
+    setCurrentSectionFragment(normalizedFragment);
+    setActiveDocSlug(doc.slug);
+  }, []);
+
+  const closeDoc = useCallback((historyMode: "push" | "replace" = "push") => {
+    historyModeRef.current = historyMode;
+    setActiveDocSlug(null);
+    setRequestedFragment(null);
+    setCurrentSectionFragment(null);
+  }, []);
 
   useEffect(() => {
     if (!activeDoc) return;
@@ -565,22 +682,74 @@ export default function SpecViewer() {
   }, [activeDoc, filteredDocs, prefetchDoc]);
 
   useEffect(() => {
+    const onPopState = () => {
+      applyViewerUrlState(readViewerUrlState());
+    };
+
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [applyViewerUrlState]);
+
+  useEffect(() => {
+    const nextUrl = buildViewerRelativeUrl({
+      category: activeCategory,
+      docSlug: activeDoc?.slug ?? null,
+      fragment: activeDoc ? requestedFragment ?? currentSectionFragment ?? null : null,
+      query: searchQuery,
+    });
+
+    if (suppressUrlSyncRef.current) {
+      suppressUrlSyncRef.current = false;
+      return;
+    }
+
+    if (nextUrl === currentBrowserRelativeUrl()) {
+      return;
+    }
+
+    const method = historyModeRef.current === "push"
+      ? window.history.pushState.bind(window.history)
+      : window.history.replaceState.bind(window.history);
+
+    method(window.history.state, "", nextUrl);
+    historyModeRef.current = "replace";
+  }, [activeCategory, activeDoc, currentSectionFragment, requestedFragment, searchQuery]);
+
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || isTextInputLike(document.activeElement)) return;
       if (event.key === "Escape" && activeDoc) {
-        setActiveDoc(null);
-        setPendingFragment(null);
+        closeDoc("push");
       }
     };
 
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [activeDoc]);
+  }, [activeDoc, closeDoc]);
+
+  const handleSearchChange = useCallback((query: string) => {
+    historyModeRef.current = "replace";
+    setSearchQuery(query);
+  }, []);
+
+  const handleCategoryChange = useCallback((category: SpecCategory | "All") => {
+    historyModeRef.current = "replace";
+    setActiveCategory(category);
+  }, []);
+
+  const handleSectionChange = useCallback((sectionId: string | null) => {
+    setCurrentSectionFragment(sectionId);
+  }, []);
 
   const visibleDocCount = filteredDocs.length;
   const activeDocIndex = activeDoc
     ? filteredDocs.findIndex((doc) => doc.slug === activeDoc.slug)
     : -1;
+  const selectionValue = activeDoc
+    ? activeDocIndex >= 0
+      ? `${activeDocIndex + 1}/${visibleDocCount}`
+      : "Pinned"
+    : "None";
 
   return (
     <div
@@ -603,10 +772,7 @@ export default function SpecViewer() {
           <div className="flex flex-wrap items-center gap-2">
             <StatusPill label="Visible" value={`${visibleDocCount}/${specDocs.length}`} />
             <StatusPill label="Categories" value={String(specCategories.length)} />
-            <StatusPill
-              label="Selection"
-              value={activeDocIndex >= 0 ? `${activeDocIndex + 1}/${visibleDocCount}` : "None"}
-            />
+            <StatusPill label="Selection" value={selectionValue} />
           </div>
         </div>
       </header>
@@ -625,10 +791,7 @@ export default function SpecViewer() {
             >
               <button
                 type="button"
-                onClick={() => {
-                  setActiveDoc(null);
-                  setPendingFragment(null);
-                }}
+                onClick={() => closeDoc("push")}
                 className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/[0.03] px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-200 transition-colors hover:border-blue-400/40 hover:text-blue-200"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -641,8 +804,9 @@ export default function SpecViewer() {
                   source={source}
                   loading={loading}
                   error={error}
-                  pendingFragment={pendingFragment}
-                  onConsumePendingFragment={() => setPendingFragment(null)}
+                  requestedFragment={requestedFragment}
+                  onConsumeRequestedFragment={() => setRequestedFragment(null)}
+                  onActiveSectionChange={handleSectionChange}
                   onOpenDoc={openDoc}
                 />
               </article>
@@ -660,12 +824,12 @@ export default function SpecViewer() {
               <Sidebar
                 variant="mobile"
                 activeCategory={activeCategory}
-                setActiveCategory={setActiveCategory}
+                setActiveCategory={handleCategoryChange}
                 searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
+                setSearchQuery={handleSearchChange}
                 groupedDocs={groupedDocs}
                 activeDoc={activeDoc}
-                onSelect={setActiveDoc}
+                onSelect={openDoc}
                 onPrefetch={prefetchDoc}
               />
             </motion.div>
@@ -684,12 +848,12 @@ export default function SpecViewer() {
           <Sidebar
             variant="desktop"
             activeCategory={activeCategory}
-            setActiveCategory={setActiveCategory}
+            setActiveCategory={handleCategoryChange}
             searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
+            setSearchQuery={handleSearchChange}
             groupedDocs={groupedDocs}
             activeDoc={activeDoc}
-            onSelect={setActiveDoc}
+            onSelect={openDoc}
             onPrefetch={prefetchDoc}
           />
         </aside>
@@ -715,8 +879,9 @@ export default function SpecViewer() {
                   source={source}
                   loading={loading}
                   error={error}
-                  pendingFragment={pendingFragment}
-                  onConsumePendingFragment={() => setPendingFragment(null)}
+                  requestedFragment={requestedFragment}
+                  onConsumeRequestedFragment={() => setRequestedFragment(null)}
+                  onActiveSectionChange={handleSectionChange}
                   onOpenDoc={openDoc}
                 />
               </motion.article>
@@ -998,26 +1163,33 @@ function DocContent({
   source,
   loading,
   error,
-  pendingFragment,
-  onConsumePendingFragment,
+  requestedFragment,
+  onConsumeRequestedFragment,
+  onActiveSectionChange,
   onOpenDoc,
 }: {
   doc: SpecDoc;
   source: string;
   loading: boolean;
   error: string | null;
-  pendingFragment: string | null;
-  onConsumePendingFragment: () => void;
+  requestedFragment: string | null;
+  onConsumeRequestedFragment: () => void;
+  onActiveSectionChange: (sectionId: string | null) => void;
   onOpenDoc: (doc: SpecDoc, fragment?: string | null) => void;
 }) {
   const prefersReducedMotion = useReducedMotion();
   const contentRef = useRef<HTMLDivElement>(null);
   const parsed = useMemo(() => (source ? parseSpecDoc(source) : null), [source]);
   const [activeSection, setActiveSection] = useState<string | null>(null);
+  const [readerProgress, setReaderProgress] = useState(0);
   const currentSection =
     parsed?.sections.some((section) => section.id === activeSection)
       ? activeSection
       : parsed?.sections[0]?.id ?? null;
+
+  useEffect(() => {
+    onActiveSectionChange(currentSection);
+  }, [currentSection, onActiveSectionChange]);
 
   useEffect(() => {
     if (!parsed?.sections.length) return;
@@ -1055,23 +1227,78 @@ function DocContent({
     if (loading || !parsed) return;
 
     const scrollHost = contentRef.current?.closest<HTMLElement>("[data-spec-reader-scroll]");
-    const anchorId = pendingFragment?.replace(/^#/, "") ?? null;
+    const anchorId = requestedFragment?.replace(/^#/, "") ?? null;
 
     const rafId = window.requestAnimationFrame(() => {
       if (anchorId) {
+        if (parsed.sections.some((section) => section.id === anchorId)) {
+          setActiveSection(anchorId);
+        }
         document.getElementById(anchorId)?.scrollIntoView({
           behavior: prefersReducedMotion ? "auto" : "smooth",
           block: "start",
         });
-        onConsumePendingFragment();
+        onConsumeRequestedFragment();
         return;
       }
 
-      scrollHost?.scrollTo({ top: 0, behavior: "auto" });
+      if (scrollHost) {
+        scrollHost.scrollTo({ top: 0, behavior: "auto" });
+        return;
+      }
+
+      contentRef.current?.scrollIntoView({ block: "start", behavior: "auto" });
     });
 
     return () => window.cancelAnimationFrame(rafId);
-  }, [doc.slug, loading, parsed, pendingFragment, prefersReducedMotion, onConsumePendingFragment]);
+  }, [doc.slug, loading, parsed, requestedFragment, prefersReducedMotion, onConsumeRequestedFragment]);
+
+  useEffect(() => {
+    if (!contentRef.current) return;
+
+    const scrollHost = contentRef.current.closest<HTMLElement>("[data-spec-reader-scroll]");
+
+    let rafId = 0;
+
+    const computeProgress = () => {
+      if (!contentRef.current) return;
+
+      const contentRect = contentRef.current.getBoundingClientRect();
+      const hostRect = scrollHost
+        ? scrollHost.getBoundingClientRect()
+        : ({ top: 0, height: window.innerHeight } as Pick<DOMRect, "top" | "height">);
+      const totalDistance = Math.max(contentRect.height - hostRect.height * 0.4, 1);
+      const traversedDistance = hostRect.top - contentRect.top + hostRect.height * 0.25;
+      const nextProgress = Math.max(0, Math.min(1, traversedDistance / totalDistance));
+
+      setReaderProgress((previous) =>
+        Math.abs(previous - nextProgress) > 0.004 ? nextProgress : previous,
+      );
+    };
+
+    const scheduleProgressMeasure = () => {
+      window.cancelAnimationFrame(rafId);
+      rafId = window.requestAnimationFrame(computeProgress);
+    };
+
+    scheduleProgressMeasure();
+    if (scrollHost) {
+      scrollHost.addEventListener("scroll", scheduleProgressMeasure, { passive: true });
+    } else {
+      window.addEventListener("scroll", scheduleProgressMeasure, { passive: true });
+    }
+    window.addEventListener("resize", scheduleProgressMeasure);
+
+    return () => {
+      if (scrollHost) {
+        scrollHost.removeEventListener("scroll", scheduleProgressMeasure);
+      } else {
+        window.removeEventListener("scroll", scheduleProgressMeasure);
+      }
+      window.removeEventListener("resize", scheduleProgressMeasure);
+      window.cancelAnimationFrame(rafId);
+    };
+  }, [doc.slug, parsed]);
 
   const scrollToSection = useCallback(
     (sectionId: string) => {
@@ -1105,11 +1332,17 @@ function DocContent({
   }
 
   return (
-    <div ref={contentRef} data-spec-doc-body="true" className="pb-16">
+    <div
+      ref={contentRef}
+      data-spec-doc-body="true"
+      data-spec-current-section={currentSection ?? ""}
+      className="pb-16"
+    >
       <ReaderOverview
         doc={doc}
         parsed={parsed}
         activeSection={currentSection}
+        readerProgress={readerProgress}
         onScrollToSection={scrollToSection}
       />
 
@@ -1135,6 +1368,7 @@ function DocContent({
             <SectionRail
               sections={parsed.sections}
               activeSection={currentSection}
+              readerProgress={readerProgress}
               onScrollToSection={scrollToSection}
             />
             <ReaderSignalsCard stats={parsed.stats} />
@@ -1149,13 +1383,17 @@ function ReaderOverview({
   doc,
   parsed,
   activeSection,
+  readerProgress,
   onScrollToSection,
 }: {
   doc: SpecDoc;
   parsed: ParsedSpecDoc;
   activeSection: string | null;
+  readerProgress: number;
   onScrollToSection: (sectionId: string) => void;
 }) {
+  const progressLabel = `${Math.round(readerProgress * 100)}%`;
+
   return (
     <SyncContainer
       withPulse={true}
@@ -1176,6 +1414,22 @@ function ReaderOverview({
               Each section is rendered as a native React surface with targeted layouts for
               diagrams, jargon bridges, linked follow-ups, and site route jump-offs.
             </p>
+
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <span
+                data-spec-reader-progress="true"
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-slate-300"
+              >
+                <span className="text-slate-500">Progress</span>
+                <span className="text-white">{progressLabel}</span>
+              </span>
+              {activeSection ? (
+                <span className="inline-flex items-center gap-2 rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-blue-100">
+                  <span className="text-blue-300/80">Active</span>
+                  <span>{activeSection.replace(/-/g, " ")}</span>
+                </span>
+              ) : null}
+            </div>
 
             <div className="mt-5 flex flex-wrap gap-2">
               {parsed.sections.map((section, index) => {
@@ -1204,7 +1458,7 @@ function ReaderOverview({
             <MetricCard label="Sections" value={String(parsed.stats.sectionCount)} />
             <MetricCard label="Read Time" value={`${parsed.stats.readMinutes} min`} />
             <MetricCard label="Code Blocks" value={String(parsed.stats.codeBlocks)} />
-            <MetricCard label="Linkouts" value={String(parsed.stats.linkCount)} />
+            <MetricCard label="Progress" value={progressLabel} />
           </div>
         </div>
       </div>
@@ -1450,6 +1704,7 @@ function ReadNextGrid({
           <button
             key={linkedDoc.slug}
             type="button"
+            data-spec-related-doc={linkedDoc.slug}
             onClick={() => onOpenDoc(linkedDoc)}
             className={cn(
               "w-full rounded-2xl border bg-black/35 p-4 text-left transition-colors hover:bg-white/[0.04]",
@@ -1510,40 +1765,95 @@ function SiteRouteGrid({ items }: { items: MarkdownListItem[] }) {
 function SectionRail({
   sections,
   activeSection,
+  readerProgress,
   onScrollToSection,
 }: {
   sections: ParsedDocSection[];
   activeSection: string | null;
+  readerProgress: number;
   onScrollToSection: (sectionId: string) => void;
 }) {
+  const progressLabel = `${Math.round(readerProgress * 100)}%`;
+
   return (
-    <SyncContainer accentColor="#60A5FA" className="overflow-hidden border-white/10 bg-black/35">
+    <SyncContainer
+      accentColor="#60A5FA"
+      className="overflow-hidden border-white/10 bg-black/35"
+    >
       <div className="p-4">
-        <p className="text-[10px] font-black uppercase tracking-[0.26em] text-slate-400">
-          On This Page
-        </p>
-        <div className="mt-4 space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.26em] text-slate-400">
+            On This Page
+          </p>
+          <span
+            data-spec-progress-label="true"
+            className="rounded-full border border-blue-400/20 bg-blue-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-blue-100"
+          >
+            {progressLabel}
+          </span>
+        </div>
+
+        <div className="mt-4 overflow-hidden rounded-full border border-white/10 bg-white/[0.04]">
+          <motion.div
+            data-spec-progress-bar="true"
+            className="h-2 rounded-full bg-gradient-to-r from-blue-400 via-cyan-300 to-amber-300"
+            animate={{ width: `${Math.max(readerProgress * 100, 4)}%` }}
+            transition={{ duration: 0.24, ease: "easeOut" }}
+          />
+        </div>
+
+        <div className="relative mt-4 space-y-2 pl-5">
+          <div className="pointer-events-none absolute left-[0.55rem] top-1 bottom-1 w-px bg-white/10" />
+          <motion.div
+            className="pointer-events-none absolute left-[0.4rem] top-1 w-[5px] rounded-full bg-gradient-to-b from-blue-400 via-cyan-300 to-amber-300 shadow-[0_0_16px_rgba(96,165,250,0.35)]"
+            animate={{ height: `${Math.max(readerProgress * 100, 4)}%` }}
+            transition={{ duration: 0.24, ease: "easeOut" }}
+          />
           {sections.map((section, index) => {
             const tone = getSectionTone(index);
             const active = activeSection === section.id;
             return (
-              <Magnetic key={section.id} strength={0.03}>
-                <button
-                  type="button"
-                  onClick={() => onScrollToSection(section.id)}
-                  className={cn(
-                    "w-full rounded-2xl border px-3 py-3 text-left transition-all",
-                    active
-                      ? tone.navClass
-                      : "border-white/10 bg-white/[0.02] text-slate-300 hover:border-white/20 hover:bg-white/[0.04]",
-                  )}
-                >
-                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">
-                    {String(index + 1).padStart(2, "0")}
-                  </p>
-                  <p className="mt-1 text-sm font-bold text-inherit">{section.title}</p>
-                </button>
-              </Magnetic>
+              <div key={section.id} className="relative">
+                {active ? (
+                  <motion.div
+                    layoutId="spec-active-rail-item"
+                    className={cn(
+                      "pointer-events-none absolute inset-0 rounded-2xl border shadow-[0_0_26px_-16px_rgba(96,165,250,0.9)]",
+                      tone.navClass,
+                    )}
+                    transition={{ type: "spring", stiffness: 320, damping: 30 }}
+                  />
+                ) : null}
+                <div className="absolute left-[-1.05rem] top-1/2 z-20 -translate-y-1/2">
+                  <motion.div
+                    className={cn(
+                      "h-2.5 w-2.5 rounded-full border border-slate-800 bg-slate-600",
+                      active && "bg-blue-300 shadow-[0_0_12px_rgba(96,165,250,0.75)]",
+                    )}
+                    animate={{ scale: active ? 1.35 : 1 }}
+                    transition={{ duration: 0.18 }}
+                  />
+                </div>
+                <Magnetic strength={0.03}>
+                  <button
+                    type="button"
+                    data-spec-rail-item={section.id}
+                    data-spec-rail-active={active ? "true" : "false"}
+                    onClick={() => onScrollToSection(section.id)}
+                    className={cn(
+                      "relative z-10 w-full rounded-2xl border px-3 py-3 text-left transition-all",
+                      active
+                        ? "border-transparent bg-transparent text-white"
+                        : "border-white/10 bg-white/[0.02] text-slate-300 hover:border-white/20 hover:bg-white/[0.04]",
+                    )}
+                  >
+                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">
+                      {String(index + 1).padStart(2, "0")}
+                    </p>
+                    <p className="mt-1 text-sm font-bold text-inherit">{section.title}</p>
+                  </button>
+                </Magnetic>
+              </div>
             );
           })}
         </div>

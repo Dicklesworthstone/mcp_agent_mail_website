@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "@/components/motion";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import SiteHeader from "@/components/site-header";
 import SiteFooter from "@/components/site-footer";

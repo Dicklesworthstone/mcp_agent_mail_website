@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { motion, useReducedMotion } from "@/components/motion";
 import { cn } from "@/lib/utils";
-import { motion, useReducedMotion } from "framer-motion";
 
 /**
  * A rounded node element for corners — tech-clean aesthetic
