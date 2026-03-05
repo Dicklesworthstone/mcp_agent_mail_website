@@ -335,7 +335,7 @@ export default function AgentFlywheel() {
               </svg>
 
               <div className="absolute" style={{ left: CENTER - 80, top: CENTER - 80, width: 160, height: 160 }}>
-                {[...Array(3)].map((_, i) => (
+                {Array.from({ length: 3 }).map((_, i) => (
                   <motion.div
                     key={i}
                     className="absolute inset-0 rounded-full"

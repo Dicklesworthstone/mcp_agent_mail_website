@@ -81,9 +81,16 @@ export default function CustomCursor() {
 
     const handleMouseDown = () => setIsClicking(true);
     const handleMouseUp = () => setIsClicking(false);
+    const handleWindowBlur = () => setIsClicking(false);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== "visible") {
+        setIsClicking(false);
+      }
+    };
     const handleMouseLeave = () => {
       visibleRef.current = false;
       setIsVisible(false);
+      setIsClicking(false);
     };
     const handleMouseEnter = () => {
       visibleRef.current = true;
@@ -175,8 +182,10 @@ export default function CustomCursor() {
       window.addEventListener("mousemove", handleMouseMove);
       window.addEventListener("mousedown", handleMouseDown);
       window.addEventListener("mouseup", handleMouseUp);
+      window.addEventListener("blur", handleWindowBlur);
       document.addEventListener("mouseleave", handleMouseLeave);
       document.addEventListener("mouseenter", handleMouseEnter);
+      document.addEventListener("visibilitychange", handleVisibilityChange);
     };
 
     const disable = () => {
@@ -185,14 +194,17 @@ export default function CustomCursor() {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mousedown", handleMouseDown);
       window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("blur", handleWindowBlur);
       document.removeEventListener("mouseleave", handleMouseLeave);
       document.removeEventListener("mouseenter", handleMouseEnter);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (rafId !== null) window.cancelAnimationFrame(rafId);
       rafId = null;
       last = null;
       visibleRef.current = false;
       setIsVisible(false);
       setIsMagnetic(false);
+      setIsClicking(false);
     };
 
     const onMediaChange = (e: MediaQueryList | MediaQueryListEvent) => {

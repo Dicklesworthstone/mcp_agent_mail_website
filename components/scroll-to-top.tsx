@@ -19,16 +19,19 @@ export default function ScrollToTop() {
     if (visible) {
       const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
       setProgress(maxScroll > 0 ? Math.min(scrollY / maxScroll, 1) : 0);
+    } else {
+      setProgress(0);
     }
   }, []);
 
   useEffect(() => {
     let ticking = false;
-    let rafId = 0;
+    let scrollRafId = 0;
+    let initRafId = 0;
 
     const onScroll = () => {
       if (!ticking) {
-        rafId = window.requestAnimationFrame(() => {
+        scrollRafId = window.requestAnimationFrame(() => {
           handleScroll();
           ticking = false;
         });
@@ -37,11 +40,12 @@ export default function ScrollToTop() {
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });
-    rafId = window.requestAnimationFrame(handleScroll);
+    initRafId = window.requestAnimationFrame(handleScroll);
 
     return () => {
       window.removeEventListener("scroll", onScroll);
-      window.cancelAnimationFrame(rafId);
+      window.cancelAnimationFrame(scrollRafId);
+      window.cancelAnimationFrame(initRafId);
     };
   }, [handleScroll]);
 

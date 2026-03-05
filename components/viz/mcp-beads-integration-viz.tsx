@@ -73,22 +73,22 @@ export default function McpBeadsIntegrationViz() {
         <div className="relative w-full max-w-3xl h-48 flex justify-between items-center px-4 md:px-12 mt-4">
           
           {/* SVG Connection Lines */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" style={{ overflow: "visible" }} preserveAspectRatio="none">
-             <path d="M 50% 0 Q 20% 50% 15% 100%" fill="none" stroke="url(#grad1)" strokeWidth="2" strokeDasharray="6 6" className="opacity-50" />
-             <path d="M 50% 0 Q 50% 50% 50% 100%" fill="none" stroke="url(#grad2)" strokeWidth="2" strokeDasharray="6 6" className="opacity-50" />
-             <path d="M 50% 0 Q 80% 50% 85% 100%" fill="none" stroke="url(#grad3)" strokeWidth="2" strokeDasharray="6 6" className="opacity-50" />
-             
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 100 100" style={{ overflow: "visible" }} preserveAspectRatio="none">
+             <path d="M 50 0 Q 20 50 15 100" fill="none" stroke="url(#grad1)" strokeWidth="2" strokeDasharray="6 6" className="opacity-50" />
+             <path d="M 50 0 Q 50 50 50 100" fill="none" stroke="url(#grad2)" strokeWidth="2" strokeDasharray="6 6" className="opacity-50" />
+             <path d="M 50 0 Q 80 50 85 100" fill="none" stroke="url(#grad3)" strokeWidth="2" strokeDasharray="6 6" className="opacity-50" />
+
              {!reducedMotion && (
                <>
                  {/* Particles */}
                  <motion.circle r="4" fill="#60A5FA" filter="blur(2px)">
-                   <animateMotion dur="2.5s" repeatCount="indefinite" path="M 50% 0 Q 20% 50% 15% 100%" />
+                   <animateMotion dur="2.5s" repeatCount="indefinite" path="M 50 0 Q 20 50 15 100" />
                  </motion.circle>
                  <motion.circle r="4" fill="#A78BFA">
-                   <animateMotion dur="2s" repeatCount="indefinite" path="M 50% 0 Q 50% 50% 50% 100%" />
+                   <animateMotion dur="2s" repeatCount="indefinite" path="M 50 0 Q 50 50 50 100" />
                  </motion.circle>
                  <motion.circle r="4" fill="#FBBF24" filter="blur(2px)">
-                   <animateMotion dur="3s" repeatCount="indefinite" path="M 50% 0 Q 80% 50% 85% 100%" />
+                   <animateMotion dur="3s" repeatCount="indefinite" path="M 50 0 Q 80 50 85 100" />
                  </motion.circle>
                </>
              )}

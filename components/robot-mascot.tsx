@@ -17,11 +17,13 @@ export default function RobotMascot({ className }: { className?: string }) {
   const robotRef = useRef<HTMLDivElement>(null);
   const rectRef = useRef<DOMRect | null>(null);
   const frameRef = useRef<number | null>(null);
+  const rectRafRef = useRef<number | null>(null);
   const blinkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isBlinkingRef = useRef(false);
   const isVisibleRef = useRef(false);
 
-  const updateRect = useCallback(() => {
+  const updateRect = useCallback((force = false) => {
+    if (!force && !isVisibleRef.current) return;
     if (robotRef.current) {
       rectRef.current = robotRef.current.getBoundingClientRect();
     }
@@ -32,6 +34,14 @@ export default function RobotMascot({ className }: { className?: string }) {
 
     const el = robotRef.current;
     if (!el) return;
+
+    const scheduleRectUpdate = () => {
+      if (rectRafRef.current !== null) return;
+      rectRafRef.current = requestAnimationFrame(() => {
+        rectRafRef.current = null;
+        updateRect();
+      });
+    };
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!isVisibleRef.current || frameRef.current) return;
@@ -65,22 +75,25 @@ export default function RobotMascot({ className }: { className?: string }) {
     const observer = new IntersectionObserver(
       ([entry]) => {
         isVisibleRef.current = entry.isIntersecting;
-        if (entry.isIntersecting) updateRect();
+        if (entry.isIntersecting) {
+          updateRect(true);
+        }
       },
       { threshold: 0 }
     );
     observer.observe(el);
 
-    updateRect();
-    window.addEventListener("scroll", updateRect, { passive: true });
-    window.addEventListener("resize", updateRect, { passive: true });
+    updateRect(true);
+    window.addEventListener("scroll", scheduleRectUpdate, { passive: true });
+    window.addEventListener("resize", scheduleRectUpdate, { passive: true });
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
 
     return () => {
       observer.disconnect();
       window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("scroll", updateRect);
-      window.removeEventListener("resize", updateRect);
+      window.removeEventListener("scroll", scheduleRectUpdate);
+      window.removeEventListener("resize", scheduleRectUpdate);
+      if (rectRafRef.current) cancelAnimationFrame(rectRafRef.current);
       if (frameRef.current) cancelAnimationFrame(frameRef.current);
     };
   }, [updateRect, prefersReducedMotion]);

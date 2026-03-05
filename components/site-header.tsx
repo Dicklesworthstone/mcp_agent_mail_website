@@ -119,7 +119,7 @@ export default function SiteHeader() {
 
             {/* Tools */}
             <div className="flex items-center justify-end gap-2 shrink-0">
-              <button onClick={toggleLabMode} aria-label="Toggle Lab Mode" aria-pressed={isLabMode} className={cn("p-2 rounded-lg transition-colors", isLabMode ? "text-blue-400 bg-blue-500/10" : "text-slate-400 hover:text-white hover:bg-white/5")}>
+              <button type="button" onClick={toggleLabMode} aria-label="Toggle Lab Mode" aria-pressed={isLabMode} className={cn("p-2 rounded-lg transition-colors", isLabMode ? "text-blue-400 bg-blue-500/10" : "text-slate-400 hover:text-white hover:bg-white/5")}>
                 <Eye className="h-4 w-4" />
               </button>
               <div className="w-px h-4 bg-white/10 mx-1" />

@@ -177,13 +177,13 @@ export default function ProductBusViz() {
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-12 w-full px-4 md:px-8 max-w-4xl mx-auto h-[300px]">
           
           {/* Connection Lines (SVG) */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" preserveAspectRatio="none">
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 100 100" preserveAspectRatio="none">
              {PRODUCT.projects.map((proj, i) => {
-               // Approximate positions
-               const startX = i === 0 ? "15%" : i === 1 ? "50%" : "85%";
-               const startY = i === 1 ? "20%" : "80%";
-               const endX = "50%";
-               const endY = "50%";
+               // Approximate positions (in viewBox units 0-100)
+               const startX = i === 0 ? "15" : i === 1 ? "50" : "85";
+               const startY = i === 1 ? "20" : "80";
+               const endX = "50";
+               const endY = "50";
                const isHighlighted = currentStep !== "idle" && stepInfo.highlight.includes(proj.id);
                const isLinkActive = currentStep !== "idle";
 
@@ -216,7 +216,7 @@ export default function ProductBusViz() {
              {/* Direct Contact Links */}
              {stepInfo.activeLink && (
                 <path
-                  d="M 15% 80% L 50% 20%" // Backend to Frontend
+                  d="M 15 80 L 50 20" // Backend to Frontend
                   fill="none"
                   stroke={currentStep === "contact-denied" ? "#EF4444" : currentStep === "contact-approved" || currentStep === "cross-message" ? "#22C55E" : "#F59E0B"}
                   strokeWidth="3"
@@ -226,7 +226,7 @@ export default function ProductBusViz() {
              )}
              {stepInfo.activeLink && currentStep === "cross-message" && !reducedMotion && (
                <motion.circle r="4" fill="#22C55E">
-                 <animateMotion dur="1.5s" repeatCount="indefinite" path="M 15% 80% L 50% 20%" />
+                 <animateMotion dur="1.5s" repeatCount="indefinite" path="M 15 80 L 50 20" />
                </motion.circle>
              )}
           </svg>

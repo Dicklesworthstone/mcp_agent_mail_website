@@ -19,6 +19,7 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
   const audioEnabledRef = useRef(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const audioTransitionRef = useRef(Promise.resolve());
 
   useEffect(() => {
     return () => {
@@ -110,6 +111,28 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
     playSfx("click");
   }, [playSfx]);
 
+  const queueAudioStateTransition = useCallback((shouldEnable: boolean) => {
+    audioTransitionRef.current = audioTransitionRef.current
+      .then(async () => {
+        const ctx = audioContextRef.current;
+        if (!ctx) return;
+
+        if (shouldEnable) {
+          if (ctx.state === "suspended") {
+            await ctx.resume();
+          }
+          return;
+        }
+
+        if (ctx.state === "running") {
+          await ctx.suspend();
+        }
+      })
+      .catch((err) => {
+        console.error("Audio transition failure:", err);
+      });
+  }, []);
+
   const toggleAudio = useCallback(() => {
     const nextState = !audioEnabledRef.current;
     audioEnabledRef.current = nextState;
@@ -119,14 +142,15 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
       audioTimerRef.current = null;
     }
     if (nextState) {
+      queueAudioStateTransition(true);
       audioTimerRef.current = setTimeout(() => {
         audioTimerRef.current = null;
         if (audioEnabledRef.current) playSfx("hum");
       }, 150);
-    } else if (audioContextRef.current?.state === "running") {
-      audioContextRef.current.suspend().catch(console.error);
+    } else {
+      queueAudioStateTransition(false);
     }
-  }, [playSfx]);
+  }, [playSfx, queueAudioStateTransition]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

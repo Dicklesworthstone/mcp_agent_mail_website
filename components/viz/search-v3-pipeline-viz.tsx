@@ -103,78 +103,78 @@ export default function SearchV3PipelineViz() {
 
         {/* --- PIPELINE SVG --- */}
         <div className="absolute inset-0 z-0 pointer-events-none">
-          <svg className="w-full h-full" preserveAspectRatio="none">
-             
+          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+
              {/* Parse -> Split */}
-             <path d="M 15% 50% L 30% 50%" fill="none" stroke="#6366F1" strokeWidth="2" strokeDasharray="4 4" className="opacity-40" />
-             
+             <path d="M 15 50 L 30 50" fill="none" stroke="#6366F1" strokeWidth="2" strokeDasharray="4 4" className="opacity-40" />
+
              {/* Split -> Lexical */}
-             <path d="M 30% 50% C 40% 50%, 40% 25%, 50% 25%" fill="none" stroke={isLexical && !isDegraded ? "#F59E0B" : "#334155"} strokeWidth="2" strokeDasharray="4 4" className="opacity-40" />
-             
+             <path d="M 30 50 C 40 50, 40 25, 50 25" fill="none" stroke={isLexical && !isDegraded ? "#F59E0B" : "#334155"} strokeWidth="2" strokeDasharray="4 4" className="opacity-40" />
+
              {/* Split -> Semantic */}
-             <path d="M 30% 50% C 40% 50%, 40% 75%, 50% 75%" fill="none" stroke={isSemantic ? "#8B5CF6" : "#334155"} strokeWidth="2" strokeDasharray="4 4" className="opacity-40" />
+             <path d="M 30 50 C 40 50, 40 75, 50 75" fill="none" stroke={isSemantic ? "#8B5CF6" : "#334155"} strokeWidth="2" strokeDasharray="4 4" className="opacity-40" />
 
              {/* Split -> Fallback */}
-             <path d="M 30% 50% L 50% 50%" fill="none" stroke={isDegraded ? "#EF4444" : "#334155"} strokeWidth="2" strokeDasharray="4 4" className="opacity-40" />
-             
+             <path d="M 30 50 L 50 50" fill="none" stroke={isDegraded ? "#EF4444" : "#334155"} strokeWidth="2" strokeDasharray="4 4" className="opacity-40" />
+
              {/* Lexical -> Fusion */}
-             <path d="M 50% 25% C 65% 25%, 65% 50%, 75% 50%" fill="none" stroke={isLexical && !isDegraded ? "#F59E0B" : "#334155"} strokeWidth="2" strokeDasharray="4 4" className="opacity-40" />
-             
+             <path d="M 50 25 C 65 25, 65 50, 75 50" fill="none" stroke={isLexical && !isDegraded ? "#F59E0B" : "#334155"} strokeWidth="2" strokeDasharray="4 4" className="opacity-40" />
+
              {/* Semantic -> Fusion */}
-             <path d="M 50% 75% C 65% 75%, 65% 50%, 75% 50%" fill="none" stroke={isSemantic ? "#8B5CF6" : "#334155"} strokeWidth="2" strokeDasharray="4 4" className="opacity-40" />
+             <path d="M 50 75 C 65 75, 65 50, 75 50" fill="none" stroke={isSemantic ? "#8B5CF6" : "#334155"} strokeWidth="2" strokeDasharray="4 4" className="opacity-40" />
 
              {/* Fallback -> Ranking */}
-             <path d="M 50% 50% L 75% 50%" fill="none" stroke={isDegraded ? "#EF4444" : "transparent"} strokeWidth="2" strokeDasharray="4 4" className="opacity-40" />
-             
+             <path d="M 50 50 L 75 50" fill="none" stroke={isDegraded ? "#EF4444" : "transparent"} strokeWidth="2" strokeDasharray="4 4" className="opacity-40" />
+
              {/* Fusion -> Rank */}
-             <path d="M 75% 50% L 90% 50%" fill="none" stroke={!isDegraded ? "#22C55E" : "#EF4444"} strokeWidth="2" strokeDasharray="4 4" className="opacity-40" />
+             <path d="M 75 50 L 90 50" fill="none" stroke={!isDegraded ? "#22C55E" : "#EF4444"} strokeWidth="2" strokeDasharray="4 4" className="opacity-40" />
 
              {!reducedMotion && (
                <>
                  {/* Parse Particle */}
                  <motion.circle r="4" fill="#6366F1" filter="blur(1px)">
-                   <animateMotion dur="1s" repeatCount="indefinite" path="M 15% 50% L 30% 50%" />
+                   <animateMotion dur="1s" repeatCount="indefinite" path="M 15 50 L 30 50" />
                  </motion.circle>
 
                  {/* Lexical Particle */}
                  {isLexical && !isDegraded && (
                    <motion.circle r="4" fill="#F59E0B" filter="blur(1px)">
-                     <animateMotion dur="1.5s" repeatCount="indefinite" begin="1s" path="M 30% 50% C 40% 50%, 40% 25%, 50% 25%" />
+                     <animateMotion dur="1.5s" repeatCount="indefinite" begin="1s" path="M 30 50 C 40 50, 40 25, 50 25" />
                    </motion.circle>
                  )}
                  {isLexical && !isDegraded && (
                    <motion.circle r="4" fill="#F59E0B" filter="blur(1px)">
-                     <animateMotion dur="1.5s" repeatCount="indefinite" begin="2.5s" path="M 50% 25% C 65% 25%, 65% 50%, 75% 50%" />
+                     <animateMotion dur="1.5s" repeatCount="indefinite" begin="2.5s" path="M 50 25 C 65 25, 65 50, 75 50" />
                    </motion.circle>
                  )}
 
                  {/* Semantic Particle */}
                  {isSemantic && (
                    <motion.circle r="4" fill="#8B5CF6" filter="blur(1px)">
-                     <animateMotion dur="1.5s" repeatCount="indefinite" begin="1s" path="M 30% 50% C 40% 50%, 40% 75%, 50% 75%" />
+                     <animateMotion dur="1.5s" repeatCount="indefinite" begin="1s" path="M 30 50 C 40 50, 40 75, 50 75" />
                    </motion.circle>
                  )}
                  {isSemantic && (
                    <motion.circle r="4" fill="#8B5CF6" filter="blur(1px)">
-                     <animateMotion dur="1.5s" repeatCount="indefinite" begin="2.5s" path="M 50% 75% C 65% 75%, 65% 50%, 75% 50%" />
+                     <animateMotion dur="1.5s" repeatCount="indefinite" begin="2.5s" path="M 50 75 C 65 75, 65 50, 75 50" />
                    </motion.circle>
                  )}
 
                  {/* Fallback Particle */}
                  {isDegraded && (
                    <motion.circle r="4" fill="#EF4444" filter="blur(1px)">
-                     <animateMotion dur="2s" repeatCount="indefinite" begin="1s" path="M 30% 50% L 50% 50%" />
+                     <animateMotion dur="2s" repeatCount="indefinite" begin="1s" path="M 30 50 L 50 50" />
                    </motion.circle>
                  )}
                  {isDegraded && (
                    <motion.circle r="4" fill="#EF4444" filter="blur(1px)">
-                     <animateMotion dur="1.5s" repeatCount="indefinite" begin="3s" path="M 50% 50% L 75% 50%" />
+                     <animateMotion dur="1.5s" repeatCount="indefinite" begin="3s" path="M 50 50 L 75 50" />
                    </motion.circle>
                  )}
 
                  {/* Output Particle */}
                  <motion.circle r="4" fill={!isDegraded ? "#22C55E" : "#EF4444"} filter="blur(1px)">
-                   <animateMotion dur="1s" repeatCount="indefinite" begin="4s" path="M 75% 50% L 90% 50%" />
+                   <animateMotion dur="1s" repeatCount="indefinite" begin="4s" path="M 75 50 L 90 50" />
                  </motion.circle>
                </>
              )}
