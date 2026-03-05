@@ -2896,7 +2896,7 @@ export const heroDemoTranscript: HeroDemoTranscript = {
     { startTime: "00:42.000", endTime: "00:47.000", text: "Thread views with full conversation history and ACK status." },
     { startTime: "00:47.000", endTime: "00:52.000", text: "Messages are addressed, not broadcast. No noise." },
     { startTime: "00:52.000", endTime: "00:55.000", text: "Hybrid search across all agent communication." },
-    { startTime: "00:55.000", endTime: "00:60.000", text: "Lexical, semantic, and hybrid modes. Sub-millisecond results." },
+    { startTime: "00:55.000", endTime: "01:00.000", text: "Lexical, semantic, and hybrid modes. Sub-millisecond results." },
     { startTime: "01:00.000", endTime: "01:03.000", text: "Every action is searchable — a complete audit trail." },
     { startTime: "01:03.000", endTime: "01:08.000", text: "Scale dashboard: real-time metrics across all agents." },
     { startTime: "01:08.000", endTime: "01:13.000", text: "Dozens of agents. Zero contention. Production-grade reliability." },

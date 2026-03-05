@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { motion } from "@/components/motion";
 import {
   VizControlButton,
@@ -15,8 +15,12 @@ import { CheckCircle2, GitMerge, MessageSquare, Lock, TerminalSquare, Share2 } f
 type PathMode = "standard" | "discovered";
 
 export default function McpBeadsIntegrationViz() {
+  const uid = useId();
   const reducedMotion = useVizReducedMotion();
   const [pathMode, setPathMode] = useState<PathMode>("standard");
+  const g1 = `beads-grad1-${uid}`;
+  const g2 = `beads-grad2-${uid}`;
+  const g3 = `beads-grad3-${uid}`;
 
   return (
     <VizSurface aria-label="MCP Beads Integration">
@@ -74,9 +78,9 @@ export default function McpBeadsIntegrationViz() {
           
           {/* SVG Connection Lines */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 100 100" style={{ overflow: "visible" }} preserveAspectRatio="none">
-             <path d="M 50 0 Q 20 50 15 100" fill="none" stroke="url(#grad1)" strokeWidth="2" strokeDasharray="6 6" className="opacity-50" />
-             <path d="M 50 0 Q 50 50 50 100" fill="none" stroke="url(#grad2)" strokeWidth="2" strokeDasharray="6 6" className="opacity-50" />
-             <path d="M 50 0 Q 80 50 85 100" fill="none" stroke="url(#grad3)" strokeWidth="2" strokeDasharray="6 6" className="opacity-50" />
+             <path d="M 50 0 Q 20 50 15 100" fill="none" stroke={`url(#${g1})`} strokeWidth="2" strokeDasharray="6 6" className="opacity-50" />
+             <path d="M 50 0 Q 50 50 50 100" fill="none" stroke={`url(#${g2})`} strokeWidth="2" strokeDasharray="6 6" className="opacity-50" />
+             <path d="M 50 0 Q 80 50 85 100" fill="none" stroke={`url(#${g3})`} strokeWidth="2" strokeDasharray="6 6" className="opacity-50" />
 
              {!reducedMotion && (
                <>
@@ -94,15 +98,15 @@ export default function McpBeadsIntegrationViz() {
              )}
 
              <defs>
-               <linearGradient id="grad1" x1="0" y1="0" x2="0" y2="1">
+               <linearGradient id={g1} x1="0" y1="0" x2="0" y2="1">
                  <stop offset="0%" stopColor="#8B5CF6" />
                  <stop offset="100%" stopColor="#3B82F6" />
                </linearGradient>
-               <linearGradient id="grad2" x1="0" y1="0" x2="0" y2="1">
+               <linearGradient id={g2} x1="0" y1="0" x2="0" y2="1">
                  <stop offset="0%" stopColor="#8B5CF6" />
                  <stop offset="100%" stopColor="#A855F7" />
                </linearGradient>
-               <linearGradient id="grad3" x1="0" y1="0" x2="0" y2="1">
+               <linearGradient id={g3} x1="0" y1="0" x2="0" y2="1">
                  <stop offset="0%" stopColor="#8B5CF6" />
                  <stop offset="100%" stopColor="#F59E0B" />
                </linearGradient>

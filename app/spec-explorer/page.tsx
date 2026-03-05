@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import SpecViewerLoader from "@/components/spec-explorer/spec-viewer-loader";
 import { specCategories, specDocs } from "@/lib/spec-docs";
+import { technicalSurfaceCopy } from "@/lib/content";
 
 export const metadata: Metadata = {
   title: "Spec Explorer | MCP Agent Mail",
@@ -51,6 +52,81 @@ export default function SpecExplorerPage() {
 
       <section id="spec-explorer-shell" data-scaffold-slot="explorer-shell" className="mt-10">
         <SpecViewerLoader />
+      </section>
+
+      {/* Technical Surface Map */}
+      <section id="technical-surface" className="mt-16 space-y-12">
+        <div>
+          <h2 className="text-2xl font-black text-white tracking-tight mb-2">Technical Surface Map</h2>
+          <p className="text-sm text-slate-400">An at-a-glance reference for every tool cluster, resource URI, TUI screen, and robot command track in Agent Mail.</p>
+        </div>
+
+        {/* Tool Clusters */}
+        <div>
+          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-blue-400 mb-4">Tool Clusters</h3>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {technicalSurfaceCopy.toolClusters.map((cluster) => (
+              <div key={cluster.id} className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+                <h4 className="text-sm font-bold text-white mb-1">{cluster.cluster}</h4>
+                <p className="text-xs text-slate-400 mb-3">{cluster.purpose}</p>
+                <div className="flex flex-wrap gap-1">
+                  {cluster.representativeTools.map((tool) => (
+                    <span key={tool} className="inline-block rounded-md bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 text-[10px] font-mono text-blue-300">{tool}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Resource URIs */}
+        <div>
+          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-green-400 mb-4">Resource URIs</h3>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {technicalSurfaceCopy.resources.map((res) => (
+              <div key={res.id} className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+                <code className="text-xs font-mono text-green-300 block mb-1">{res.uriPattern}</code>
+                <p className="text-xs text-slate-400">{res.purpose}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* TUI Screens */}
+        <div>
+          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-orange-400 mb-4">TUI Screens</h3>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {technicalSurfaceCopy.tuiScreens.map((screen) => (
+              <div key={screen.id} className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+                <h4 className="text-sm font-bold text-white mb-1">{screen.screen}</h4>
+                <p className="text-xs text-slate-400 italic mb-2">{screen.coreQuestion}</p>
+                <div className="flex flex-wrap gap-1">
+                  {screen.primarySignals.map((signal) => (
+                    <span key={signal} className="inline-block rounded-md bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 text-[10px] text-orange-300">{signal}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Robot Command Tracks */}
+        <div>
+          <h3 className="text-xs font-black uppercase tracking-[0.2em] text-purple-400 mb-4">Robot Command Tracks</h3>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {technicalSurfaceCopy.robotTracks.map((track) => (
+              <div key={track.id} className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+                <h4 className="text-sm font-bold text-white mb-1">{track.track}</h4>
+                <p className="text-xs text-slate-400 mb-2">{track.objective}</p>
+                <div className="space-y-1">
+                  {track.commandExamples.map((cmd) => (
+                    <code key={cmd} className="block text-[10px] font-mono text-purple-300 bg-purple-500/5 rounded px-2 py-1">{cmd}</code>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
     </main>
   );

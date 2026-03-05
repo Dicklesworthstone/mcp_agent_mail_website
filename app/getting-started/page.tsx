@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Copy, Check, ArrowRight, BookOpen, Shield, Blocks, Sparkles } from "lucide-react";
+import { Copy, Check, ArrowRight, BookOpen, Shield, Blocks, Sparkles, Target } from "lucide-react";
 import { useState, useCallback, useRef, useEffect } from "react";
 import SectionShell from "@/components/section-shell";
 import RustCodeBlock from "@/components/rust-code-block";
@@ -15,6 +15,7 @@ import {
   gettingStartedMcpConfigSnippet,
   gettingStartedFaq,
   gettingStartedPillars,
+  useCases,
   getFaqPageJsonLd,
   getHowToJsonLd,
 } from "@/lib/content";
@@ -160,6 +161,36 @@ export default function GettingStartedPage() {
             </motion.div>
           );
           })}
+        </div>
+      </SectionShell>
+
+      {/* Real-World Use Cases */}
+      <SectionShell
+        id="use-cases"
+        icon="sparkles"
+        eyebrow="Real-World Workflows"
+        title="Use Cases"
+        kicker="Concrete scenarios where Agent Mail coordination makes the difference between chaos and velocity."
+      >
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {useCases.map((uc) => (
+            <div
+              key={uc.id}
+              className="group rounded-2xl border border-white/5 bg-white/[0.02] p-6 hover:border-blue-500/20 transition-colors"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
+                  <Target className="h-5 w-5" />
+                </div>
+                <h3 className="text-sm font-black text-white">{uc.title}</h3>
+              </div>
+              <p className="text-sm text-slate-400 leading-relaxed mb-4">{uc.description}</p>
+              <div className="flex items-center gap-2 text-xs font-bold text-blue-400">
+                <ArrowRight className="h-3 w-3" />
+                {uc.outcome}
+              </div>
+            </div>
+          ))}
         </div>
       </SectionShell>
 

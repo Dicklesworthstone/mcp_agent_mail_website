@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { heroDemoTranscript, heroTuiDemo } from "@/lib/content";
+import {
+  getNextHandshakeState,
+  getPreviousHandshakeState,
+} from "@/components/viz/agent-handshake-viz";
 
 /**
  * Helper: parse "MM:SS.mmm" timecode strings into total milliseconds
@@ -131,5 +135,28 @@ describe("heroTuiDemo", () => {
       expect(event.subject.length).toBeGreaterThan(0);
       expect(event.createdTs).toBeGreaterThan(1_000_000_000_000);
     }
+  });
+});
+
+describe("agent handshake transitions", () => {
+  it("branches pending state to accepted or rejected based on decision mode", () => {
+    expect(getNextHandshakeState("pending", "accept")).toBe("accepted");
+    expect(getNextHandshakeState("pending", "reject")).toBe("rejected");
+  });
+
+  it("loops rejected state back to request on next", () => {
+    expect(getNextHandshakeState("rejected", "accept")).toBe("request");
+  });
+
+  it("resets messaging state back to unconnected", () => {
+    expect(getNextHandshakeState("messaging", "accept")).toBe("unconnected");
+  });
+
+  it("moves rejected state back to pending on previous", () => {
+    expect(getPreviousHandshakeState("rejected")).toBe("pending");
+  });
+
+  it("keeps unconnected state pinned on previous", () => {
+    expect(getPreviousHandshakeState("unconnected")).toBe("unconnected");
   });
 });

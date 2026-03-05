@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConnectionLine } from "./sync-elements";
-import GlitchText from "./glitch-text";
 
 const sectionIcons = {
   arrowRight: ArrowRight, barChart3: BarChart3, blocks: Blocks, bomb: Bomb, braces: Braces,
@@ -54,8 +53,8 @@ export default memo(function SectionShell({
       aria-labelledby={headingId}
       className={cn("relative mx-auto max-w-7xl px-6 py-16 md:py-32 lg:py-48", className)}
     >
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24 items-start">
-        <div className="lg:col-span-4 lg:sticky lg:top-32 space-y-10">
+      <div className="grid grid-cols-1 items-start gap-12 lg:grid-cols-12 lg:gap-24">
+        <div className="min-w-0 space-y-10 lg:col-span-4 lg:sticky lg:top-32">
           <motion.div
             initial={skipAnim ? { opacity: 1, x: 0 } : { opacity: 0, x: -20 }}
             whileInView={skipAnim ? undefined : { opacity: 1, x: 0 }}
@@ -72,21 +71,19 @@ export default memo(function SectionShell({
             )}
 
             <div className="space-y-6">
-              <div className="flex items-center gap-4">
+              <div className="flex min-w-0 items-center gap-4">
                 <div
                   data-magnetic="true"
                   className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/5 border border-blue-500/20 text-blue-400"
                 >
                   {Icon ? <Icon className="h-5 w-5" /> : <Activity className="h-5 w-5" />}
                 </div>
-                <GlitchText trigger="hover" intensity="low">
-                  <HeadingTag
-                    id={headingId}
-                    className="text-4xl md:text-5xl font-black tracking-tight text-white leading-tight"
-                  >
-                    {title}
-                  </HeadingTag>
-                </GlitchText>
+                <HeadingTag
+                  id={headingId}
+                  className="break-words text-4xl font-black leading-tight tracking-tight text-white md:text-5xl"
+                >
+                  {title}
+                </HeadingTag>
               </div>
 
               {kicker && (
@@ -102,7 +99,7 @@ export default memo(function SectionShell({
           </div>
         </div>
 
-        <div className="lg:col-span-8">
+        <div className="min-w-0 lg:col-span-8">
           <motion.div
             initial={skipAnim ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
             whileInView={skipAnim ? undefined : { opacity: 1, y: 0 }}

@@ -142,7 +142,7 @@ export default function SystemTopologyViz() {
                   y2={to.y}
                   stroke={active ? FLOW_META[mode].color : "#334155"}
                   strokeWidth={active ? 2.6 : 1.2}
-                  strokeDasharray={active ? "none" : "6 5"}
+                  strokeDasharray={active ? undefined : "6 5"}
                   markerEnd={active ? "url(#topology-arrow-active)" : "url(#topology-arrow-muted)"}
                   animate={{
                     stroke: active ? FLOW_META[mode].color : "#334155",

@@ -43,7 +43,7 @@ export function Tooltip({ term, children }: TooltipProps) {
       <span
         id={tooltipId}
         role="tooltip"
-        className="pointer-events-none invisible absolute bottom-full left-1/2 z-50 mb-2 w-72 max-w-[calc(100vw-2rem)] -translate-x-1/2 scale-95 select-none opacity-0 transition-all duration-200 [@media(hover:hover)]:group-hover:visible [@media(hover:hover)]:group-hover:scale-100 [@media(hover:hover)]:group-hover:opacity-100 group-focus-within:visible group-focus-within:scale-100 group-focus-within:opacity-100 md:w-80"
+        className="pointer-events-none invisible absolute bottom-full left-0 z-50 mb-2 w-72 max-w-[calc(100vw-1.5rem)] scale-95 select-none opacity-0 transition-all duration-200 [@media(hover:hover)]:group-hover:visible [@media(hover:hover)]:group-hover:scale-100 [@media(hover:hover)]:group-hover:opacity-100 group-focus-visible:visible group-focus-visible:scale-100 group-focus-visible:opacity-100 sm:left-1/2 sm:max-w-[calc(100vw-2rem)] sm:-translate-x-1/2 md:w-80"
       >
         <span className="block rounded-xl border border-blue-500/20 bg-black/90 p-4 text-sm text-slate-300 shadow-xl shadow-blue-900/20 backdrop-blur-md break-words">
           <strong className="mb-1 flex items-center gap-1.5 text-blue-400">
@@ -57,7 +57,7 @@ export function Tooltip({ term, children }: TooltipProps) {
             {glossaryItem.long}
           </span>
         </span>
-        <span className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-b border-r border-blue-500/20 bg-black/90" />
+        <span className="absolute -bottom-1 left-6 h-2 w-2 rotate-45 border-b border-r border-blue-500/20 bg-black/90 sm:left-1/2 sm:-translate-x-1/2" />
       </span>
     </span>
   );

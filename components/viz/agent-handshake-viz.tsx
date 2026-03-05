@@ -21,8 +21,14 @@ import {
   UserCheck,
 } from "lucide-react";
 
-type HandshakeState = "unconnected" | "request" | "pending" | "accepted" | "rejected" | "messaging";
-type DecisionMode = "accept" | "deny";
+export type HandshakeState =
+  | "unconnected"
+  | "request"
+  | "pending"
+  | "accepted"
+  | "rejected"
+  | "messaging";
+export type DecisionMode = "accept" | "reject";
 
 type FlowState = Exclude<HandshakeState, "rejected">;
 
@@ -72,31 +78,45 @@ const FLOW_BADGE_COPY = {
   messaging: "Messaging Allowed",
 } as const;
 
+export function getNextHandshakeState(
+  state: HandshakeState,
+  decisionMode: DecisionMode
+): HandshakeState {
+  if (state === "pending") {
+    return decisionMode === "accept" ? "accepted" : "rejected";
+  }
+  if (state === "rejected") {
+    return "request";
+  }
+  const idx = ORDER.indexOf(state as FlowState);
+  if (idx < 0) {
+    return "unconnected";
+  }
+  return ORDER[(idx + 1) % ORDER.length];
+}
+
+export function getPreviousHandshakeState(state: HandshakeState): HandshakeState {
+  if (state === "rejected") {
+    return "pending";
+  }
+  const idx = ORDER.indexOf(state as FlowState);
+  if (idx <= 0) {
+    return "unconnected";
+  }
+  return ORDER[idx - 1];
+}
+
 export default function AgentHandshakeViz() {
   const [state, setState] = useState<HandshakeState>("unconnected");
   const [decisionMode, setDecisionMode] = useState<DecisionMode>("accept");
   const reducedMotion = useVizReducedMotion();
 
   const advance = () => {
-    if (state === "pending") {
-      setState(decisionMode === "accept" ? "accepted" : "rejected");
-      return;
-    }
-    if (state === "rejected") {
-      setState("request");
-      return;
-    }
-    const idx = ORDER.indexOf(state as FlowState);
-    setState(ORDER[(idx + 1) % ORDER.length]);
+    setState((prev) => getNextHandshakeState(prev, decisionMode));
   };
 
   const back = () => {
-    if (state === "rejected") {
-      setState("pending");
-      return;
-    }
-    const idx = ORDER.indexOf(state as FlowState);
-    setState(ORDER[Math.max(0, idx - 1)]);
+    setState((prev) => getPreviousHandshakeState(prev));
   };
 
   const copy = HANDSHAKE_COPY[state];
@@ -113,7 +133,7 @@ export default function AgentHandshakeViz() {
         title="Contact Handshake + Policy Outcome"
         subtitle="Messaging permission is explicit and auditable. Switch the policy decision to compare accepted vs rejected outcomes from the same pending request."
         controls={
-          <div className="rounded-xl border border-white/10 bg-slate-950/85 p-1">
+          <div className="rounded-xl border border-white/10 bg-slate-950/85 p-1.5">
             <div className="flex gap-1">
               <VizControlButton
                 tone={decisionMode === "accept" ? "green" : "neutral"}
@@ -123,8 +143,8 @@ export default function AgentHandshakeViz() {
                 Pending &rarr; Accept
               </VizControlButton>
               <VizControlButton
-                tone={decisionMode === "deny" ? "red" : "neutral"}
-                onClick={() => setDecisionMode("deny")}
+                tone={decisionMode === "reject" ? "red" : "neutral"}
+                onClick={() => setDecisionMode("reject")}
                 className="rounded-md px-3 py-1.5 text-[10px]"
               >
                 Pending &rarr; Reject
@@ -136,19 +156,19 @@ export default function AgentHandshakeViz() {
 
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
         <SummaryCard
-          label="State"
+          label="Relationship"
           value={copy.title}
           tone={isConnected ? "green" : blockedState ? "red" : "amber"}
           icon={isConnected ? <ShieldCheck className="h-4 w-4" /> : <ShieldAlert className="h-4 w-4" />}
         />
         <SummaryCard
-          label="Decision Mode"
+          label="Pending Outcome"
           value={decisionMode === "accept" ? "Accept" : "Reject"}
           tone={decisionMode === "accept" ? "green" : "red"}
           icon={decisionMode === "accept" ? <CheckCircle2 className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
         />
         <SummaryCard
-          label="Messaging"
+          label="Messaging Gate"
           value={isConnected ? "Allowed" : "Blocked"}
           tone={isConnected ? "green" : "red"}
           icon={isConnected ? <Mail className="h-4 w-4" /> : <ShieldAlert className="h-4 w-4" />}
@@ -244,7 +264,7 @@ export default function AgentHandshakeViz() {
 
       <div className="grid gap-4 lg:grid-cols-[1.2fr,1fr]">
         <article className="rounded-xl border border-white/10 bg-black/35 p-4 md:p-5">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">State</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Current Outcome</p>
           <p className="mt-2 text-lg font-black text-white">{copy.title}</p>
           <p className="mt-2 text-sm leading-relaxed text-slate-300">{copy.summary}</p>
           <p className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-slate-900 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-200">

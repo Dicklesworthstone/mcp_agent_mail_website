@@ -220,7 +220,7 @@ export default function ProductBusViz() {
                   fill="none"
                   stroke={currentStep === "contact-denied" ? "#EF4444" : currentStep === "contact-approved" || currentStep === "cross-message" ? "#22C55E" : "#F59E0B"}
                   strokeWidth="3"
-                  strokeDasharray={currentStep === "cross-message" ? "none" : "6 6"}
+                  strokeDasharray={currentStep === "cross-message" ? undefined : "6 6"}
                   className="transition-colors duration-500"
                 />
              )}

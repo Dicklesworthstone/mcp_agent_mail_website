@@ -118,7 +118,7 @@ function EdgeArrow({ from, to, color, active, reduced }: {
       stroke={color}
       strokeWidth={active ? 2.5 : 1.2}
       strokeLinecap="round"
-      strokeDasharray={active ? "none" : "6 4"}
+      strokeDasharray={active ? undefined : "6 4"}
       opacity={active ? 1 : 0.25}
       markerEnd={`url(#arrow-${color.replace("#", "")})`}
       animate={{ opacity: active ? 1 : 0.25, strokeWidth: active ? 2.5 : 1.2 }}

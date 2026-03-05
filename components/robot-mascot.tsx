@@ -22,9 +22,10 @@ export default function RobotMascot({ className }: { className?: string }) {
   const rectRef = useRef<DOMRect | null>(null);
   const frameRef = useRef<number | null>(null);
   const rectRafRef = useRef<number | null>(null);
-  const blinkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const blinkTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isBlinkingRef = useRef(false);
   const isVisibleRef = useRef(false);
+  const enableMotion = !prefersReducedMotion;
 
   const updateRect = useCallback((force = false) => {
     if (!force && !isVisibleRef.current) return;
@@ -128,7 +129,7 @@ export default function RobotMascot({ className }: { className?: string }) {
       ref={robotRef}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      whileHover={{ scale: 1.05 }}
+      whileHover={enableMotion ? { scale: 1.05 } : undefined}
       className={cn("relative select-none", className)}
     >
       <svg
@@ -157,11 +158,7 @@ export default function RobotMascot({ className }: { className?: string }) {
 
         {/* Antenna */}
         <line x1="60" y1="18" x2="60" y2="8" stroke="#93C5FD" strokeWidth="2" strokeLinecap="round" />
-        <motion.circle
-          cx="60" cy="6" r="3"
-          fill="#F97316"
-          animate={isHovered ? { fill: "#FB923C", r: 4 } : { fill: "#F97316", r: 3 }}
-        />
+        <circle cx="60" cy="6" r="3" fill={isHovered ? "#FB923C" : "#F97316"} />
 
         {/* Cap / dome top */}
         <path
@@ -192,19 +189,19 @@ export default function RobotMascot({ className }: { className?: string }) {
         {/* Left eye */}
         <g>
           <circle cx="48" cy="65" r="8" fill="#0f172a" stroke="#22c55e" strokeWidth="1" />
-          <motion.circle
-            cx="48" cy="65" r="4"
-            fill="#22c55e"
+          <motion.g
             style={{ x: mousePos.x * 0.6, y: mousePos.y * 0.6 }}
-            transition={{ type: "spring", stiffness: 250, damping: 20 }}
-          />
-          <motion.circle
-            cx="48" cy="65" r="2"
-            fill="#0f172a"
-            style={{ x: mousePos.x * 0.6, y: mousePos.y * 0.6 }}
-            animate={{ scale: isHovered ? 1.3 : 1 }}
-            transition={{ type: "spring", stiffness: 250, damping: 20 }}
-          />
+            transition={enableMotion ? { type: "spring", stiffness: 250, damping: 20 } : { duration: 0 }}
+          >
+            <circle cx="48" cy="65" r="4" fill="#22c55e" />
+            <motion.g
+              animate={{ scale: isHovered ? 1.3 : 1 }}
+              transition={enableMotion ? { type: "spring", stiffness: 250, damping: 20 } : { duration: 0 }}
+              style={{ transformOrigin: "48px 65px" }}
+            >
+              <circle cx="48" cy="65" r="2" fill="#0f172a" />
+            </motion.g>
+          </motion.g>
           {/* Eye shine */}
           <circle cx="46" cy="63" r="1.5" fill="white" opacity="0.5" />
 
@@ -221,19 +218,19 @@ export default function RobotMascot({ className }: { className?: string }) {
         {/* Right eye */}
         <g>
           <circle cx="72" cy="65" r="8" fill="#0f172a" stroke="#22c55e" strokeWidth="1" />
-          <motion.circle
-            cx="72" cy="65" r="4"
-            fill="#22c55e"
+          <motion.g
             style={{ x: mousePos.x * 0.6, y: mousePos.y * 0.6 }}
-            transition={{ type: "spring", stiffness: 250, damping: 20 }}
-          />
-          <motion.circle
-            cx="72" cy="65" r="2"
-            fill="#0f172a"
-            style={{ x: mousePos.x * 0.6, y: mousePos.y * 0.6 }}
-            animate={{ scale: isHovered ? 1.3 : 1 }}
-            transition={{ type: "spring", stiffness: 250, damping: 20 }}
-          />
+            transition={enableMotion ? { type: "spring", stiffness: 250, damping: 20 } : { duration: 0 }}
+          >
+            <circle cx="72" cy="65" r="4" fill="#22c55e" />
+            <motion.g
+              animate={{ scale: isHovered ? 1.3 : 1 }}
+              transition={enableMotion ? { type: "spring", stiffness: 250, damping: 20 } : { duration: 0 }}
+              style={{ transformOrigin: "72px 65px" }}
+            >
+              <circle cx="72" cy="65" r="2" fill="#0f172a" />
+            </motion.g>
+          </motion.g>
           <circle cx="70" cy="63" r="1.5" fill="white" opacity="0.5" />
 
           <motion.rect
@@ -262,8 +259,8 @@ export default function RobotMascot({ className }: { className?: string }) {
 
         {/* Floating Cx key icon - left */}
         <motion.g
-          animate={{ y: [0, -3, 0] }}
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          animate={enableMotion ? { y: [0, -3, 0] } : undefined}
+          transition={enableMotion ? { duration: 3, repeat: Infinity, ease: "easeInOut" } : { duration: 0 }}
         >
           <rect x="5" y="35" width="14" height="10" rx="2" fill="#0A1628" stroke="#60A5FA" strokeWidth="0.5" opacity="0.6" />
           <text x="12" y="42.5" textAnchor="middle" fill="#60A5FA" fontSize="5" fontWeight="bold" fontFamily="monospace" opacity="0.6">Cx</text>
@@ -271,8 +268,8 @@ export default function RobotMascot({ className }: { className?: string }) {
 
         {/* Floating Cx key icon - right */}
         <motion.g
-          animate={{ y: [0, -3, 0] }}
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
+          animate={enableMotion ? { y: [0, -3, 0] } : undefined}
+          transition={enableMotion ? { duration: 3, repeat: Infinity, ease: "easeInOut", delay: 1.5 } : { duration: 0 }}
         >
           <rect x="101" y="35" width="14" height="10" rx="2" fill="#0A1628" stroke="#60A5FA" strokeWidth="0.5" opacity="0.6" />
           <text x="108" y="42.5" textAnchor="middle" fill="#60A5FA" fontSize="5" fontWeight="bold" fontFamily="monospace" opacity="0.6">Cx</text>

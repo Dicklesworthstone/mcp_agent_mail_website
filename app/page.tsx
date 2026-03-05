@@ -11,6 +11,10 @@ import {
   Sparkles,
   Network,
   Zap,
+  Quote,
+  ShieldCheck,
+  MessageSquare,
+  ChevronDown,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -34,6 +38,10 @@ import {
   changelog,
   credibilityHighlights,
   adoptionMessages,
+  workflowDeltas,
+  reliabilityEvidence,
+  creatorInsights,
+  objectionHandlers,
 } from "@/lib/content";
 import { isInternalHref, toSafeHref } from "@/lib/utils";
 
@@ -457,6 +465,43 @@ export default function HomePage() {
       </SectionShell>
 
       {/* ================================================================
+          4.5 BEFORE & AFTER (Workflow Deltas)
+          ================================================================ */}
+      <SectionShell
+        id="workflow-deltas"
+        icon="gitCompare"
+        eyebrow="Before & After"
+        title="What Changes"
+        kicker="Real scenarios that multi-agent teams face daily, and how purpose-built coordination transforms the outcome."
+      >
+        <div className="space-y-4">
+          {workflowDeltas.map((delta) => (
+            <div
+              key={delta.id}
+              className="rounded-2xl border border-white/5 bg-white/[0.02] overflow-hidden"
+            >
+              <div className="px-6 pt-5 pb-3">
+                <h3 className="text-base font-black text-white">{delta.scenario}</h3>
+              </div>
+              <div className="grid md:grid-cols-2 gap-px bg-white/5">
+                <div className="bg-[#020a14] px-6 py-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-400 mb-2">Without Agent Mail</p>
+                  <p className="text-sm text-slate-400 leading-relaxed">{delta.before}</p>
+                </div>
+                <div className="bg-[#020a14] px-6 py-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-green-400 mb-2">With Agent Mail</p>
+                  <p className="text-sm text-slate-400 leading-relaxed">{delta.after}</p>
+                </div>
+              </div>
+              <div className="px-6 py-3 border-t border-white/5">
+                <span className="text-xs font-bold text-blue-400">{delta.impact}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </SectionShell>
+
+      {/* ================================================================
           5. THE CODE
           ================================================================ */}
       <SectionShell
@@ -469,6 +514,37 @@ export default function HomePage() {
         <SyncContainer withPulse={true} accentColor="#3B82F6" className="p-1 md:p-2 bg-black/40">
           <RustCodeBlock code={codeExample} title="examples/server.rs" />
         </SyncContainer>
+      </SectionShell>
+
+      {/* ================================================================
+          5.5 PROVEN RELIABILITY (Evidence Grid)
+          ================================================================ */}
+      <SectionShell
+        id="reliability"
+        icon="shield"
+        eyebrow="Proven Reliability"
+        title="Battle-Tested Numbers"
+        kicker="Every claim is backed by reproducible benchmarks from the 10-scenario stress gauntlet and real-world multi-agent deployments."
+      >
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {reliabilityEvidence.map((item) => (
+            <div
+              key={item.id}
+              className="group rounded-2xl border border-white/5 bg-white/[0.02] p-6 hover:border-blue-500/20 transition-colors"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
+                  <ShieldCheck className="h-5 w-5" />
+                </div>
+                <h3 className="text-sm font-black text-white uppercase tracking-wide">{item.claim}</h3>
+              </div>
+              <p className="text-sm text-slate-400 leading-relaxed mb-4">{item.evidence}</p>
+              <div className="inline-flex items-center gap-2 rounded-full bg-blue-500/10 border border-blue-500/20 px-3 py-1">
+                <span className="text-xs font-bold text-blue-400">{item.metric}</span>
+              </div>
+            </div>
+          ))}
+        </div>
       </SectionShell>
 
       {/* ================================================================
@@ -540,6 +616,64 @@ export default function HomePage() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      </section>
+
+      {/* ================================================================
+          6.7 COMMON OBJECTIONS (FAQ)
+          ================================================================ */}
+      <SectionShell
+        id="objections"
+        icon="fileText"
+        eyebrow="Common Objections"
+        title="Honest Answers"
+        kicker="We have heard every reason not to adopt a coordination layer. Here is why each one is wrong."
+      >
+        <div className="space-y-3">
+          {objectionHandlers.map((item) => (
+            <details
+              key={item.id}
+              className="group rounded-2xl border border-white/5 bg-white/[0.02] overflow-hidden"
+            >
+              <summary className="flex items-center justify-between px-6 py-5 cursor-pointer hover:bg-white/[0.02] transition-colors">
+                <div className="flex items-center gap-3">
+                  <MessageSquare className="h-4 w-4 text-slate-500 shrink-0" />
+                  <span className="text-sm font-bold text-white">&ldquo;{item.objection}&rdquo;</span>
+                </div>
+                <ChevronDown className="h-4 w-4 text-slate-600 group-open:rotate-180 transition-transform shrink-0 ml-4" />
+              </summary>
+              <div className="px-6 pb-5 space-y-3">
+                <p className="text-sm text-slate-300 leading-relaxed">{item.response}</p>
+                <p className="text-xs text-slate-500 italic">{item.evidence}</p>
+              </div>
+            </details>
+          ))}
+        </div>
+      </SectionShell>
+
+      {/* ================================================================
+          6.8 CREATOR INSIGHTS (Social Proof)
+          ================================================================ */}
+      <section id="creator-insights" className="relative py-20 border-t border-white/5">
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="text-center mb-12">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-500 mb-3">From the Creator</p>
+            <h2 className="text-3xl md:text-4xl font-black text-white tracking-tighter">Design Philosophy</h2>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {creatorInsights.map((insight) => (
+              <div
+                key={insight.id}
+                className="relative rounded-2xl border border-white/5 bg-white/[0.02] p-6 hover:border-blue-500/20 transition-colors"
+              >
+                <Quote className="h-6 w-6 text-blue-500/30 mb-3" />
+                <blockquote className="text-sm font-medium text-slate-200 leading-relaxed mb-4">
+                  &ldquo;{insight.quote}&rdquo;
+                </blockquote>
+                <p className="text-xs text-slate-500">{insight.context}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
