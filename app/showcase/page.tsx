@@ -36,6 +36,12 @@ const TraceReplayStabilityViz = dynamic(() => import("@/components/viz/trace-rep
 const SagaCompensationViz = dynamic(() => import("@/components/viz/saga-compensation-viz"), { ssr: false });
 const SmallStepSemanticsViz = dynamic(() => import("@/components/viz/small-step-semantics-viz"), { ssr: false });
 
+const SwarmSimulationViz = dynamic(() => import("@/components/viz/swarm-simulation-viz"), { ssr: false });
+const ConflictCascadeViz = dynamic(() => import("@/components/viz/conflict-cascade-viz"), { ssr: false });
+const CommitCoalescerViz = dynamic(() => import("@/components/viz/commit-coalescer-viz"), { ssr: false });
+const TokenEconomyViz = dynamic(() => import("@/components/viz/token-economy-viz"), { ssr: false });
+const TerritoryMapViz = dynamic(() => import("@/components/viz/territory-map-viz"), { ssr: false });
+
 const FileReservationViz = dynamic(() => import("@/components/viz/file-reservation-viz"), { ssr: false });
 const AgentHandshakeViz = dynamic(() => import("@/components/viz/agent-handshake-viz"), { ssr: false });
 const McpArchitectureViz = dynamic(() => import("@/components/viz/mcp-architecture-viz"), { ssr: false });
@@ -88,6 +94,160 @@ export default function ShowcasePage() {
       </section>
 
       <div id="showcase-viz-gallery" data-scaffold-slot="visualizations">
+
+      {/* ================================================================
+          SIGNATURE EXPERIENCES — The headline visualizations
+          ================================================================ */}
+
+      <SectionShell
+        id="swarm-simulation"
+        icon="network"
+        eyebrow="The Big Picture"
+        title="Live Agent Swarm"
+        kicker="Watch five AI agents coordinate in real time. Messages flow as particles, files get reserved as colored territories, tasks complete and conflicts get caught — all without a human in the loop."
+      >
+        <div className="space-y-6">
+          <SyncContainer withPulse={true} accentColor="#22C55E" className="p-4 md:p-8">
+            <Suspense fallback={<VizLoader />}>
+              <SwarmSimulationViz />
+            </Suspense>
+          </SyncContainer>
+          <div className="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              This simulation models the steady-state of a real Agent Mail deployment. Five agents with persistent
+              identities (GreenCastle, BlueLake, RedHarbor, GoldPeak, CoralBay) work on a shared codebase simultaneously.
+              Each tick, agents send messages, claim file reservations, complete tasks, and occasionally collide — but
+              conflicts are caught instantly instead of discovered hours later.
+            </p>
+            <p>
+              The constellation layout shows the social topology: agents are nodes, messages are particles traveling
+              between them. The reservation bar below shows which agent holds which file patterns, with real-time
+              ownership tracking. The event feed captures every coordination action for full auditability.
+            </p>
+          </div>
+        </div>
+      </SectionShell>
+
+      <SectionShell
+        id="conflict-cascade"
+        icon="bomb"
+        eyebrow="The Problem Agent Mail Solves"
+        title="The Conflict Problem"
+        kicker="Without coordination, multiple agents silently overwrite each other&apos;s work. With Agent Mail, file reservations prevent conflicts before they happen."
+      >
+        <div className="space-y-6">
+          <SyncContainer withPulse={true} accentColor="#EF4444" className="p-4 md:p-8">
+            <Suspense fallback={<VizLoader />}>
+              <ConflictCascadeViz />
+            </Suspense>
+          </SyncContainer>
+          <div className="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              The left panel shows what happens when agents work without coordination: they blindly edit the same files,
+              and later agents silently overwrite earlier work. The result is wasted compute, lost changes, and humans
+              spending hours diagnosing merge conflicts that could have been prevented.
+            </p>
+            <p>
+              The right panel shows the same workload with Agent Mail. Before editing, each agent reserves its file
+              patterns. Overlapping claims are blocked immediately with a clear conflict message. Agents self-organize
+              into non-overlapping territories, and all six files get edited in parallel with zero wasted work.
+            </p>
+          </div>
+        </div>
+      </SectionShell>
+
+      <SectionShell
+        id="token-economy"
+        icon="calculator"
+        eyebrow="Why External Storage Matters"
+        title="Token Economy"
+        kicker="Chat-based coordination burns your most precious resource: context window tokens. Agent Mail keeps coordination off the token budget entirely."
+      >
+        <div className="space-y-6">
+          <SyncContainer withPulse={true} accentColor="#3B82F6" className="p-4 md:p-8">
+            <Suspense fallback={<VizLoader />}>
+              <TokenEconomyViz />
+            </Suspense>
+          </SyncContainer>
+          <div className="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              Every token spent on coordination is a token NOT spent on actual coding. When agents coordinate
+              through chat (pasting status updates, sharing traces, broadcasting to all), the context window fills
+              fast. By step 10, the chat-based approach has burned over 60% of its budget on overhead.
+            </p>
+            <p>
+              Agent Mail stores all messages, threads, and search indices externally in a Git-backed archive
+              with SQLite indexing. Tool calls like <code className="text-blue-400 font-mono">send_message</code> and{" "}
+              <code className="text-blue-400 font-mono">fetch_inbox</code> cost only a few hundred tokens each.
+              The context window stays free for reasoning and code generation — the work that actually matters.
+            </p>
+          </div>
+        </div>
+      </SectionShell>
+
+      <SectionShell
+        id="commit-coalescer"
+        icon="gitCommit"
+        eyebrow="Rust Engineering"
+        title="Git Commit Coalescer"
+        kicker="The Python version failed under load because of git lock contention. The Rust rewrite batches rapid-fire writes into far fewer commits, achieving a 9.1x compression ratio."
+      >
+        <div className="space-y-6">
+          <SyncContainer withPulse={true} accentColor="#A855F7" className="p-4 md:p-8">
+            <Suspense fallback={<VizLoader />}>
+              <CommitCoalescerViz />
+            </Suspense>
+          </SyncContainer>
+          <div className="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              When 30 agents send messages simultaneously, each message triggers a git commit to the archive.
+              Without batching, this creates massive lock contention on git&apos;s <code className="text-blue-400 font-mono">index.lock</code> file —
+              the exact failure mode that plagued the Python implementation under real-world load.
+            </p>
+            <p>
+              The commit coalescer uses a write-behind queue that accumulates rapid writes and flushes them as
+              a single batch commit. In stress tests, 100 concurrent writes collapse into just 11 commits — a 9.1x
+              reduction. Zero lock errors, zero timeouts, zero data loss. The pipeline visualization shows writes
+              entering the buffer, coalescing, and emerging as compact batch commits.
+            </p>
+          </div>
+        </div>
+      </SectionShell>
+
+      <SectionShell
+        id="territory-map"
+        icon="layers"
+        eyebrow="Spatial Awareness"
+        title="Reservation Territory Map"
+        kicker="See file ownership as a spatial map. Agents claim glob patterns, territories light up, conflicts flash red, and TTL-based expiry prevents deadlocks from crashed agents."
+      >
+        <div className="space-y-6">
+          <SyncContainer withPulse={true} accentColor="#EAB308" className="p-4 md:p-8">
+            <Suspense fallback={<VizLoader />}>
+              <TerritoryMapViz />
+            </Suspense>
+          </SyncContainer>
+          <div className="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              File reservations are advisory, TTL-based leases — not hard locks. This treemap shows a project&apos;s
+              file structure as a spatial layout. When an agent reserves a glob pattern like{" "}
+              <code className="text-blue-400 font-mono">src/auth/**</code>, matching files light up in that
+              agent&apos;s color.
+            </p>
+            <p>
+              Watch the scenario unfold: four agents claim non-overlapping territories, a fifth agent tries to
+              claim an occupied zone and gets blocked, then the original holder releases. Reservations expire on
+              TTL — so a crashed agent never holds files hostage forever. The pre-commit guard enforces these
+              boundaries at commit time, catching accidental edits to reserved files before they reach the repo.
+            </p>
+          </div>
+        </div>
+      </SectionShell>
+
+      {/* ================================================================
+          EXISTING SECTIONS — Detailed concept explorations
+          ================================================================ */}
+
       {/* ================================================================
           0. Agent Mail Messaging Lifecycle
           ================================================================ */}
