@@ -8,6 +8,7 @@ import {
   VizMetricCard,
   VizSurface,
   useVizAutoStart,
+  useVizInViewport,
   useVizReducedMotion,
 } from "@/components/viz/viz-framework";
 
@@ -59,14 +60,35 @@ interface GauntletState {
 
 export default function StressGauntletViz() {
   const prefersReducedMotion = useVizReducedMotion();
+  const inViewport = useVizInViewport();
   const [state, setState] = useState<GauntletState>(() => initGauntlet());
   const timerRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const rafRef = useRef<Set<number>>(new Set());
+  const inViewportRef = useRef(inViewport);
   const runTokenRef = useRef(0);
+
+  useEffect(() => {
+    inViewportRef.current = inViewport;
+    if (!inViewport) {
+      for (const id of rafRef.current) cancelAnimationFrame(id);
+      rafRef.current.clear();
+    }
+  }, [inViewport]);
+
+  const scheduleFrame = useCallback((callback: FrameRequestCallback) => {
+    const frameId = requestAnimationFrame((time) => {
+      rafRef.current.delete(frameId);
+      callback(time);
+    });
+    rafRef.current.add(frameId);
+  }, []);
 
   const clearTimers = useCallback(() => {
     runTokenRef.current += 1;
     for (const t of timerRef.current) clearTimeout(t);
     timerRef.current = [];
+    for (const id of rafRef.current) cancelAnimationFrame(id);
+    rafRef.current.clear();
   }, []);
 
   useEffect(() => clearTimers, [clearTimers]);
@@ -110,11 +132,13 @@ export default function StressGauntletViz() {
             }
             return { ...prev, tests };
           });
-          if (progress < 1) {
-            requestAnimationFrame(animateProgress);
+          if (progress < 1 && inViewportRef.current) {
+            scheduleFrame(animateProgress);
           }
         };
-        requestAnimationFrame(animateProgress);
+        if (inViewportRef.current) {
+          scheduleFrame(animateProgress);
+        }
       }, startDelay));
 
       // Complete test
@@ -149,7 +173,7 @@ export default function StressGauntletViz() {
         });
       }, startDelay + checkDuration));
     });
-  }, [clearTimers]);
+  }, [clearTimers, scheduleFrame]);
 
   useVizAutoStart(runGauntlet);
 

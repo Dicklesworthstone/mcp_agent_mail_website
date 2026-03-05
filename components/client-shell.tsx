@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -11,43 +11,48 @@ import ScrollToTop from "@/components/scroll-to-top";
 import CustomCursor from "@/components/custom-cursor";
 import { SiteProvider } from "@/lib/site-state";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 60,
-      gcTime: 1000 * 60 * 60 * 12,
-      retry: 1,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 1000 * 60 * 60,
+        gcTime: 1000 * 60 * 60 * 12,
+        retry: 1,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+      },
     },
-  },
-});
+  });
+}
 
 export default function ClientShell({ children }: { children: React.ReactNode }) {
+  const [queryClient] = useState(makeQueryClient);
   const pathname = usePathname();
   const prefersReducedMotion = useReducedMotion();
+  const focusMainFromHash = useCallback(() => {
+    if (window.location.hash !== "#main-content") return;
+    const main = document.getElementById("main-content");
+    if (!(main instanceof HTMLElement)) return;
+    if (!main.hasAttribute("tabindex")) {
+      main.setAttribute("tabindex", "-1");
+    }
+    main.focus({ preventScroll: true });
+  }, []);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "auto" });
   }, [pathname]);
 
   useEffect(() => {
-    const focusMainFromHash = () => {
-      if (window.location.hash !== "#main-content") return;
-      const main = document.getElementById("main-content");
-      if (!(main instanceof HTMLElement)) return;
-      if (!main.hasAttribute("tabindex")) {
-        main.setAttribute("tabindex", "-1");
-      }
-      main.focus({ preventScroll: true });
-    };
-
     focusMainFromHash();
+  }, [pathname, focusMainFromHash]);
+
+  useEffect(() => {
     window.addEventListener("hashchange", focusMainFromHash);
     return () => {
       window.removeEventListener("hashchange", focusMainFromHash);
     };
-  }, [pathname]);
+  }, [focusMainFromHash]);
 
   return (
     <ErrorBoundary>

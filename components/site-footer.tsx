@@ -7,6 +7,7 @@ import { SyncContainer } from "./sync-elements";
 import { Magnetic } from "./motion-wrapper";
 import GlitchText from "./glitch-text";
 import { motion, useReducedMotion } from "framer-motion";
+import { toSafeHref } from "@/lib/utils";
 
 const socialLinks = [
   { href: siteConfig.social.github, icon: Github, label: "GitHub" },
@@ -101,20 +102,24 @@ export default function SiteFooter() {
             {/* SOCIAL & ACTION */}
             <div className="md:col-span-3 flex flex-col items-end gap-10">
               <div className="flex items-center gap-4">
-                {socialLinks.map((social) => (
-                  <Magnetic key={social.label} strength={0.3}>
-                    <a
-                      href={social.href}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      aria-label={social.label}
-                      data-magnetic="true"
-                      className="h-12 w-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-blue-400 hover:border-blue-500/40 hover:bg-blue-500/5 transition-all shadow-[0_0_20px_rgba(0,0,0,0.2)]"
-                    >
-                      <social.icon className="h-5 w-5" />
-                    </a>
-                  </Magnetic>
-                ))}
+                {socialLinks.map((social) => {
+                  const href = toSafeHref(social.href);
+                  if (!href) return null;
+                  return (
+                    <Magnetic key={social.label} strength={0.3}>
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        aria-label={social.label}
+                        data-magnetic="true"
+                        className="h-12 w-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-blue-400 hover:border-blue-500/40 hover:bg-blue-500/5 transition-all shadow-[0_0_20px_rgba(0,0,0,0.2)]"
+                      >
+                        <social.icon className="h-5 w-5" />
+                      </a>
+                    </Magnetic>
+                  );
+                })}
               </div>
 
               <button

@@ -35,6 +35,7 @@ import {
   credibilityHighlights,
   adoptionMessages,
 } from "@/lib/content";
+import { isInternalHref, toSafeHref } from "@/lib/utils";
 
 import { Suspense } from "react";
 import { LazyViz } from "@/components/viz/viz-framework";
@@ -47,6 +48,8 @@ const AgentHandshakeViz = dynamic(() => import("@/components/viz/agent-handshake
 const ReliabilityInternalsViz = dynamic(() => import("@/components/viz/reliability-internals-viz"), { ssr: false });
 
 export default function HomePage() {
+  const githubHref = toSafeHref(siteConfig.github) ?? "https://github.com";
+
   return (
     <main id="main-content" tabIndex={-1}>
       {/* ================================================================
@@ -118,7 +121,7 @@ export default function HomePage() {
               </Magnetic>
               <Magnetic strength={0.1}>
                 <a
-                  href={siteConfig.github}
+                  href={githubHref}
                   target="_blank"
                   rel="noopener noreferrer"
                   data-magnetic="true"
@@ -506,29 +509,37 @@ export default function HomePage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
-            {adoptionMessages.map((msg) => (
-              <div
-                key={msg.id}
-                className="group relative p-6 md:p-8 rounded-2xl border border-white/5 bg-white/[0.02] hover:border-blue-500/20 transition-colors"
-              >
-                <div className="text-[10px] font-bold uppercase tracking-widest text-blue-400/60 mb-3">
-                  {msg.targetAudience}
-                </div>
-                <h3 className="text-xl font-black text-white mb-3 leading-tight">
-                  {msg.headline}
-                </h3>
-                <p className="text-sm text-slate-400 leading-relaxed mb-6">
-                  {msg.subline}
-                </p>
-                <Link
-                  href={msg.ctaHref}
-                  className="inline-flex items-center gap-2 text-sm font-bold text-blue-400 hover:text-blue-300 transition-colors"
+            {adoptionMessages.map((msg) => {
+              const safeCtaHref = toSafeHref(msg.ctaHref);
+              const ctaHref =
+                safeCtaHref && isInternalHref(safeCtaHref)
+                  ? safeCtaHref
+                  : "/getting-started";
+
+              return (
+                <div
+                  key={msg.id}
+                  className="group relative p-6 md:p-8 rounded-2xl border border-white/5 bg-white/[0.02] hover:border-blue-500/20 transition-colors"
                 >
-                  {msg.ctaLabel}
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                </Link>
-              </div>
-            ))}
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-blue-400/60 mb-3">
+                    {msg.targetAudience}
+                  </div>
+                  <h3 className="text-xl font-black text-white mb-3 leading-tight">
+                    {msg.headline}
+                  </h3>
+                  <p className="text-sm text-slate-400 leading-relaxed mb-6">
+                    {msg.subline}
+                  </p>
+                  <Link
+                    href={ctaHref}
+                    className="inline-flex items-center gap-2 text-sm font-bold text-blue-400 hover:text-blue-300 transition-colors"
+                  >
+                    {msg.ctaLabel}
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                  </Link>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>

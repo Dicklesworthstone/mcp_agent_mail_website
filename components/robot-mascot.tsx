@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useId, useRef, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { motion, useReducedMotion } from "framer-motion";
 
@@ -9,6 +9,10 @@ import { motion, useReducedMotion } from "framer-motion";
  * Inspired by the Agent Mail illustration: blue body, orange cap, green eyes.
  */
 export default function RobotMascot({ className }: { className?: string }) {
+  const uid = useId();
+  const glowId = `robot-glow-${uid}`;
+  const bodyGradId = `body-grad-${uid}`;
+  const capGradId = `cap-grad-${uid}`;
   const prefersReducedMotion = useReducedMotion();
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [isBlinking, setIsBlinking] = useState(false);
@@ -134,22 +138,22 @@ export default function RobotMascot({ className }: { className?: string }) {
       >
         {/* Glow behind robot */}
         <defs>
-          <radialGradient id="robot-glow" cx="50%" cy="50%" r="50%">
+          <radialGradient id={glowId} cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.2" />
             <stop offset="100%" stopColor="#3B82F6" stopOpacity="0" />
           </radialGradient>
-          <linearGradient id="body-gradient" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={bodyGradId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#60A5FA" />
             <stop offset="100%" stopColor="#2563EB" />
           </linearGradient>
-          <linearGradient id="cap-gradient" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={capGradId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#FB923C" />
             <stop offset="100%" stopColor="#EA580C" />
           </linearGradient>
         </defs>
 
         {/* Background glow */}
-        <circle cx="60" cy="75" r="55" fill="url(#robot-glow)" />
+        <circle cx="60" cy="75" r="55" fill={`url(#${glowId})`} />
 
         {/* Antenna */}
         <line x1="60" y1="18" x2="60" y2="8" stroke="#93C5FD" strokeWidth="2" strokeLinecap="round" />
@@ -162,7 +166,7 @@ export default function RobotMascot({ className }: { className?: string }) {
         {/* Cap / dome top */}
         <path
           d="M 30 45 Q 30 18 60 18 Q 90 18 90 45"
-          fill="url(#cap-gradient)"
+          fill={`url(#${capGradId})`}
           stroke="#FB923C"
           strokeWidth="1"
         />
@@ -170,7 +174,7 @@ export default function RobotMascot({ className }: { className?: string }) {
         {/* Main body / head */}
         <rect
           x="25" y="42" width="70" height="60" rx="16"
-          fill="url(#body-gradient)"
+          fill={`url(#${bodyGradId})`}
           stroke="#93C5FD"
           strokeWidth="1"
           opacity="0.95"

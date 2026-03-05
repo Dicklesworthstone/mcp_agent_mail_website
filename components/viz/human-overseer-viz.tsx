@@ -25,6 +25,7 @@ export default function HumanOverseerViz() {
       case "received": setState("paused"); break;
       case "paused": setState("resumed"); break;
       case "resumed": setState("working"); break;
+      default: break;
     }
   };
 

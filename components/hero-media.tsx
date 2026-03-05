@@ -19,14 +19,15 @@ import {
   heroDemoTranscript,
   heroTuiDemo,
 } from "@/lib/content";
+import { toSafeHref } from "@/lib/utils";
 
 function parseTimecodeToMs(timecode: string): number {
-  const [mins, rest] = timecode.split(":");
-  const [secs, ms] = rest.split(".");
+  const [mins = "0", rest = "0.000"] = timecode.split(":");
+  const [secs = "0", ms = "0"] = rest.split(".");
   return (
-    Number.parseInt(mins, 10) * 60_000 +
-    Number.parseInt(secs, 10) * 1_000 +
-    Number.parseInt(ms, 10)
+    (Number.parseInt(mins, 10) || 0) * 60_000 +
+    (Number.parseInt(secs, 10) || 0) * 1_000 +
+    (Number.parseInt(ms, 10) || 0)
   );
 }
 
@@ -127,6 +128,7 @@ export default function HeroMedia() {
   const activeAgentCount =
     heroTuiDemo.activeAgentPreview.length + (simulationIndex % 3);
   const deliveredCount = heroTuiDemo.snapshot.totalMessages + cursor;
+  const realWebAppUrl = toSafeHref(heroTuiDemo.realWebAppUrl) ?? "https://mcpagentmail.com";
 
   return (
     <div className="relative">
@@ -359,7 +361,7 @@ export default function HeroMedia() {
 
         <a
           data-testid="hero-real-webapp-link"
-          href={heroTuiDemo.realWebAppUrl}
+          href={realWebAppUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 text-xs font-bold text-blue-200 hover:bg-blue-500/20 transition-colors"

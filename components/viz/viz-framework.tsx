@@ -335,15 +335,16 @@ const vizPlaceholderClassName =
  */
 export function LazyViz({ children }: { children: ReactNode }) {
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const [activated, setActivated] = useState(() => 
-    typeof window !== "undefined" && typeof IntersectionObserver === "undefined"
-  );
+  const [activated, setActivated] = useState(false);
 
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el || activated) return;
     if (typeof IntersectionObserver === "undefined") {
-      return;
+      const timeoutId = window.setTimeout(() => {
+        setActivated(true);
+      }, 0);
+      return () => window.clearTimeout(timeoutId);
     }
 
     return observeWithSharedObserver(

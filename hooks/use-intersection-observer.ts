@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface UseIntersectionObserverOptions {
   threshold?: number;
@@ -15,12 +15,14 @@ export function useIntersectionObserver<T extends HTMLElement = HTMLElement>({
   triggerOnce = true,
   initialIsIntersecting = false,
 }: UseIntersectionObserverOptions = {}) {
-  const ref = useRef<T | null>(null);
+  const [element, setElement] = useState<T | null>(null);
   const [isIntersecting, setIsIntersecting] = useState(initialIsIntersecting);
   const hasTriggeredRef = useRef(false);
+  const ref = useCallback((node: T | null) => {
+    setElement(node);
+  }, []);
 
   useEffect(() => {
-    const element = ref.current;
     if (!element) return;
 
     if (triggerOnce && hasTriggeredRef.current) {
@@ -56,7 +58,7 @@ export function useIntersectionObserver<T extends HTMLElement = HTMLElement>({
     return () => {
       observer.disconnect();
     };
-  }, [threshold, rootMargin, triggerOnce]);
+  }, [element, threshold, rootMargin, triggerOnce]);
 
   return { ref, isIntersecting };
 }

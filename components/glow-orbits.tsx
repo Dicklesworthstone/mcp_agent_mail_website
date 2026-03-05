@@ -74,7 +74,7 @@ export default function GlowOrbits() {
     <motion.div
       ref={(node) => {
         rootRef.current = node as HTMLDivElement;
-        observerRef.current = node as HTMLDivElement;
+        observerRef(node as HTMLDivElement);
       }}
       style={prefersReducedMotion ? undefined : { x: parallaxX, y: parallaxY }}
       className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"

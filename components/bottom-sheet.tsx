@@ -24,14 +24,60 @@ export default function BottomSheet({
   const prefersReducedMotion = useReducedMotion();
   useBodyScrollLock(isOpen);
 
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const focusRafRef = useRef<number | null>(null);
+
   useEffect(() => {
+    if (!isOpen) return;
+
+    previousFocusRef.current = document.activeElement as HTMLElement | null;
+
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
-    if (isOpen) {
-      document.addEventListener("keydown", handleEsc);
-      return () => document.removeEventListener("keydown", handleEsc);
-    }
+
+    // Trap focus within the dialog
+    const handleTab = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const sheet = sheetRef.current;
+      if (!sheet) return;
+
+      const focusable = sheet.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleEsc);
+    document.addEventListener("keydown", handleTab);
+
+    // Move focus into the dialog
+    focusRafRef.current = requestAnimationFrame(() => {
+      const closeBtn = sheetRef.current?.querySelector<HTMLElement>('button[aria-label="Close"]');
+      closeBtn?.focus();
+    });
+
+    return () => {
+      document.removeEventListener("keydown", handleEsc);
+      document.removeEventListener("keydown", handleTab);
+      if (focusRafRef.current !== null) {
+        cancelAnimationFrame(focusRafRef.current);
+        focusRafRef.current = null;
+      }
+      // Restore focus to the element that opened the dialog
+      previousFocusRef.current?.focus();
+    };
   }, [isOpen, onClose]);
 
   return (

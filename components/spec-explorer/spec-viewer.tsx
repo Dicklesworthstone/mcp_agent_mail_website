@@ -74,7 +74,7 @@ type SidebarItem =
 const PANEL_TRANSITION = { duration: 0.24, ease: "easeOut" } as const;
 const SPEC_DOC_FILENAME_PATTERN = /^[A-Za-z0-9._-]+\.md$/;
 const SANITIZED_URI_REGEXP =
-  /^(?:(?:https?|mailto|tel):|\/(?!\/)|#|\.\.?\/|[^/:#?][^:#?]*(?:\/[^:#?]*)*(?:[?#][^#]*)?)$/i;
+  /^(?:(?:(?:https?|mailto|tel):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$)))/i;
 
 async function loadSpecDocHtml(filename: string, signal?: AbortSignal): Promise<string> {
   if (!SPEC_DOC_FILENAME_PATTERN.test(filename)) {
@@ -193,10 +193,9 @@ export default function SpecViewer() {
     const groups: GroupedDocs = {};
     for (const doc of filteredDocs) {
       const category = doc.category as SpecCategory;
-      if (!groups[category]) {
-        groups[category] = [];
-      }
-      groups[category]!.push(doc);
+      const docsInCategory = groups[category] ?? [];
+      docsInCategory.push(doc);
+      groups[category] = docsInCategory;
     }
     return groups;
   }, [filteredDocs]);
@@ -204,7 +203,8 @@ export default function SpecViewer() {
   const activeFilename = activeDoc?.filename ?? null;
   const { data: markdown = "", isPending: loading, error: queryError } = useQuery({
     queryKey: ["spec-doc", activeFilename],
-    queryFn: ({ signal }) => loadSpecDocHtml(activeFilename!, signal),
+    queryFn: ({ signal }) =>
+      activeFilename ? loadSpecDocHtml(activeFilename, signal) : Promise.resolve(""),
     enabled: Boolean(activeFilename),
     staleTime: Infinity,
     gcTime: Infinity,
@@ -501,7 +501,8 @@ function Sidebar({
         >
           <div className="relative w-full" style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>
             {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-              const item = sidebarItems[virtualItem.index]!;
+              const item = sidebarItems[virtualItem.index];
+              if (!item) return null;
 
               return (
                 <div

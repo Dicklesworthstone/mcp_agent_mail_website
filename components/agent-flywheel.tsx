@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutGrid, GitBranch, Search, Zap,
@@ -10,7 +10,7 @@ import {
   Github,
 } from "lucide-react";
 import { flywheelTools, flywheelDescription, siteConfig } from "@/lib/content";
-import { cn } from "@/lib/utils";
+import { cn, toSafeHref } from "@/lib/utils";
 import { useHapticFeedback } from "@/hooks/use-haptic-feedback";
 import BottomSheet from "@/components/bottom-sheet";
 import { Magnetic } from "@/components/motion-wrapper";
@@ -253,21 +253,45 @@ export default function AgentFlywheel() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [isGlitching, setIsGlitching] = useState(false);
+  const glitchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { lightTap, mediumTap, errorTap } = useHapticFeedback();
+
+  useEffect(
+    () => () => {
+      if (glitchTimerRef.current) {
+        clearTimeout(glitchTimerRef.current);
+        glitchTimerRef.current = null;
+      }
+    },
+    [],
+  );
 
   const activeId = selectedId || hoveredId;
   const selectedTool = (selectedId && TOOL_BY_ID.get(selectedId)) || null;
   const activeConnectsTo = useMemo(() => activeId ? (TOOL_BY_ID.get(activeId)?.connectsTo ?? []) : [], [activeId]);
   const activeAccent = getAccent(activeId);
+  const selectedToolHref = selectedTool ? (toSafeHref(selectedTool.href) ?? "https://github.com") : null;
+  const authorHref = toSafeHref(siteConfig.social.authorGithub) ?? "https://github.com";
 
   const handleSelect = useCallback((id: string | null) => {
     if (id === selectedId) {
+      if (glitchTimerRef.current) {
+        clearTimeout(glitchTimerRef.current);
+        glitchTimerRef.current = null;
+      }
       setSelectedId(null);
+      setIsGlitching(false);
       lightTap();
     } else {
       setSelectedId(id);
       setIsGlitching(true);
-      setTimeout(() => setIsGlitching(false), 300);
+      if (glitchTimerRef.current) {
+        clearTimeout(glitchTimerRef.current);
+      }
+      glitchTimerRef.current = setTimeout(() => {
+        setIsGlitching(false);
+        glitchTimerRef.current = null;
+      }, 300);
       mediumTap();
       if (id) errorTap();
     }
@@ -543,7 +567,7 @@ export default function AgentFlywheel() {
                       </div>
                       <Magnetic strength={0.2}>
                         <a
-                          href={selectedTool.href}
+                          href={selectedToolHref ?? "https://github.com"}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center justify-center gap-4 px-12 py-6 rounded-2xl text-black font-black text-xs uppercase tracking-[0.25em] hover:brightness-110 transition-all active:scale-95 shadow-2xl group/cta"
@@ -623,7 +647,7 @@ export default function AgentFlywheel() {
                       </p>
                       <Magnetic strength={0.2}>
                         <a
-                          href={siteConfig.social.authorGithub}
+                          href={authorHref}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-black text-xs uppercase tracking-widest hover:bg-white/10 transition-all"
@@ -676,7 +700,7 @@ export default function AgentFlywheel() {
               ))}
             </div>
             <a
-              href={selectedTool.href}
+              href={selectedToolHref ?? "https://github.com"}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-4 w-full py-6 rounded-2xl text-black font-black text-sm uppercase tracking-[0.2em] shadow-2xl"

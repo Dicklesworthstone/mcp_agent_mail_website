@@ -1,21 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { motion } from "@/components/motion";
+import { cn } from "@/lib/utils";
 import {
   VizControlButton,
   VizHeader,
   VizLearningBlock,
-  VizMetricCard,
   VizSurface,
   useVizReducedMotion,
 } from "@/components/viz/viz-framework";
-import { Clock3, Mail, ShieldAlert, ShieldCheck, UserCheck } from "lucide-react";
+import {
+  Ban,
+  CheckCircle2,
+  Clock3,
+  Link2,
+  Mail,
+  ShieldAlert,
+  ShieldCheck,
+  UserCheck,
+} from "lucide-react";
 
 type HandshakeState = "unconnected" | "request" | "pending" | "accepted" | "rejected" | "messaging";
 type DecisionMode = "accept" | "deny";
 
-const ORDER: HandshakeState[] = ["unconnected", "request", "pending", "accepted", "messaging"];
+type FlowState = Exclude<HandshakeState, "rejected">;
+
+const ORDER: FlowState[] = ["unconnected", "request", "pending", "accepted", "messaging"];
 
 const HANDSHAKE_COPY: Record<
   HandshakeState,
@@ -53,6 +64,14 @@ const HANDSHAKE_COPY: Record<
   },
 };
 
+const FLOW_BADGE_COPY = {
+  unconnected: "No Relationship",
+  request: "Request Contact",
+  pending: "Pending Approval",
+  accepted: "Approved",
+  messaging: "Messaging Allowed",
+} as const;
+
 export default function AgentHandshakeViz() {
   const [state, setState] = useState<HandshakeState>("unconnected");
   const [decisionMode, setDecisionMode] = useState<DecisionMode>("accept");
@@ -67,7 +86,7 @@ export default function AgentHandshakeViz() {
       setState("request");
       return;
     }
-    const idx = ORDER.indexOf(state);
+    const idx = ORDER.indexOf(state as FlowState);
     setState(ORDER[(idx + 1) % ORDER.length]);
   };
 
@@ -76,7 +95,7 @@ export default function AgentHandshakeViz() {
       setState("pending");
       return;
     }
-    const idx = ORDER.indexOf(state);
+    const idx = ORDER.indexOf(state as FlowState);
     setState(ORDER[Math.max(0, idx - 1)]);
   };
 
@@ -84,6 +103,7 @@ export default function AgentHandshakeViz() {
   const isConnected = state === "accepted" || state === "messaging";
   const isPending = state === "request" || state === "pending";
   const blockedState = state === "unconnected" || state === "rejected";
+  const flowIndex = state === "rejected" ? 2 : ORDER.indexOf(state);
 
   return (
     <VizSurface aria-label="Agent Contact Handshake">
@@ -93,103 +113,155 @@ export default function AgentHandshakeViz() {
         title="Contact Handshake + Policy Outcome"
         subtitle="Messaging permission is explicit and auditable. Switch the policy decision to compare accepted vs rejected outcomes from the same pending request."
         controls={
-          <div className="flex gap-2">
-            <VizControlButton
-              tone={decisionMode === "accept" ? "green" : "neutral"}
-              onClick={() => setDecisionMode("accept")}
-            >
-              Pending &rarr; Accept
-            </VizControlButton>
-            <VizControlButton
-              tone={decisionMode === "deny" ? "red" : "neutral"}
-              onClick={() => setDecisionMode("deny")}
-            >
-              Pending &rarr; Reject
-            </VizControlButton>
+          <div className="rounded-xl border border-white/10 bg-slate-950/85 p-1">
+            <div className="flex gap-1">
+              <VizControlButton
+                tone={decisionMode === "accept" ? "green" : "neutral"}
+                onClick={() => setDecisionMode("accept")}
+                className="rounded-md px-3 py-1.5 text-[10px]"
+              >
+                Pending &rarr; Accept
+              </VizControlButton>
+              <VizControlButton
+                tone={decisionMode === "deny" ? "red" : "neutral"}
+                onClick={() => setDecisionMode("deny")}
+                className="rounded-md px-3 py-1.5 text-[10px]"
+              >
+                Pending &rarr; Reject
+              </VizControlButton>
+            </div>
           </div>
         }
       />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <VizMetricCard label="State" value={copy.title} tone={isConnected ? "green" : blockedState ? "red" : "amber"} />
-        <VizMetricCard label="Decision Mode" value={decisionMode === "accept" ? "accept" : "deny"} tone={decisionMode === "accept" ? "green" : "red"} />
-        <VizMetricCard label="Messaging" value={isConnected ? "allowed" : "blocked"} tone={isConnected ? "green" : "red"} />
+        <SummaryCard
+          label="State"
+          value={copy.title}
+          tone={isConnected ? "green" : blockedState ? "red" : "amber"}
+          icon={isConnected ? <ShieldCheck className="h-4 w-4" /> : <ShieldAlert className="h-4 w-4" />}
+        />
+        <SummaryCard
+          label="Decision Mode"
+          value={decisionMode === "accept" ? "Accept" : "Reject"}
+          tone={decisionMode === "accept" ? "green" : "red"}
+          icon={decisionMode === "accept" ? <CheckCircle2 className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
+        />
+        <SummaryCard
+          label="Messaging"
+          value={isConnected ? "Allowed" : "Blocked"}
+          tone={isConnected ? "green" : "red"}
+          icon={isConnected ? <Mail className="h-4 w-4" /> : <ShieldAlert className="h-4 w-4" />}
+        />
       </div>
 
-      <div className="relative mb-4 flex h-48 items-center justify-between overflow-hidden rounded-xl border border-slate-800 bg-slate-900 px-6 md:px-12">
-        <div className="z-10 flex flex-col items-center">
-          <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center mb-2">
-            <span className="font-bold text-emerald-400">GC</span>
+      <div className="relative mb-4 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-slate-900/95 via-slate-950 to-black p-4 md:p-5">
+        <div className="pointer-events-none absolute -top-20 -left-8 h-44 w-44 rounded-full bg-emerald-500/15 blur-3xl" />
+        <div className="pointer-events-none absolute -right-8 -bottom-24 h-56 w-56 rounded-full bg-blue-500/10 blur-3xl" />
+
+        <ol className="relative mb-4 grid gap-2 sm:grid-cols-5">
+          {ORDER.map((step, index) => {
+            const isStepActive = state === step || (state === "rejected" && step === "pending");
+            const isStepComplete = flowIndex > index && state !== "rejected";
+            return (
+              <li
+                key={step}
+                className={cn(
+                  "rounded-lg border px-2.5 py-2 text-center text-[10px] font-bold uppercase tracking-[0.16em]",
+                  isStepActive
+                    ? "border-emerald-400/40 bg-emerald-500/20 text-emerald-100"
+                    : isStepComplete
+                      ? "border-blue-400/35 bg-blue-500/15 text-blue-100"
+                      : "border-white/8 bg-black/35 text-slate-500",
+                )}
+              >
+                {FLOW_BADGE_COPY[step]}
+              </li>
+            );
+          })}
+        </ol>
+
+        {state === "rejected" ? (
+          <p className="mb-4 inline-flex items-center gap-1.5 rounded-lg border border-red-400/35 bg-red-500/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.15em] text-red-100">
+            <Ban className="h-3.5 w-3.5" />
+            Pending &rarr; Reject branch active
+          </p>
+        ) : null}
+
+        <div className="relative flex h-52 items-center justify-between overflow-hidden rounded-xl border border-white/10 bg-black/45 px-4 md:px-8">
+          <div className="z-10 flex flex-col items-center">
+            <div className="mb-2 flex h-16 w-16 items-center justify-center rounded-full border-2 border-emerald-400/60 bg-emerald-500/15 shadow-[0_0_35px_-16px_rgba(16,185,129,0.9)]">
+              <span className="font-black text-emerald-200">GC</span>
+            </div>
+            <span className="text-sm font-black text-slate-100">GreenCastle</span>
+            <span className="mt-1 text-[11px] text-slate-400">Requester</span>
           </div>
-          <span className="text-sm font-bold text-slate-300">GreenCastle</span>
-        </div>
 
-        {/* Connection Line */}
-        <div className="absolute left-24 right-24 md:left-32 md:right-32 h-1 bg-slate-800 top-1/2 -translate-y-1/2 rounded-full overflow-hidden">
-          {state === "request" && !reducedMotion && (
-            <motion.div
-              initial={{ x: "-100%" }}
-              animate={{ x: "100%" }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-              className="h-full w-1/2 bg-gradient-to-r from-transparent to-amber-500"
-            />
-          )}
-          {state === "request" && reducedMotion && (
-            <div className="h-full w-full bg-amber-500/45" />
-          )}
-          {state === "pending" && (
-            <div className="h-full w-full bg-amber-500/55" />
-          )}
-          {state === "accepted" && (
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: "-100%" }}
-              transition={reducedMotion ? { duration: 0 } : { duration: 1.5 }}
-              className="h-full w-1/2 bg-gradient-to-l from-transparent to-blue-500"
-            />
-          )}
-          {state === "messaging" && (
-            <div className="h-full w-full bg-green-500/50" />
-          )}
-          {state === "rejected" && (
-            <div className="h-full w-full bg-red-500/45" />
-          )}
-        </div>
-
-        <div className="z-10 flex flex-col items-center">
-          <div className="w-16 h-16 rounded-full bg-blue-500/20 border-2 border-blue-500 flex items-center justify-center mb-2">
-            <span className="font-bold text-blue-400">BL</span>
+          <div className="absolute left-14 right-14 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-slate-800/80 md:left-24 md:right-24">
+            {state === "request" && !reducedMotion ? (
+              <motion.div
+                initial={{ x: "-100%" }}
+                animate={{ x: "120%" }}
+                transition={{ duration: 1.25, repeat: Infinity, ease: "linear" }}
+                className="h-full w-1/2 rounded-full bg-gradient-to-r from-transparent to-amber-400"
+              />
+            ) : null}
+            {state === "request" && reducedMotion ? <div className="h-full w-full rounded-full bg-amber-500/50" /> : null}
+            {state === "pending" ? <div className="h-full w-full rounded-full bg-amber-500/65" /> : null}
+            {state === "accepted" && !reducedMotion ? (
+              <motion.div
+                initial={{ x: "100%" }}
+                animate={{ x: "-120%" }}
+                transition={{ duration: 1.35, repeat: Infinity, ease: "linear" }}
+                className="h-full w-1/2 rounded-full bg-gradient-to-l from-transparent to-blue-400"
+              />
+            ) : null}
+            {state === "accepted" && reducedMotion ? <div className="h-full w-full rounded-full bg-blue-500/55" /> : null}
+            {state === "messaging" ? <div className="h-full w-full rounded-full bg-emerald-500/65" /> : null}
+            {state === "rejected" ? <div className="h-full w-full rounded-full bg-red-500/60" /> : null}
           </div>
-          <span className="text-sm font-bold text-slate-300">BlueLake</span>
-        </div>
 
-        {/* Central Icon Indicator */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
-          <div className="w-12 h-12 bg-black rounded-full border border-slate-700 flex items-center justify-center">
-            {state === "unconnected" && <ShieldAlert className="w-5 h-5 text-slate-500" />}
-            {state === "request" && <Mail className="w-5 h-5 text-amber-500" />}
-            {state === "pending" && <Clock3 className="w-5 h-5 text-amber-500" />}
-            {state === "accepted" && <ShieldCheck className="w-5 h-5 text-green-500" />}
-            {state === "rejected" && <ShieldAlert className="w-5 h-5 text-red-500" />}
-            {state === "messaging" && <Mail className="w-5 h-5 text-green-500" />}
+          <div className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-black/70 shadow-[0_0_30px_-14px_rgba(59,130,246,0.9)]">
+              {state === "unconnected" && <ShieldAlert className="h-5 w-5 text-slate-500" />}
+              {state === "request" && <Mail className="h-5 w-5 text-amber-400" />}
+              {state === "pending" && <Clock3 className="h-5 w-5 text-amber-400" />}
+              {state === "accepted" && <ShieldCheck className="h-5 w-5 text-emerald-400" />}
+              {state === "rejected" && <ShieldAlert className="h-5 w-5 text-red-400" />}
+              {state === "messaging" && <Link2 className="h-5 w-5 text-emerald-300" />}
+            </div>
+          </div>
+
+          <div className="z-10 flex flex-col items-center">
+            <div className="mb-2 flex h-16 w-16 items-center justify-center rounded-full border-2 border-blue-400/60 bg-blue-500/15 shadow-[0_0_35px_-16px_rgba(59,130,246,0.95)]">
+              <span className="font-black text-blue-200">BL</span>
+            </div>
+            <span className="text-sm font-black text-slate-100">BlueLake</span>
+            <span className="mt-1 text-[11px] text-slate-400">Approver</span>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <article className="rounded-lg border border-white/10 bg-black/40 p-4">
+      <div className="grid gap-4 lg:grid-cols-[1.2fr,1fr]">
+        <article className="rounded-xl border border-white/10 bg-black/35 p-4 md:p-5">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">State</p>
-          <p className="mt-2 text-base font-bold text-white">{copy.title}</p>
-          <p className="mt-2 text-sm text-slate-300">{copy.summary}</p>
-          <p className="mt-3 inline-flex items-center gap-1 rounded border px-2 py-1 text-xs font-bold uppercase tracking-widest text-slate-300 border-white/10 bg-slate-900">
-            {isConnected ? <ShieldCheck className="h-3 w-3 text-green-400" /> : isPending ? <UserCheck className="h-3 w-3 text-amber-400" /> : <ShieldAlert className="h-3 w-3 text-red-400" />}
+          <p className="mt-2 text-lg font-black text-white">{copy.title}</p>
+          <p className="mt-2 text-sm leading-relaxed text-slate-300">{copy.summary}</p>
+          <p className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-slate-900 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-200">
+            {isConnected ? (
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+            ) : isPending ? (
+              <UserCheck className="h-3.5 w-3.5 text-amber-400" />
+            ) : (
+              <ShieldAlert className="h-3.5 w-3.5 text-red-400" />
+            )}
             {isConnected ? "trusted" : isPending ? "pending" : "blocked"}
           </p>
         </article>
 
-        <article className="rounded-lg border border-white/10 bg-black/40 p-4">
+        <article className="rounded-xl border border-white/10 bg-black/35 p-4 md:p-5">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Command</p>
-          <pre className="mt-2 overflow-x-auto rounded-lg border border-white/5 bg-slate-900 p-3 text-xs font-mono text-slate-400">
+          <pre className="mt-2 overflow-x-auto rounded-lg border border-white/10 bg-slate-900/90 p-3 text-xs font-mono text-slate-300">
 {copy.command}
           </pre>
           <div className="mt-3 flex gap-2">
@@ -214,5 +286,38 @@ export default function AgentHandshakeViz() {
         ]}
       />
     </VizSurface>
+  );
+}
+
+function SummaryCard({
+  label,
+  value,
+  icon,
+  tone,
+}: {
+  label: string;
+  value: string;
+  icon: ReactNode;
+  tone: "green" | "amber" | "red";
+}) {
+  const toneClassName =
+    tone === "green"
+      ? "border-emerald-400/35 bg-emerald-500/10 text-emerald-100"
+      : tone === "amber"
+        ? "border-amber-400/35 bg-amber-500/10 text-amber-100"
+        : "border-red-400/35 bg-red-500/10 text-red-100";
+
+  return (
+    <article className={cn("rounded-xl border p-3", toneClassName)}>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/70">{label}</p>
+          <p className="mt-1 text-sm font-black text-white">{value}</p>
+        </div>
+        <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/20 bg-black/35">
+          {icon}
+        </span>
+      </div>
+    </article>
   );
 }

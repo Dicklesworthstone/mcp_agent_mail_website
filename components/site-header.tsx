@@ -4,10 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Home, Eye, Cpu, Zap, ChevronRight, Globe, Sparkles, BookOpen } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { navItems, siteConfig } from "@/lib/content";
 import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
-import { cn } from "@/lib/utils";
+import { cn, toSafeHref } from "@/lib/utils";
 import { SyncNode, DataPulse } from "./sync-elements";
 import { useSite } from "@/lib/site-state";
 import { Magnetic } from "./motion-wrapper";
@@ -27,6 +27,10 @@ export default function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
   const { toggleLabMode, isLabMode, isAudioEnabled, toggleAudio } = useSite();
   const brandGlyph = siteConfig.name.charAt(0).toUpperCase();
+  const mobileNavRef = useRef<HTMLDivElement>(null);
+  const openTriggerRef = useRef<HTMLElement | null>(null);
+  const focusRafRef = useRef<number | null>(null);
+  const githubHref = toSafeHref(siteConfig.github) ?? "https://github.com";
 
   useBodyScrollLock(open);
 
@@ -39,6 +43,58 @@ export default function SiteHeader() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Focus trap for mobile nav
+  useEffect(() => {
+    if (!open) return;
+
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+      }
+    };
+
+    const handleTab = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const nav = mobileNavRef.current;
+      if (!nav) return;
+
+      const focusable = nav.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleEsc);
+    document.addEventListener("keydown", handleTab);
+
+    // Move focus to close button
+    focusRafRef.current = requestAnimationFrame(() => {
+      const closeBtn = mobileNavRef.current?.querySelector<HTMLElement>('button[aria-label="Close navigation menu"]');
+      closeBtn?.focus();
+    });
+
+    return () => {
+      document.removeEventListener("keydown", handleEsc);
+      document.removeEventListener("keydown", handleTab);
+      if (focusRafRef.current !== null) {
+        cancelAnimationFrame(focusRafRef.current);
+        focusRafRef.current = null;
+      }
+      openTriggerRef.current?.focus();
+    };
+  }, [open]);
 
   return (
     <>
@@ -124,7 +180,7 @@ export default function SiteHeader() {
               </button>
               <div className="w-px h-4 bg-white/10 mx-1" />
               <Magnetic strength={0.1}>
-                <a href={siteConfig.github} target="_blank" rel="noopener noreferrer" className="px-5 py-2 rounded-full bg-white text-black text-[10px] font-black hover:bg-blue-400 transition-all active:scale-95 uppercase tracking-widest">
+                <a href={githubHref} target="_blank" rel="noopener noreferrer" className="px-5 py-2 rounded-full bg-white text-black text-[10px] font-black hover:bg-blue-400 transition-all active:scale-95 uppercase tracking-widest">
                   GITHUB
                 </a>
               </Magnetic>
@@ -162,7 +218,7 @@ export default function SiteHeader() {
           })}
           <button
             type="button"
-            onClick={() => setOpen(true)}
+            onClick={(e) => { openTriggerRef.current = e.currentTarget; setOpen(true); }}
             aria-label="Open navigation menu"
             aria-expanded={open}
             className="flex flex-col items-center justify-center w-12 h-12 rounded-xl text-slate-500 active:scale-90"
@@ -184,6 +240,10 @@ export default function SiteHeader() {
               className="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] md:hidden"
             />
             <motion.div
+              ref={mobileNavRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Navigation menu"
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}

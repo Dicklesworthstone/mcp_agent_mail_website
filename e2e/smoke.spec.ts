@@ -62,7 +62,7 @@ test.describe("Smoke tests", () => {
     diagnostics.breadcrumb(`Opening doc from list: ${selectedSlug ?? "unknown"}`);
     await firstDocButton.click();
 
-    await expect(page.locator("#spec-explorer-workspace .spec-prose")).toBeVisible();
+    await expect(page.locator("#spec-explorer-workspace .spec-prose:visible").first()).toBeVisible();
     diagnostics.breadcrumb("Document content rendered");
   });
 

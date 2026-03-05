@@ -9,6 +9,7 @@ import {
   VizHeader,
   VizLearningBlock,
   useVizAutoStart,
+  useVizInViewport,
   useVizReducedMotion,
 } from "@/components/viz/viz-framework";
 import { ShieldAlert, Terminal, Lock, Map as MapIcon, RefreshCw } from "lucide-react";
@@ -65,6 +66,7 @@ const GAP = 8;
 
 export default function TerritoryMapViz() {
   const reducedMotion = useVizReducedMotion();
+  const inViewport = useVizInViewport();
   const [step, setStep] = useState(0);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [events, setEvents] = useState<{ text: string; color: string; bad?: boolean }[]>([]);
@@ -86,8 +88,14 @@ export default function TerritoryMapViz() {
     return null;
   }, [reservations]);
 
+  const stepRef = useRef(0);
+  useEffect(() => {
+    stepRef.current = step;
+  }, [step]);
+
   const advanceStep = useCallback(() => {
-    if (step >= SCENARIO.length) {
+    const currentStep = stepRef.current;
+    if (currentStep >= SCENARIO.length) {
       setRunning(false);
       if (conflictTimerRef.current) {
         clearTimeout(conflictTimerRef.current);
@@ -95,45 +103,52 @@ export default function TerritoryMapViz() {
       }
       return;
     }
-    const s = SCENARIO[step];
-    const agent = AGENT_MAP.get(s.agentId)!;
+    const s = SCENARIO[currentStep];
+    const agent = AGENT_MAP.get(s.agentId);
+    if (!agent) {
+      setStep((prev) => prev + 1);
+      return;
+    }
     const matchingFiles = GLOB_MATCHES[s.glob] ?? [];
 
-    setReservations((prev) => {
-      const next = [...prev];
-      switch (s.action) {
-        case "reserve":
-          next.push({
-            id: nextResId.current++,
+    switch (s.action) {
+      case "reserve": {
+        const resId = nextResId.current++;
+        setReservations((prev) => [
+          ...prev,
+          {
+            id: resId,
             agentId: s.agentId,
             glob: s.glob,
             matchingFiles,
             ttlRemaining: 3600,
             exclusive: true,
-          });
-          return next;
-        case "release":
-        case "expire":
-          return next.filter((r) => !(r.agentId === s.agentId && r.glob === s.glob));
-        case "conflict":
-          setConflictFlash(matchingFiles);
-          if (conflictTimerRef.current) clearTimeout(conflictTimerRef.current);
-          conflictTimerRef.current = setTimeout(() => {
-            setConflictFlash([]);
-            conflictTimerRef.current = null;
-          }, 800);
-          return next;
-        default:
-          return next;
+          },
+        ]);
+        break;
       }
-    });
+      case "release":
+      case "expire":
+        setReservations((prev) =>
+          prev.filter((r) => !(r.agentId === s.agentId && r.glob === s.glob)),
+        );
+        break;
+      case "conflict":
+        setConflictFlash(matchingFiles);
+        if (conflictTimerRef.current) clearTimeout(conflictTimerRef.current);
+        conflictTimerRef.current = setTimeout(() => {
+          setConflictFlash([]);
+          conflictTimerRef.current = null;
+        }, 800);
+        break;
+    }
 
     setEvents((prev) => [
       { text: s.description, color: s.action === "conflict" ? "#EF4444" : agent.color, bad: s.action === "conflict" },
       ...prev,
     ]);
     setStep((prev) => prev + 1);
-  }, [step]);
+  }, []);
 
   const handlePlay = useCallback(() => setRunning(true), []);
   const handleReset = useCallback(() => {
@@ -143,6 +158,7 @@ export default function TerritoryMapViz() {
     conflictTimerRef.current = null;
     setRunning(false);
     setStep(0);
+    stepRef.current = 0;
     setReservations([]);
     setEvents([]);
     setConflictFlash([]);
@@ -154,7 +170,7 @@ export default function TerritoryMapViz() {
   const hasConflicts = useMemo(() => events.some((e) => e.bad), [events]);
 
   useEffect(() => {
-    if (running && step < SCENARIO.length) {
+    if (running && inViewport && step < SCENARIO.length) {
       intervalRef.current = setInterval(advanceStep, 1500);
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -167,7 +183,8 @@ export default function TerritoryMapViz() {
         conflictTimerRef.current = null;
       }
     };
-  }, [running, step, advanceStep]);
+  }, [running, inViewport, step, advanceStep]);
+  // step is kept in deps to stop the interval when the scenario finishes
 
   // Generate grid cells
   const cells = [];

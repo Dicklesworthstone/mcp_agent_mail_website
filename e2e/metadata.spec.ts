@@ -1,5 +1,18 @@
 import { test, expect, ROUTES } from "./fixtures";
 
+function parseJsonLdObject(raw: string, context: string): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+    throw new Error("Expected a JSON object");
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(`${context} contains invalid JSON-LD: ${detail}`);
+  }
+}
+
 test.describe("Metadata and SEO validation", () => {
   for (const route of ROUTES) {
     test(`${route} has meta description`, async ({ page, diagnostics }) => {
@@ -8,9 +21,10 @@ test.describe("Metadata and SEO validation", () => {
 
       const description = await page.locator('meta[name="description"]').getAttribute("content");
       expect(description, `${route} missing meta description`).toBeTruthy();
-      expect(description!.length).toBeGreaterThan(20);
+      const descriptionText = description ?? "";
+      expect(descriptionText.length).toBeGreaterThan(20);
 
-      diagnostics.breadcrumb(`${route}: description="${description?.slice(0, 50)}..."`);
+      diagnostics.breadcrumb(`${route}: description="${descriptionText.slice(0, 50)}..."`);
     });
 
     test(`${route} has viewport meta`, async ({ page, diagnostics }) => {
@@ -34,8 +48,8 @@ test.describe("Metadata and SEO validation", () => {
     // Validate each is parseable JSON
     for (let i = 0; i < count; i++) {
       const content = await jsonLdScripts.nth(i).textContent();
-      expect(content).toBeTruthy();
-      const parsed = JSON.parse(content!);
+      expect(content, `JSON-LD script ${i} should have content`).toBeTruthy();
+      const parsed = parseJsonLdObject(content ?? "", `JSON-LD script ${i}`);
       expect(parsed["@context"]).toBe("https://schema.org");
 
       diagnostics.breadcrumb(`JSON-LD ${i}: @type=${parsed["@type"]}`);
@@ -53,7 +67,8 @@ test.describe("Metadata and SEO validation", () => {
     let hasHowTo = false;
     for (let i = 0; i < count; i++) {
       const content = await jsonLdScripts.nth(i).textContent();
-      const parsed = JSON.parse(content!);
+      expect(content, `JSON-LD script ${i} should have content`).toBeTruthy();
+      const parsed = parseJsonLdObject(content ?? "", `JSON-LD script ${i}`);
       if (parsed["@type"] === "FAQPage") hasFaq = true;
       if (parsed["@type"] === "HowTo") hasHowTo = true;
     }
@@ -68,7 +83,7 @@ test.describe("Metadata and SEO validation", () => {
     const response = await page.request.get("/robots.txt");
     expect(response.status()).toBe(200);
     const body = await response.text();
-    expect(body).toContain("User-agent");
+    expect(body).toContain("User-Agent");
     diagnostics.breadcrumb("robots.txt validated");
   });
 

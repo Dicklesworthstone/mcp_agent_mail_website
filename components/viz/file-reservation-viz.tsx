@@ -199,59 +199,56 @@ export default function FileReservationViz() {
         <VizMetricCard label="TTL" value={`${step.ttlSeconds}s`} tone={step.ttlSeconds > 0 ? "green" : "neutral"} />
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-[#0B1120] p-6 mb-4 relative overflow-hidden flex flex-col items-center min-h-[300px] justify-center">
+      <div className="rounded-xl border border-white/10 bg-[#0B1120] px-4 py-8 md:p-6 mb-4 relative overflow-hidden flex items-center justify-between min-h-[300px]">
         {/* Background Grids */}
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)", backgroundSize: "20px 20px" }}></div>
 
+        {/* BlueLake (Left) */}
+        <div className={`z-10 relative flex flex-col items-center p-3 md:p-4 rounded-xl border-2 transition-all duration-500 w-24 md:w-36 shrink-0 ${isBlueActive ? "bg-blue-500/10 border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.3)]" : "bg-slate-900/80 border-slate-700"}`}>
+          <User className={`w-8 h-8 md:w-10 md:h-10 mb-2 ${isBlueActive ? "text-blue-400" : "text-slate-500"}`} />
+          <span className="font-black tracking-widest uppercase text-[10px] md:text-xs text-slate-200">BlueLake</span>
+          <span className="text-[9px] md:text-[10px] text-slate-500 font-mono mt-1">claude-code</span>
+        </div>
+
+        {/* Connection Line Left */}
+        <div className={`flex-1 h-1 transition-colors duration-500 relative overflow-hidden -mx-1 md:-mx-2 z-0 ${isBlueActive ? "bg-blue-500" : "bg-transparent border-dashed border-t border-slate-600"}`}>
+           {isBlueActive && !reducedMotion && (
+             <motion.div className="absolute inset-0 bg-white opacity-50" animate={{ x: ["-100%", "100%"] }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} />
+           )}
+        </div>
+
         {/* Central File Node */}
-        <div className={`relative z-20 flex flex-col items-center justify-center w-36 h-36 rounded-xl border-2 transition-all duration-500 ${step.lockHolder !== "none" ? "bg-black/80 border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.1)]" : "bg-black/40 border-slate-700"}`}>
-          <FileCode className={`w-12 h-12 mb-2 transition-colors duration-500 ${step.lockHolder !== "none" ? "text-amber-400" : "text-slate-400"}`} />
-          <p className="font-mono text-sm font-bold text-slate-200">src/auth.ts</p>
+        <div className={`z-20 relative flex flex-col items-center justify-center w-28 h-28 md:w-36 md:h-36 rounded-xl border-2 transition-all duration-500 shrink-0 ${step.lockHolder !== "none" ? "bg-black/80 border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.1)]" : "bg-black/40 border-slate-700"}`}>
+          <FileCode className={`w-8 h-8 md:w-12 md:h-12 mb-2 transition-colors duration-500 ${step.lockHolder !== "none" ? "text-amber-400" : "text-slate-400"}`} />
+          <p className="font-mono text-xs md:text-sm font-bold text-slate-200">src/auth.ts</p>
           <div className="absolute -top-3 -right-3">
-             <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${step.lockHolder !== "none" ? "bg-amber-500/20 border-amber-500 text-amber-400" : "bg-slate-800 border-slate-600 text-slate-400"}`}>
-               {step.lockHolder === "none" ? <LockOpen className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+             <div className={`w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center border-2 ${step.lockHolder !== "none" ? "bg-amber-500/20 border-amber-500 text-amber-400" : "bg-slate-800 border-slate-600 text-slate-400"}`}>
+               {step.lockHolder === "none" ? <LockOpen className="w-3 h-3 md:w-4 md:h-4" /> : <Lock className="w-3 h-3 md:w-4 md:h-4" />}
              </div>
           </div>
-          <div className="absolute -bottom-4 bg-slate-900 border border-slate-700 rounded-full px-3 py-1 flex items-center gap-1 shadow-lg">
-             <Timer className="w-3 h-3 text-slate-400" />
-             <span className="font-mono text-xs text-amber-300 font-bold">{step.ttlSeconds}s</span>
+          <div className="absolute -bottom-4 bg-slate-900 border border-slate-700 rounded-full px-2 py-0.5 md:px-3 md:py-1 flex items-center gap-1 shadow-lg">
+             <Timer className="w-2.5 h-2.5 md:w-3 md:h-3 text-slate-400" />
+             <span className="font-mono text-[10px] md:text-xs text-amber-300 font-bold">{step.ttlSeconds}s</span>
           </div>
         </div>
 
-        {/* Agents & Lines */}
-        <div className="absolute inset-0 flex justify-between items-center px-6 md:px-16 pointer-events-none">
-          {/* BlueLake (Left) */}
-          <div className={`z-10 relative flex flex-col items-center p-4 rounded-xl border-2 transition-all duration-500 w-36 ${isBlueActive ? "bg-blue-500/10 border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.3)]" : "bg-slate-900/80 border-slate-700"}`}>
-            <User className={`w-10 h-10 mb-2 ${isBlueActive ? "text-blue-400" : "text-slate-500"}`} />
-            <span className="font-black tracking-widest uppercase text-xs text-slate-200">BlueLake</span>
-            <span className="text-[10px] text-slate-500 font-mono mt-1">claude-code</span>
-            
-            {/* Connection Line Left */}
-            <div className={`absolute top-1/2 left-full w-[calc(50vw-9rem-4.5rem)] h-1 -translate-y-1/2 transition-colors duration-500 ${isBlueActive ? "bg-blue-500" : "bg-slate-800 border-dashed border-t border-slate-600"}`}>
-               {isBlueActive && !reducedMotion && (
-                 <motion.div className="h-full w-full bg-white opacity-50" animate={{ x: ["-100%", "100%"] }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} />
-               )}
-            </div>
-          </div>
+        {/* Connection Line Right */}
+        <div className={`flex-1 h-1 transition-colors duration-500 relative overflow-hidden -mx-1 md:-mx-2 z-0 ${isRedActive ? "bg-red-500" : step.id === "red-conflict" || step.id === "guard-precommit-block" || step.id === "guard-prepush-warn" ? "bg-amber-500" : "bg-transparent border-dashed border-t border-slate-600"}`}>
+           {isRedActive && !reducedMotion && (
+             <motion.div className="absolute inset-0 bg-white opacity-50" animate={{ x: ["100%", "-100%"] }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} />
+           )}
+           {(step.id === "red-conflict" || step.id === "guard-precommit-block") && (
+             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-8 bg-amber-500 rounded flex items-center justify-center">
+               <ShieldAlert className="w-3 h-3 text-black" />
+             </div>
+           )}
+        </div>
 
-          {/* RedBear (Right) */}
-          <div className={`z-10 relative flex flex-col items-center p-4 rounded-xl border-2 transition-all duration-500 w-36 ${isRedActive ? "bg-red-500/10 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)]" : step.id === "red-conflict" || step.id === "guard-precommit-block" || step.id === "guard-prepush-warn" ? "bg-amber-500/10 border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.2)]" : "bg-slate-900/80 border-slate-700"}`}>
-            <User className={`w-10 h-10 mb-2 ${isRedActive ? "text-red-400" : step.id === "red-conflict" || step.id === "guard-precommit-block" || step.id === "guard-prepush-warn" ? "text-amber-400" : "text-slate-500"}`} />
-            <span className="font-black tracking-widest uppercase text-xs text-slate-200">RedBear</span>
-            <span className="text-[10px] text-slate-500 font-mono mt-1">cursor</span>
-            
-            {/* Connection Line Right */}
-            <div className={`absolute top-1/2 right-full w-[calc(50vw-9rem-4.5rem)] h-1 -translate-y-1/2 transition-colors duration-500 ${isRedActive ? "bg-red-500" : step.id === "red-conflict" || step.id === "guard-precommit-block" || step.id === "guard-prepush-warn" ? "bg-amber-500" : "bg-slate-800 border-dashed border-t border-slate-600"}`}>
-               {isRedActive && !reducedMotion && (
-                 <motion.div className="h-full w-full bg-white opacity-50" animate={{ x: ["100%", "-100%"] }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} />
-               )}
-               {(step.id === "red-conflict" || step.id === "guard-precommit-block") && (
-                 <div className="absolute top-1/2 left-4 -translate-y-1/2 w-4 h-8 bg-amber-500 rounded flex items-center justify-center">
-                   <ShieldAlert className="w-3 h-3 text-black" />
-                 </div>
-               )}
-            </div>
-          </div>
+        {/* RedBear (Right) */}
+        <div className={`z-10 relative flex flex-col items-center p-3 md:p-4 rounded-xl border-2 transition-all duration-500 w-24 md:w-36 shrink-0 ${isRedActive ? "bg-red-500/10 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)]" : step.id === "red-conflict" || step.id === "guard-precommit-block" || step.id === "guard-prepush-warn" ? "bg-amber-500/10 border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.2)]" : "bg-slate-900/80 border-slate-700"}`}>
+          <User className={`w-8 h-8 md:w-10 md:h-10 mb-2 ${isRedActive ? "text-red-400" : step.id === "red-conflict" || step.id === "guard-precommit-block" || step.id === "guard-prepush-warn" ? "text-amber-400" : "text-slate-500"}`} />
+          <span className="font-black tracking-widest uppercase text-[10px] md:text-xs text-slate-200">RedBear</span>
+          <span className="text-[9px] md:text-[10px] text-slate-500 font-mono mt-1">cursor</span>
         </div>
       </div>
 

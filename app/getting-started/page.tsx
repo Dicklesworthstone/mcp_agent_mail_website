@@ -51,7 +51,7 @@ export default function GettingStartedPage() {
 
   return (
     <main id="main-content" tabIndex={-1}>
-      <JsonLd data={getFaqPageJsonLd()} />
+      <JsonLd data={getFaqPageJsonLd(gettingStartedFaq)} />
       <JsonLd data={getHowToJsonLd()} />
       {/* Cinematic Header */}
       <section

@@ -13,10 +13,10 @@ test.describe("Primary user journeys", () => {
     diagnostics.setRoute("/");
     await page.goto("/");
     // Primary CTA
-    const showcaseLink = page.locator('a[href="/showcase"]').first();
+    const showcaseLink = page.locator('a[href="/showcase"]:visible').first();
     await expect(showcaseLink).toBeVisible();
     // Getting started CTA
-    const getStartedLink = page.locator('a[href="/getting-started"]').first();
+    const getStartedLink = page.locator('a[href="/getting-started"]:visible').first();
     await expect(getStartedLink).toBeVisible();
     diagnostics.breadcrumb("CTAs visible");
   });
@@ -26,13 +26,13 @@ test.describe("Primary user journeys", () => {
     diagnostics.breadcrumb("Starting on home page");
 
     // Navigate to showcase
-    await page.locator('a[href="/showcase"]').first().click();
+    await page.locator('a[href="/showcase"]:visible').first().click();
     await page.waitForURL("/showcase");
     await expect(page.locator("main#main-content")).toBeVisible();
     diagnostics.breadcrumb("Navigated to showcase");
 
     // Navigate to architecture
-    await page.locator('a[href="/architecture"]').first().click();
+    await page.locator('a[href="/architecture"]:visible').first().click();
     await page.waitForURL("/architecture");
     await expect(page.locator("main#main-content")).toBeVisible();
     diagnostics.breadcrumb("Navigated to architecture");

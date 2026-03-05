@@ -9,6 +9,7 @@ import {
   VizMetricCard,
   VizSurface,
   useVizAutoStart,
+  useVizInViewport,
   useVizReducedMotion,
 } from "@/components/viz/viz-framework";
 import {
@@ -124,6 +125,7 @@ function derivePhaseState(phase: SystemPhase) {
 
 export default function ReliabilityInternalsViz() {
   const reducedMotion = useVizReducedMotion();
+  const inViewport = useVizInViewport();
   const [phase, setPhase] = useState<SystemPhase>("idle");
   const [autoPlay, setAutoPlay] = useState(false);
   const [workload, setWorkload] = useState<"normal" | "stress">("normal");
@@ -147,7 +149,7 @@ export default function ReliabilityInternalsViz() {
   }));
 
   useEffect(() => {
-    if (!autoPlay) {
+    if (!autoPlay || !inViewport) {
       if (timerRef.current) clearTimeout(timerRef.current);
       return;
     }
@@ -157,7 +159,7 @@ export default function ReliabilityInternalsViz() {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [autoPlay, phase]);
+  }, [autoPlay, inViewport, phase]);
 
   const advance = () => {
     const idx = phases.indexOf(phase);

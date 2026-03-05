@@ -3417,11 +3417,12 @@ export function getSoftwareApplicationJsonLd() {
   };
 }
 
-export function getFaqPageJsonLd() {
+export function getFaqPageJsonLd(items?: { question: string; answer: string }[]) {
+  const entries = items ?? faq;
   return {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: faq.map((item) => ({
+    mainEntity: entries.map((item) => ({
       "@type": "Question",
       name: item.question,
       acceptedAnswer: {

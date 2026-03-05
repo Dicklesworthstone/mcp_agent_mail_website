@@ -146,7 +146,7 @@ function swarmReducer(state: SwarmState, action: SwarmAction): SwarmState {
       let { messageCount, reservationCount, taskCount, conflictCount } = state;
       let { nextEventId, nextParticleId } = state;
       let rngSeed = state.rngSeed;
-      const newParticles = [...state.particles.map((p) => ({ ...p, progress: Math.min(1, p.progress + 0.08) }))];
+      const newParticles = state.particles.map((p) => ({ ...p, progress: Math.min(1, p.progress + 0.08) }));
 
       const draw = () => {
         const next = nextRandom(rngSeed);
@@ -186,8 +186,8 @@ function swarmReducer(state: SwarmState, action: SwarmAction): SwarmState {
       } else if (eventChance < 0.65) {
         // Send a message
         const from = pickRandom(AGENTS);
-        let to = pickRandom(AGENTS);
-        while (to.id === from.id) to = pickRandom(AGENTS);
+        const others = AGENTS.filter((a) => a.id !== from.id);
+        const to = others.length > 0 ? pickRandom(others) : from;
         activity.set(from.id, tick);
         activity.set(to.id, tick);
 

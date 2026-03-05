@@ -332,7 +332,7 @@ export default function CustomCursor() {
       </div>
 
       <style jsx global>{`
-        @media (min-width: 768px) {
+        @media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
           *, *::before, *::after {
             cursor: none !important;
           }

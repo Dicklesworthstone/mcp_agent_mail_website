@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import GlitchText from "@/components/glitch-text";
 import { SyncContainer } from "@/components/sync-elements";
 import { glossaryTerms, generalFaq, glossaryCrossLinks } from "@/lib/content";
+import { isInternalHref, toSafeHref } from "@/lib/utils";
 
 type GlossaryRow =
   | { id: string; type: "heading"; letter: string }
@@ -182,7 +183,8 @@ export default function GlossaryPage() {
                 style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
               >
                 {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-                  const row = virtualRows[virtualItem.index]!;
+                  const row = virtualRows[virtualItem.index];
+                  if (!row) return null;
 
                   return (
                     <div
@@ -230,12 +232,14 @@ export default function GlossaryPage() {
                                     <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
                                       <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">See also:</span>
                                       {crossLinks.map((link) => {
-                                        const internal = /^\/(?!\/)/.test(link.href);
+                                        const safeHref = toSafeHref(link.href);
+                                        if (!safeHref) return null;
+                                        const internal = isInternalHref(safeHref);
                                         if (internal) {
                                           return (
                                             <Link
-                                              key={link.href}
-                                              href={link.href}
+                                              key={safeHref}
+                                              href={safeHref}
                                               className="text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors"
                                             >
                                               {link.label}
@@ -244,8 +248,8 @@ export default function GlossaryPage() {
                                         }
                                         return (
                                           <a
-                                            key={link.href}
-                                            href={link.href}
+                                            key={safeHref}
+                                            href={safeHref}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors"
