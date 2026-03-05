@@ -24,6 +24,7 @@ import Timeline from "@/components/timeline";
 import RobotMascot from "@/components/robot-mascot";
 import GlitchText from "@/components/glitch-text";
 import { SyncContainer } from "@/components/sync-elements";
+import { Tooltip } from "@/components/tooltip";
 import { Magnetic, BorderBeam } from "@/components/motion-wrapper";
 import {
   siteConfig,
@@ -31,13 +32,12 @@ import {
   features,
   codeExample,
   changelog,
-  getVideoObjectJsonLd,
   credibilityHighlights,
   adoptionMessages,
 } from "@/lib/content";
-import { JsonLd } from "@/components/json-ld";
 
 import { Suspense } from "react";
+import { LazyViz } from "@/components/viz/viz-framework";
 
 const AgentFlywheel = dynamic(() => import("@/components/agent-flywheel"), { ssr: false });
 const HeroMedia = dynamic(() => import("@/components/hero-media"), { ssr: false });
@@ -49,7 +49,6 @@ const ReliabilityInternalsViz = dynamic(() => import("@/components/viz/reliabili
 export default function HomePage() {
   return (
     <main id="main-content">
-      <JsonLd data={getVideoObjectJsonLd()} />
       {/* ================================================================
           1. LIVING HERO
           ================================================================ */}
@@ -143,7 +142,7 @@ export default function HomePage() {
             <SyncContainer withNodes={false} className="relative glass-modern p-0 overflow-hidden shadow-2xl w-full">
               <BorderBeam />
 
-              {/* Dashboard video with chapter nav + transcript panel */}
+              {/* Simulated Agent Mail TUI with chapter nav + transcript panel */}
               <Suspense fallback={<div className="min-h-[300px] md:min-h-[420px] bg-black/60 animate-pulse" />}>
                 <HeroMedia />
               </Suspense>
@@ -209,7 +208,8 @@ export default function HomePage() {
               </h2>
             </GlitchText>
             <p className="text-lg md:text-xl text-slate-400 font-medium max-w-3xl mx-auto leading-relaxed">
-              Agent Mail sidesteps the many footguns of naive multi-agent coordination. Every design decision is battle-tested across 40-50 concurrent agents from different providers working in a single shared codebase.
+              Every design decision is battle-tested across 40-50 concurrent agents from different providers working
+              in a single shared codebase.
             </p>
           </div>
 
@@ -224,17 +224,22 @@ export default function HomePage() {
                   Advisory File Reservations
                 </h3>
                 <p className="text-lg text-slate-400 leading-relaxed">
-                  Agents call dibs on files temporarily while they work, but reservations are not rigidly enforced and they expire via TTL. This prevents deadlocks while making ownership visible.
+                  Agents claim <Tooltip term="Glob Pattern">file patterns</Tooltip> temporarily while they work,
+                  but reservations are <Tooltip term="Advisory Lock">advisory</Tooltip> and expire
+                  via <Tooltip term="TTL">TTL</Tooltip>. This prevents deadlocks while making ownership visible.
                 </p>
                 <p className="text-lg text-slate-400 leading-relaxed">
-                  If an agent crashes or gets its memory wiped, stale reservations expire automatically. Other agents can detect untouched files and reclaim them. The optional pre-commit guard adds enforcement at commit time when you want it.
+                  If an agent crashes or gets its memory wiped, stale reservations expire automatically. Other agents
+                  can detect untouched files and reclaim them.
+                  The optional <Tooltip term="Pre-Commit Guard">pre-commit guard</Tooltip> adds enforcement at commit
+                  time when you want it.
                 </p>
               </div>
               <div className="flex-1 w-full max-w-2xl">
                 <SyncContainer withPulse={true} accentColor="#F97316" className="p-1 md:p-2 bg-black/40 shadow-2xl shadow-orange-900/20">
-                  <Suspense fallback={<div className="h-64 flex items-center justify-center text-slate-600 text-sm">Loading...</div>}>
+                  <LazyViz>
                     <FileReservationViz />
-                  </Suspense>
+                  </LazyViz>
                 </SyncContainer>
               </div>
             </div>
@@ -249,10 +254,15 @@ export default function HomePage() {
                   Why Not Git Worktrees?
                 </h3>
                 <p className="text-lg text-slate-400 leading-relaxed">
-                  Git worktrees demolish development velocity and create merge debt you pay later when agents diverge. Working in one shared space surfaces conflicts immediately.
+                  Git worktrees demolish development velocity and create merge debt you pay later when agents
+                  diverge. Working in one shared space
+                  with <Tooltip term="File Reservation">advisory reservations</Tooltip> surfaces conflicts
+                  immediately.
                 </p>
                 <p className="text-lg text-slate-400 leading-relaxed">
-                  With advisory reservations and threaded messaging, agents coordinate in real time instead of accumulating silent divergence. The result: zero merge debt, zero lost work, and immediate conflict resolution.
+                  Agents coordinate in real time through <Tooltip term="Thread">threaded messaging</Tooltip> instead
+                  of accumulating silent divergence. The result: zero merge debt, zero lost work, and immediate
+                  conflict resolution.
                 </p>
               </div>
               <div className="flex-1 w-full max-w-2xl">
@@ -293,17 +303,22 @@ export default function HomePage() {
                   Semi-Persistent Identity
                 </h3>
                 <p className="text-lg text-slate-400 leading-relaxed">
-                  Each agent gets a memorable identity (GreenCastle, BlueLake, RedHarbor) that persists for the duration of a task. But these identities can also vanish without a trace and not break things.
+                  Each agent gets a memorable <Tooltip term="Agent Identity">identity</Tooltip> (GreenCastle,
+                  BlueLake, RedHarbor) that persists for the duration of a task, but can vanish without breaking
+                  coordination state.
                 </p>
                 <p className="text-lg text-slate-400 leading-relaxed">
-                  This is critical because agents crash, get context-wiped, and disappear constantly. The identity system is designed for this reality, not the fantasy of perfectly reliable agents.
+                  This matters because agents crash, get context-wiped, and disappear constantly. The identity system
+                  is designed for this reality: <Tooltip term="TTL">TTL</Tooltip>-based expiration cleans up after
+                  departed agents, and the <Tooltip term="Contact Handshake">contact handshake</Tooltip> protocol
+                  re-establishes trust when agents rejoin.
                 </p>
               </div>
               <div className="flex-1 w-full max-w-2xl">
                 <SyncContainer withPulse={true} accentColor="#3B82F6" className="p-1 md:p-2 bg-black/40 shadow-2xl shadow-blue-900/20">
-                  <Suspense fallback={<div className="h-64 flex items-center justify-center text-slate-600 text-sm">Loading...</div>}>
+                  <LazyViz>
                     <AgentHandshakeViz />
-                  </Suspense>
+                  </LazyViz>
                 </SyncContainer>
               </div>
             </div>
@@ -318,17 +333,22 @@ export default function HomePage() {
                   Targeted, Not Broadcast
                 </h3>
                 <p className="text-lg text-slate-400 leading-relaxed">
-                  A naive implementation defaults to broadcast-to-all. Agents are lazy and will only use that, spamming every agent with irrelevant information. It would be like if your email at work defaulted to reply-all every time.
+                  A naive implementation defaults to broadcast-to-all. Agents gravitate to whatever is easiest, so
+                  they will spam every peer with irrelevant information. Imagine if your work email defaulted to
+                  reply-all on every message.
                 </p>
                 <p className="text-lg text-slate-400 leading-relaxed">
-                  Agent Mail uses targeted messaging with subjects, threads, and explicit recipients. Agents only receive messages addressed to them. Acknowledgment tracking ensures critical messages are never missed.
+                  <Tooltip term="Agent Mail">Agent Mail</Tooltip> uses targeted messaging with subjects,
+                  <Tooltip term="Thread">threads</Tooltip>, and explicit recipients. Agents only receive messages
+                  addressed to them. <Tooltip term="Acknowledgment">Acknowledgment tracking</Tooltip> ensures critical
+                  messages are processed, not just delivered.
                 </p>
               </div>
               <div className="flex-1 w-full max-w-2xl">
                 <SyncContainer withPulse={true} accentColor="#A855F7" className="p-1 md:p-2 bg-black/40 shadow-2xl shadow-purple-900/20">
-                  <Suspense fallback={<div className="h-64 flex items-center justify-center text-slate-600 text-sm">Loading...</div>}>
+                  <LazyViz>
                     <MessageLifecycleViz />
-                  </Suspense>
+                  </LazyViz>
                 </SyncContainer>
               </div>
             </div>
@@ -343,10 +363,14 @@ export default function HomePage() {
                   Graph-Aware Task Prioritization
                 </h3>
                 <p className="text-lg text-slate-400 leading-relaxed">
-                  With hundreds of tasks, you do not want agents randomly choosing or wasting context negotiating. There is usually a &quot;right answer&quot; for what each agent should do next.
+                  With hundreds of tasks, you do not want agents randomly choosing or
+                  wasting <Tooltip term="Context Window">context window</Tooltip> tokens negotiating. There is
+                  usually a clear best-next-task for each agent.
                 </p>
                 <p className="text-lg text-slate-400 leading-relaxed">
-                  That right answer comes from the dependency graph. The bv tool uses basic graph theory (PageRank, betweenness centrality, critical path analysis) as a compass that tells each agent which direction will unlock the most work overall.
+                  That answer comes from the dependency graph. The bv tool uses basic graph theory (PageRank,
+                  betweenness centrality, critical path analysis) as a compass that tells each agent which task will
+                  unlock the most downstream work.
                 </p>
               </div>
               <div className="flex-1 w-full max-w-2xl">
@@ -384,17 +408,21 @@ export default function HomePage() {
                   40-50 Agents, Zero Issues
                 </h3>
                 <p className="text-lg text-slate-400 leading-relaxed">
-                  Not a prototype. Agent Mail runs with 40-50 concurrent agents mixing Claude Code, Codex CLI, and Gemini CLI on the same project with no issues.
+                  <Tooltip term="Agent Mail">Agent Mail</Tooltip> runs with 40-50 concurrent agents mixing Claude
+                  Code, Codex CLI, and Gemini CLI on the same project with no issues. This is production use, not a
+                  demo.
                 </p>
                 <p className="text-lg text-slate-400 leading-relaxed">
-                  The 10-scenario stress gauntlet validates 30-agent message pipelines, pool exhaustion recovery, thundering herd handling, stale lock cleanup, and sustained ~49 RPS mixed workloads. Every scenario passes with zero errors.
+                  The 10-scenario <Tooltip term="Stress Gauntlet">stress gauntlet</Tooltip> validates 30-agent message
+                  pipelines, pool exhaustion recovery, thundering herd handling, stale lock cleanup, and sustained
+                  ~49 RPS mixed workloads. Every scenario passes with zero errors.
                 </p>
               </div>
               <div className="flex-1 w-full max-w-2xl">
                 <SyncContainer withPulse={true} accentColor="#EAB308" className="p-1 md:p-2 bg-black/40 shadow-2xl shadow-yellow-900/20">
-                  <Suspense fallback={<div className="h-64 flex items-center justify-center text-slate-600 text-sm">Loading...</div>}>
+                  <LazyViz>
                     <ReliabilityInternalsViz />
-                  </Suspense>
+                  </LazyViz>
                 </SyncContainer>
               </div>
             </div>
@@ -411,7 +439,7 @@ export default function HomePage() {
         icon="sparkles"
         eyebrow="Why Agent Mail"
         title="Built Different"
-        kicker="Agent Mail is purpose-built coordination infrastructure for AI coding agents. Identity, messaging, file reservations, and task prioritization — all backed by SQLite and Git."
+        kicker="Agent Mail is purpose-built coordination infrastructure for AI coding agents. Identity, messaging, file reservations, and task prioritization, all backed by SQLite and Git."
       >
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 md:gap-6">
           {features.map((feature) => (
@@ -555,7 +583,7 @@ export default function HomePage() {
               <div className="px-6 py-5">
                 <div className="flex items-center gap-3 font-mono text-sm">
                   <span className="select-none text-blue-500 font-bold">$</span>
-                  <code className="text-slate-200 font-bold tracking-tight">pip install mcp-agent-mail</code>
+                  <code className="text-slate-200 font-bold tracking-tight">cargo install mcp_agent_mail_rust</code>
                 </div>
               </div>
             </div>
@@ -584,7 +612,9 @@ export default function HomePage() {
           8. AGENT FLYWHEEL + AUTHOR CREDIT (Grand Finale)
           ================================================================ */}
       <section id="flywheel" className="relative border-t border-white/5">
-        <AgentFlywheel />
+        <LazyViz>
+          <AgentFlywheel />
+        </LazyViz>
       </section>
 
     </main>

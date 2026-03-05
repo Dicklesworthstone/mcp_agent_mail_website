@@ -12,6 +12,15 @@ import { SyncNode, DataPulse } from "./sync-elements";
 import { useSite } from "@/lib/site-state";
 import { Magnetic } from "./motion-wrapper";
 
+const ICON_MAP: Record<string, React.ElementType> = {
+  home: Home,
+  showcase: Sparkles,
+  architecture: Cpu,
+  'spec explorer': BookOpen,
+  glossary: BookOpen,
+  'get started': Zap,
+};
+
 export default function SiteHeader() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -30,18 +39,6 @@ export default function SiteHeader() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  const getIcon = (label: string) => {
-    switch (label.toLowerCase()) {
-      case 'home': return Home;
-      case 'showcase': return Sparkles;
-      case 'architecture': return Cpu;
-      case 'spec explorer': return BookOpen;
-      case 'glossary': return BookOpen;
-      case 'get started': return Zap;
-      default: return Globe;
-    }
-  };
 
   return (
     <>
@@ -141,7 +138,7 @@ export default function SiteHeader() {
         <nav className="glass-modern h-16 rounded-2xl border border-white/10 flex items-center justify-around px-2 pointer-events-auto shadow-2xl">
           {navItems.slice(0, 4).map((item) => {
             const active = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
-            const Icon = getIcon(item.label);
+            const Icon = ICON_MAP[item.label.toLowerCase()] ?? Globe;
             const shortLabel: Record<string, string> = {
               "Home": "Home",
               "Showcase": "Show",

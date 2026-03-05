@@ -128,21 +128,43 @@ function prng(seed: number): number {
   return x - Math.floor(x);
 }
 
-function NeuralFragments() {
-  const bits = useMemo(() => Array.from({ length: 18 }).map((_, i) => ({
-    id: i,
-    x: prng(i * 17.1) * CONTAINER_SIZE,
-    y: prng(i * 29.3) * CONTAINER_SIZE,
-    size: 2 + prng(i * 43.7) * 5,
-    duration: 8 + prng(i * 59.9) * 20,
-    driftX: prng(i * 71.2) * 120 - 60,
-    driftY: prng(i * 83.1) * 120 - 60,
-    color: SPECTRUM[i % SPECTRUM.length],
-  })), []);
+const TOOL_BY_ID = new Map(flywheelTools.map((t) => [t.id, t]));
 
+const POSITIONS = flywheelTools.reduce((acc, tool, index) => {
+  acc[tool.id] = getNodePosition(index, flywheelTools.length);
+  return acc;
+}, {} as Record<string, { x: number; y: number }>);
+
+const CONNECTIONS = (() => {
+  const lines: { from: string; to: string }[] = [];
+  const seen = new Set<string>();
+  flywheelTools.forEach(tool => {
+    tool.connectsTo.forEach(target => {
+      const key = [tool.id, target].sort().join("-");
+      if (!seen.has(key)) {
+        seen.add(key);
+        lines.push({ from: tool.id, to: target });
+      }
+    });
+  });
+  return lines;
+})();
+
+const NEURAL_BITS = Array.from({ length: 18 }).map((_, i) => ({
+  id: i,
+  x: prng(i * 17.1) * CONTAINER_SIZE,
+  y: prng(i * 29.3) * CONTAINER_SIZE,
+  size: 2 + prng(i * 43.7) * 5,
+  duration: 8 + prng(i * 59.9) * 20,
+  driftX: prng(i * 71.2) * 120 - 60,
+  driftY: prng(i * 83.1) * 120 - 60,
+  color: SPECTRUM[i % SPECTRUM.length],
+}));
+
+function NeuralFragments() {
   return (
     <div className="absolute inset-0 pointer-events-none opacity-30">
-      {bits.map(bit => (
+      {NEURAL_BITS.map(bit => (
         <motion.div
           key={bit.id}
           className="absolute rounded-full"
@@ -234,7 +256,8 @@ export default function AgentFlywheel() {
   const { lightTap, mediumTap, errorTap } = useHapticFeedback();
 
   const activeId = selectedId || hoveredId;
-  const selectedTool = flywheelTools.find(t => t.id === selectedId) || null;
+  const selectedTool = (selectedId && TOOL_BY_ID.get(selectedId)) || null;
+  const activeConnectsTo = useMemo(() => activeId ? (TOOL_BY_ID.get(activeId)?.connectsTo ?? []) : [], [activeId]);
   const activeAccent = getAccent(activeId);
 
   const handleSelect = useCallback((id: string | null) => {
@@ -249,26 +272,6 @@ export default function AgentFlywheel() {
       if (id) errorTap();
     }
   }, [selectedId, lightTap, mediumTap, errorTap]);
-
-  const positions = useMemo(() => flywheelTools.reduce((acc, tool, index) => {
-    acc[tool.id] = getNodePosition(index, flywheelTools.length);
-    return acc;
-  }, {} as Record<string, { x: number; y: number }>), []);
-
-  const connections = useMemo(() => {
-    const lines: { from: string; to: string }[] = [];
-    const seen = new Set<string>();
-    flywheelTools.forEach(tool => {
-      tool.connectsTo.forEach(target => {
-        const key = [tool.id, target].sort().join("-");
-        if (!seen.has(key)) {
-          seen.add(key);
-          lines.push({ from: tool.id, to: target });
-        }
-      });
-    });
-    return lines;
-  }, []);
 
   const panelAccent = selectedTool ? getAccent(selectedTool.id) : DEFAULT_ACCENT;
 
@@ -312,7 +315,7 @@ export default function AgentFlywheel() {
 
             <div className="relative scale-[var(--flywheel-scale)] md:scale-[0.85] xl:scale-100" style={{ width: CONTAINER_SIZE, height: CONTAINER_SIZE, "--flywheel-scale": 0.5 } as React.CSSProperties}>
               <svg className="absolute inset-0 overflow-visible" width={CONTAINER_SIZE} height={CONTAINER_SIZE}>
-                {connections.map(conn => {
+                {CONNECTIONS.map(conn => {
                   const isFromActive = activeId === conn.from;
                   const isToActive = activeId === conn.to;
                   const active = isFromActive || isToActive;
@@ -321,8 +324,8 @@ export default function AgentFlywheel() {
                   return (
                     <LightningArc
                       key={`${conn.from}-${conn.to}`}
-                      from={positions[conn.from]}
-                      to={positions[conn.to]}
+                      from={POSITIONS[conn.from]}
+                      to={POSITIONS[conn.to]}
                       color={arcColor}
                       dimColor={dimColor}
                       active={active}
@@ -364,7 +367,7 @@ export default function AgentFlywheel() {
               {flywheelTools.map((tool, i) => {
                 const isSelected = selectedId === tool.id;
                 const isHovered = hoveredId === tool.id;
-                const isConnected = !!activeId && (tool.connectsTo.includes(activeId) || (flywheelTools.find(t => t.id === activeId)?.connectsTo.includes(tool.id) || false));
+                const isConnected = !!activeId && (tool.connectsTo.includes(activeId) || activeConnectsTo.includes(tool.id));
                 const isDimmed = !!activeId && activeId !== tool.id && !isConnected;
                 const nodeColor = getAccent(tool.id);
 
@@ -372,14 +375,14 @@ export default function AgentFlywheel() {
                   <motion.div
                     key={tool.id}
                     className="absolute"
-                    style={{ left: positions[tool.id].x - NODE_SIZE/2, top: positions[tool.id].y - NODE_SIZE/2, width: NODE_SIZE, height: NODE_SIZE, zIndex: isSelected ? 100 : 50 }}
+                    style={{ left: POSITIONS[tool.id].x - NODE_SIZE/2, top: POSITIONS[tool.id].y - NODE_SIZE/2, width: NODE_SIZE, height: NODE_SIZE, zIndex: isSelected ? 100 : 50 }}
                     initial={{ scale: 0 }}
                     animate={{ scale: 1, opacity: isDimmed ? 0.2 : 1 }}
                     transition={{ type: "spring", delay: i * 0.02 }}
                   >
                     <AnimatePresence>
                       {isHovered && !selectedId && (
-                        <NodeHoverHUD tool={tool} color={nodeColor} x={positions[tool.id].x} />
+                        <NodeHoverHUD tool={tool} color={nodeColor} x={POSITIONS[tool.id].x} />
                       )}
                     </AnimatePresence>
 
@@ -614,7 +617,7 @@ export default function AgentFlywheel() {
                         Crafted by <span className="text-animate-blue">Jeffrey Emanuel.</span>
                       </h4>
                       <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                        Built using the AI Flywheel — an interactive ecosystem of specialized
+                        Built using the AI Flywheel, an interactive ecosystem of specialized
                         autonomous agents for high-velocity Rust development.
                       </p>
                       <Magnetic strength={0.2}>

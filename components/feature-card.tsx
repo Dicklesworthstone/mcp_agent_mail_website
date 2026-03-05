@@ -15,6 +15,11 @@ const iconMap: Record<string, React.ElementType> = {
 
 const SPECTRUM = ["#3B82F6", "#60A5FA", "#F97316", "#93C5FD", "#2563EB", "#FB923C", "#38bdf8", "#1D4ED8"];
 
+const ANATOMY_DATA = Array.from({ length: 40 }).map(() => ({
+  left: Math.random().toString(16).substring(2, 40),
+  right: Math.random().toString(16).substring(2, 40),
+}));
+
 export default function FeatureCard({ feature }: { feature: Feature }) {
   const { isLabMode } = useSite();
   const mouseX = useMotionValue(0);
@@ -42,13 +47,6 @@ export default function FeatureCard({ feature }: { feature: Feature }) {
     updateMousePos(e.touches[0].clientX, e.touches[0].clientY, e.currentTarget);
   }, [updateMousePos]);
 
-  const anatomyData = useMemo(() => {
-    return Array.from({ length: 40 }).map(() => ({
-      left: Math.random().toString(16).substring(2, 40),
-      right: Math.random().toString(16).substring(2, 40),
-    }));
-  }, []);
-
   const Icon = iconMap[feature.icon] || Sparkles;
 
   return (
@@ -74,7 +72,7 @@ export default function FeatureCard({ feature }: { feature: Feature }) {
             className="absolute inset-0 z-0 p-8 pointer-events-none overflow-hidden"
           >
             <div className="w-full h-full font-mono text-[8px] whitespace-pre leading-none" style={{ color: `${accentColor}33` }}>
-              {anatomyData.map((data, i) => (
+              {ANATOMY_DATA.map((data, i) => (
                 <div key={i}>{data.left}{data.right}</div>
               ))}
             </div>
