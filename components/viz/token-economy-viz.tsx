@@ -1,12 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { motion } from "@/components/motion";
+import { motion, AnimatePresence } from "@/components/motion";
 import {
   VizControlButton,
   VizSurface,
   useVizReducedMotion,
+  useVizInViewport,
+  VizHeader,
+  VizMetricCard,
+  VizLearningBlock
 } from "@/components/viz/viz-framework";
+import { MessageSquare, Server, Flame, CheckCircle2, Zap } from "lucide-react";
 
 /* ─── Constants ──────────────────────────────────────────────────── */
 
@@ -54,6 +59,7 @@ const MAIL_EVENTS = [
 
 export default function TokenEconomyViz() {
   const reducedMotion = useVizReducedMotion();
+  const inViewport = useVizInViewport();
   const [chatState, setChatState] = useState<ColumnState>({
     step: 0, tokensUsed: 0, codeTokens: 0, coordTokens: 0, events: [],
   });
@@ -106,7 +112,7 @@ export default function TokenEconomyViz() {
   }, []);
 
   useEffect(() => {
-    if (running && chatState.step < TOTAL_STEPS) {
+    if (running && chatState.step < TOTAL_STEPS && inViewport) {
       intervalRef.current = setInterval(advance, 1000);
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -115,147 +121,207 @@ export default function TokenEconomyViz() {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [running, chatState.step, advance]);
+  }, [running, chatState.step, inViewport, advance]);
 
   const isDone = chatState.step >= TOTAL_STEPS;
 
   return (
     <VizSurface aria-label="Token economy comparison: chat coordination vs Agent Mail">
-      <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h3 className="text-lg font-black text-white">Token Economy</h3>
-          <p className="text-sm text-slate-400">
-            Chat-based coordination burns context window tokens. Agent Mail keeps coordination off the token budget.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <VizControlButton tone={running ? "neutral" : "green"} onClick={handleStart} disabled={running || isDone}>
-            {isDone ? "Complete" : running ? "Running..." : "Run 10 Work Steps"}
-          </VizControlButton>
-          <VizControlButton tone="neutral" onClick={handleReset}>
-            Reset
-          </VizControlButton>
-        </div>
+      <VizHeader
+        accent="green"
+        eyebrow="Context Window Economics"
+        title="The Token Economy"
+        subtitle="Watch what happens to your context window when an AI swarm coordinates via plain-text chat versus the off-chain Agent Mail SQLite database."
+        controls={
+          <div className="flex gap-2">
+            <VizControlButton tone={running ? "neutral" : "green"} onClick={handleStart} disabled={running || isDone}>
+              {isDone ? "Complete" : running ? "Running..." : "Run Scenario"}
+            </VizControlButton>
+            <VizControlButton tone="neutral" onClick={handleReset} disabled={chatState.step === 0}>
+              Reset
+            </VizControlButton>
+          </div>
+        }
+      />
+
+      <div className="mb-6 grid gap-3 sm:grid-cols-4">
+        <VizMetricCard label="Current Step" value={`${chatState.step} / ${TOTAL_STEPS}`} tone="blue" />
+        <VizMetricCard label="Max Context Window" value="200k" tone="neutral" />
+        <VizMetricCard label="Chat Burn Rate" value="High" tone={chatState.step > 0 ? "red" : "neutral"} />
+        <VizMetricCard label="Agent Mail Cost" value="< 1%" tone={chatState.step > 0 ? "green" : "neutral"} />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 mb-6">
         {/* Chat-based coordination */}
-        <div className="rounded-xl border border-red-500/20 bg-black/30 p-5 space-y-4">
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-red-400" />
-            <p className="text-xs font-bold text-red-300">Chat-Based Coordination</p>
-          </div>
-
-          <TokenGauge
-            label="Context Window"
-            tokensUsed={chatState.tokensUsed}
-            codeTokens={chatState.codeTokens}
-            coordTokens={chatState.coordTokens}
-            accentColor="#3B82F6"
-            coordColor="#EF4444"
-            isOverflowing={chatState.tokensUsed >= MAX_TOKENS * 0.9}
-          />
-
-          {/* Event log */}
-          <div className="space-y-1 max-h-32 overflow-hidden">
-            {chatState.events.slice(0, 5).map((evt, i) => (
-              <motion.p
-                key={`chat-${chatState.step}-${i}`}
-                initial={reducedMotion ? {} : { opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="text-[10px] text-red-300/70 font-mono truncate"
-              >
-                &gt; {evt}
-              </motion.p>
-            ))}
-          </div>
-
-          {isDone && chatState.tokensUsed >= MAX_TOKENS * 0.9 && (
-            <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-center">
-              <p className="text-xs font-bold text-red-400">Context window exhausted!</p>
-              <p className="text-[10px] text-red-300/60">
-                {Math.round((chatState.coordTokens / chatState.tokensUsed) * 100)}% of tokens spent on coordination, not coding
-              </p>
+        <div className="relative rounded-xl border border-white/10 bg-[#0B1120] overflow-hidden flex flex-col min-h-[400px]">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500/0 via-red-500/50 to-red-500/0" />
+          <div className="p-5 border-b border-slate-800 bg-black/40 flex items-center gap-3">
+            <div className="p-2 bg-red-500/10 border border-red-500/30 rounded-lg shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+              <MessageSquare className="w-5 h-5 text-red-400" />
             </div>
-          )}
+            <div>
+              <h4 className="font-black text-slate-200 uppercase tracking-widest text-sm">Chat Coordination</h4>
+              <p className="text-[10px] text-slate-400">Tokens permanently lost to conversational history</p>
+            </div>
+          </div>
+          
+          <div className="p-5 flex-1 flex flex-col gap-4">
+            <TokenGauge
+              label="Context Window State"
+              tokensUsed={chatState.tokensUsed}
+              codeTokens={chatState.codeTokens}
+              coordTokens={chatState.coordTokens}
+              accentColor="#3B82F6"
+              coordColor="#EF4444"
+              isOverflowing={chatState.tokensUsed >= MAX_TOKENS * 0.9}
+            />
+
+            {/* Event log */}
+            <div className="flex-1 rounded-lg border border-slate-800 bg-black/50 p-3 flex flex-col-reverse overflow-hidden relative">
+              <div className="absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-black/80 pointer-events-none z-10" />
+              
+              <div className="space-y-2 z-0 relative">
+                <AnimatePresence>
+                  {chatState.events.slice(0, 5).map((evt, i) => (
+                    <motion.div
+                      key={`chat-${chatState.step}-${i}`}
+                      initial={reducedMotion ? {} : { opacity: 0, y: -10 }}
+                      animate={{ opacity: Math.max(0.2, 1 - (i * 0.2)), y: 0 }}
+                      className="text-xs font-mono flex items-start gap-2"
+                    >
+                      <span className="text-red-400/80 mt-0.5">❯</span>
+                      <span className="text-red-200">{evt}</span>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </div>
+
+            {isDone && chatState.tokensUsed >= MAX_TOKENS * 0.9 && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="rounded-lg border border-red-500 bg-red-500/10 p-3 text-center shadow-[0_0_20px_rgba(239,68,68,0.2)]"
+              >
+                <p className="text-xs font-black text-red-400 flex items-center justify-center gap-1 uppercase tracking-wider mb-1"><Flame className="w-3 h-3" /> Context Exhausted</p>
+                <p className="text-[10px] text-red-300/80">
+                  {Math.round((chatState.coordTokens / chatState.tokensUsed) * 100)}% of the LLM&apos;s brain was wasted on conversational fluff instead of codebase context.
+                </p>
+              </motion.div>
+            )}
+          </div>
         </div>
 
         {/* Agent Mail */}
-        <div className="rounded-xl border border-green-500/20 bg-black/30 p-5 space-y-4">
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-green-400" />
-            <p className="text-xs font-bold text-green-300">Agent Mail (External Storage)</p>
-          </div>
-
-          <TokenGauge
-            label="Context Window"
-            tokensUsed={mailState.tokensUsed}
-            codeTokens={mailState.codeTokens}
-            coordTokens={mailState.coordTokens}
-            accentColor="#3B82F6"
-            coordColor="#22C55E40"
-            isOverflowing={false}
-          />
-
-          {/* Event log */}
-          <div className="space-y-1 max-h-32 overflow-hidden">
-            {mailState.events.slice(0, 5).map((evt, i) => (
-              <motion.p
-                key={`mail-${mailState.step}-${i}`}
-                initial={reducedMotion ? {} : { opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="text-[10px] text-green-300/70 font-mono truncate"
-              >
-                &gt; {evt}
-              </motion.p>
-            ))}
-          </div>
-
-          {isDone && (
-            <div className="rounded-lg border border-green-500/30 bg-green-500/10 p-2 text-center">
-              <p className="text-xs font-bold text-green-400">
-                {formatTokens(MAX_TOKENS - mailState.tokensUsed)} tokens still free
-              </p>
-              <p className="text-[10px] text-green-300/60">
-                Only {((mailState.coordTokens / mailState.tokensUsed) * 100).toFixed(1)}% overhead for coordination
-              </p>
+        <div className="relative rounded-xl border border-white/10 bg-[#0B1120] overflow-hidden flex flex-col min-h-[400px]">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500/0 via-emerald-500/50 to-emerald-500/0" />
+          <div className="p-5 border-b border-slate-800 bg-black/40 flex items-center gap-3">
+            <div className="p-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+              <Server className="w-5 h-5 text-emerald-400" />
             </div>
-          )}
+            <div>
+              <h4 className="font-black text-slate-200 uppercase tracking-widest text-sm">Agent Mail RPC</h4>
+              <p className="text-[10px] text-slate-400">Coordination state pushed to an off-chain SQLite DB</p>
+            </div>
+          </div>
+          
+          <div className="p-5 flex-1 flex flex-col gap-4">
+            <TokenGauge
+              label="Context Window State"
+              tokensUsed={mailState.tokensUsed}
+              codeTokens={mailState.codeTokens}
+              coordTokens={mailState.coordTokens}
+              accentColor="#3B82F6"
+              coordColor="#10B981"
+              isOverflowing={false}
+            />
+
+            {/* Event log */}
+            <div className="flex-1 rounded-lg border border-slate-800 bg-black/50 p-3 flex flex-col-reverse overflow-hidden relative">
+              <div className="absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-black/80 pointer-events-none z-10" />
+              
+              <div className="space-y-2 z-0 relative">
+                <AnimatePresence>
+                  {mailState.events.slice(0, 5).map((evt, i) => (
+                    <motion.div
+                      key={`mail-${mailState.step}-${i}`}
+                      initial={reducedMotion ? {} : { opacity: 0, y: -10 }}
+                      animate={{ opacity: Math.max(0.2, 1 - (i * 0.2)), y: 0 }}
+                      className="text-xs font-mono flex items-start gap-2"
+                    >
+                      <span className="text-emerald-400/80 mt-0.5">❯</span>
+                      <span className="text-emerald-200">{evt}</span>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </div>
+
+            {isDone && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="rounded-lg border border-emerald-500/50 bg-emerald-500/10 p-3 text-center shadow-[0_0_20px_rgba(16,185,129,0.1)]"
+              >
+                <p className="text-xs font-black text-emerald-400 flex items-center justify-center gap-1 uppercase tracking-wider mb-1"><CheckCircle2 className="w-3 h-3" /> Extremely Efficient</p>
+                <p className="text-[10px] text-emerald-300/80">
+                  <span className="font-bold text-white">{formatTokens(MAX_TOKENS - mailState.tokensUsed)}</span> tokens still free. Only <span className="font-bold text-emerald-400">{((mailState.coordTokens / mailState.tokensUsed) * 100).toFixed(1)}%</span> overhead for coordination.
+                </p>
+              </motion.div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Summary comparison */}
-      {isDone && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-4 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4"
-        >
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-400 mb-2">
-            After 10 work steps
-          </p>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <p className="text-lg font-black text-white">
-                {Math.round((chatState.coordTokens / MAX_TOKENS) * 100)}%
-              </p>
-              <p className="text-[10px] text-slate-400">Chat coordination overhead</p>
+      <AnimatePresence>
+        {isDone && (
+          <motion.div
+            initial={{ opacity: 0, y: 12, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-6 rounded-xl border border-blue-500/30 bg-blue-900/10 p-5 overflow-hidden"
+          >
+            <div className="flex items-center gap-2 mb-4 justify-center">
+              <Zap className="w-5 h-5 text-blue-400" />
+              <h4 className="text-sm font-black uppercase tracking-[0.2em] text-blue-300">Efficiency Delta</h4>
             </div>
-            <div>
-              <p className="text-lg font-black text-white">
-                {((mailState.coordTokens / MAX_TOKENS) * 100).toFixed(1)}%
-              </p>
-              <p className="text-[10px] text-slate-400">Agent Mail overhead</p>
+            
+            <div className="grid grid-cols-3 gap-4 text-center divide-x divide-slate-700">
+              <div>
+                <p className="text-3xl font-black text-red-400 mb-1 drop-shadow-[0_0_10px_rgba(248,113,113,0.3)]">
+                  {Math.round((chatState.coordTokens / MAX_TOKENS) * 100)}%
+                </p>
+                <p className="text-xs font-bold text-slate-300">Chat Drain</p>
+                <p className="text-[10px] text-slate-500 mt-1">Context permanently lost</p>
+              </div>
+              <div>
+                <p className="text-3xl font-black text-emerald-400 mb-1 drop-shadow-[0_0_10px_rgba(52,211,153,0.3)]">
+                  {((mailState.coordTokens / MAX_TOKENS) * 100).toFixed(1)}%
+                </p>
+                <p className="text-xs font-bold text-slate-300">Mail Overhead</p>
+                <p className="text-[10px] text-slate-500 mt-1">Minimal RPC footprint</p>
+              </div>
+              <div className="flex flex-col items-center justify-center">
+                <p className="text-3xl font-black text-blue-400 mb-1 drop-shadow-[0_0_10px_rgba(96,165,250,0.5)]">
+                  {Math.round(chatState.coordTokens / Math.max(1, mailState.coordTokens))}x
+                </p>
+                <p className="text-xs font-bold text-blue-200 uppercase tracking-widest">More Efficient</p>
+              </div>
             </div>
-            <div>
-              <p className="text-lg font-black text-green-400">
-                {Math.round(chatState.coordTokens / Math.max(1, mailState.coordTokens))}x
-              </p>
-              <p className="text-[10px] text-slate-400">More efficient</p>
-            </div>
-          </div>
-        </motion.div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <VizLearningBlock
+        accent="green"
+        title="Pedagogical Takeaways"
+        items={[
+          "Without Agent Mail, multi-agent swarms quickly poison their own context windows with &apos;I am doing X&apos; messages.",
+          "Agent Mail forces coordination into a structured Database (SQLite) rather than appending to the LLM context array.",
+          "This enables the LLM to spend 99% of its token budget on the actual codebase instead of conversational logistics.",
+        ]}
+      />
     </VizSurface>
   );
 }
@@ -291,52 +357,55 @@ function TokenGauge({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-bold text-slate-300">{label}</p>
-        <p className="text-xs font-mono text-slate-500">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{label}</p>
+        <p className="text-xs font-mono text-slate-300 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
           {formatTokens(tokensUsed)} / {formatTokens(MAX_TOKENS)}
         </p>
       </div>
 
       {/* Stacked bar */}
-      <div className="h-8 rounded-lg bg-slate-800 overflow-hidden flex relative">
+      <div className="h-6 rounded-full bg-slate-900 border border-slate-800 overflow-hidden flex relative shadow-inner">
         <motion.div
-          className="h-full"
+          className="h-full relative overflow-hidden"
           style={{ background: accentColor }}
           animate={{ width: `${codePct}%` }}
           transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 100, damping: 20 }}
-        />
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent" />
+        </motion.div>
+        
         <motion.div
-          className="h-full"
+          className="h-full relative overflow-hidden"
           style={{ background: coordColor }}
           animate={{ width: `${coordPct}%` }}
           transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 100, damping: 20 }}
-        />
+        >
+          <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_4px,rgba(0,0,0,0.1)_4px,rgba(0,0,0,0.1)_8px)]" />
+        </motion.div>
+        
         {/* Free space (dark) */}
         {freePct > 2 && (
           <div className="h-full flex-1" />
         )}
+        
         {isOverflowing && usedPct >= 95 && (
           <motion.div
-            className="absolute inset-0 rounded-lg border-2 border-red-500"
-            animate={reducedMotion ? {} : { opacity: [0.3, 0.8, 0.3] }}
-            transition={{ duration: 1, repeat: Infinity }}
+            className="absolute inset-0 rounded-full border-2 border-red-500"
+            animate={reducedMotion ? {} : { opacity: [0.3, 1, 0.3] }}
+            transition={{ duration: 0.8, repeat: Infinity }}
           />
         )}
       </div>
 
       {/* Legend */}
-      <div className="flex gap-4 text-[10px]">
-        <div className="flex items-center gap-1.5">
-          <div className="h-2 w-2 rounded-sm" style={{ background: accentColor }} />
-          <span className="text-slate-400">Code: {formatTokens(codeTokens)}</span>
+      <div className="flex justify-between items-center bg-black/40 border border-white/5 rounded-lg p-2 px-3">
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-3 rounded-full shadow-sm" style={{ background: accentColor }} />
+          <span className="text-[10px] font-bold text-slate-300">Code Work <span className="font-mono text-slate-500 opacity-70 ml-1">{formatTokens(codeTokens)}</span></span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <div className="h-2 w-2 rounded-sm" style={{ background: coordColor }} />
-          <span className="text-slate-400">Coordination: {formatTokens(coordTokens)}</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="h-2 w-2 rounded-sm bg-slate-800 border border-slate-700" />
-          <span className="text-slate-400">Free: {formatTokens(Math.max(0, MAX_TOKENS - tokensUsed))}</span>
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-3 rounded-full shadow-sm" style={{ background: coordColor }} />
+          <span className="text-[10px] font-bold text-slate-300">Overhead <span className="font-mono text-slate-500 opacity-70 ml-1">{formatTokens(coordTokens)}</span></span>
         </div>
       </div>
     </div>

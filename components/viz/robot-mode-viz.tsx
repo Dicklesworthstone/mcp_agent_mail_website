@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "@/components/motion";
 import {
-  VizControlButton,
+  VizHeader,
+  VizLearningBlock,
+  VizMetricCard,
   VizSurface,
   useVizReducedMotion,
 } from "@/components/viz/viz-framework";
-import { Terminal, Eye, Inbox, History, Shield, FileOutput } from "lucide-react";
+import { Terminal, Eye, Inbox, History, Shield, FileOutput, ArrowRight } from "lucide-react";
 
 /* ---------- data ---------- */
 
@@ -138,123 +140,164 @@ export default function RobotModeViz() {
   const track = TRACKS.find((t) => t.id === selectedTrack) ?? TRACKS[0];
   const TrackIcon = TRACK_ICONS[track.id] ?? Terminal;
   const format = FORMAT_INFO[selectedFormat];
+  const commandCount = TRACKS.reduce((sum, t) => sum + t.commands.length, 0);
 
   return (
     <VizSurface aria-label="Robot mode command-track visualization">
-      {/* Header */}
-      <div className="mb-5">
-        <h3 className="text-lg font-black text-white">Robot Mode CLI</h3>
-        <p className="text-sm text-slate-400">
-          16 non-interactive subcommands organized into 5 tracks. Three output formats optimized for different consumers.
-        </p>
+      <VizHeader
+        accent="cyan"
+        eyebrow="Agent Interface"
+        title="Robot Mode Taxonomy"
+        subtitle="Inspect the headless API tracks designed specifically for AI models. Agents can fetch machine-readable states with exact format control."
+      />
+
+      <div className="mb-4 grid gap-3 sm:grid-cols-3">
+        <VizMetricCard label="Commands" value={commandCount} tone="blue" />
+        <VizMetricCard label="Tracks" value={TRACKS.length} tone="green" />
+        <VizMetricCard label="Format" value={selectedFormat} tone={selectedFormat === "toon" ? "amber" : selectedFormat === "json" ? "blue" : "green"} />
       </div>
 
-      {/* Track selector */}
-      <div className="rounded-xl border border-white/10 bg-black/30 p-4 mb-5">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3">
-          Command Tracks
-        </p>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-          {TRACKS.map((t) => {
-            const isSelected = t.id === selectedTrack;
-            const Icon = TRACK_ICONS[t.id] ?? Terminal;
-            return (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setSelectedTrack(t.id)}
-                className="flex flex-col items-center gap-1.5 rounded-lg border p-3 transition-all cursor-pointer"
-                style={{
-                  borderColor: isSelected ? t.color : "#334155",
-                  background: isSelected ? `${t.color}1A` : "#020617",
-                }}
-              >
-                <Icon className="w-5 h-5" style={{ color: isSelected ? t.color : "#64748B" }} />
-                <span className="text-[10px] font-bold text-slate-300 leading-tight text-center">
-                  {t.label}
-                </span>
-                <span className="text-[9px] text-slate-500">{t.commands.length} cmds</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* Track detail + commands */}
-        <AnimatePresence mode="wait">
-          <motion.article
-            key={track.id}
-            className="rounded-xl border border-white/10 bg-black/30 p-4"
-            initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reducedMotion ? { opacity: 1 } : { opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <TrackIcon className="w-5 h-5" style={{ color: track.color }} />
-              <p className="text-base font-bold text-white">{track.label}</p>
-            </div>
-            <p className="text-sm text-slate-400 mb-3">{track.objective}</p>
-            <div className="space-y-2">
-              {track.commands.map((cmd) => (
-                <div
-                  key={cmd.name}
-                  className="rounded-lg border border-white/5 bg-black/30 p-2.5"
-                >
-                  <div className="flex items-center gap-2">
-                    <Terminal className="w-3.5 h-3.5 text-slate-500" />
-                    <code className="text-xs font-mono font-bold" style={{ color: track.color }}>
-                      am robot {cmd.name}
-                    </code>
-                  </div>
-                  <p className="mt-1 ml-5 text-xs text-slate-400">{cmd.description}</p>
-                </div>
-              ))}
-            </div>
-          </motion.article>
-        </AnimatePresence>
-
-        {/* Output format panel */}
-        <div className="flex flex-col gap-4">
-          <article className="rounded-xl border border-white/10 bg-black/30 p-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3">
-              Output Format
-            </p>
-            <div className="flex gap-2 mb-3">
-              {(["toon", "json", "md"] as const).map((fmt) => (
-                <VizControlButton
-                  key={fmt}
-                  tone={selectedFormat === fmt ? "blue" : "neutral"}
-                  onClick={() => setSelectedFormat(fmt)}
-                >
-                  --format {fmt}
-                </VizControlButton>
-              ))}
-            </div>
-            <p className="text-sm text-slate-300 mb-3">{format.description}</p>
-            <pre className="rounded-lg bg-slate-900 border border-white/5 p-3 text-xs font-mono text-slate-400 whitespace-pre-wrap overflow-x-auto">
-              {format.example}
-            </pre>
-          </article>
-
-          <article className="rounded-xl border border-white/10 bg-black/30 p-4">
+      <div className="relative rounded-xl border border-slate-700/50 bg-[#0B1120] p-6 mb-6 overflow-hidden min-h-[480px]">
+        {/* Animated HUD Grid */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: "radial-gradient(#fff 1px, transparent 1px)", backgroundSize: "24px 24px" }}></div>
+        
+        {/* Format Selector Bar */}
+        <div className="relative z-10 flex flex-col md:flex-row gap-6 h-full items-stretch">
+          
+          {/* Left Column: Tracks */}
+          <div className="w-full md:w-1/3 flex flex-col gap-2">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">
-              Envelope Metadata
+              Command Tracks
             </p>
-            <pre className="text-xs font-mono text-slate-400 whitespace-pre-wrap">
-{`Every response includes _meta:
-{
-  "command": "robot ${track.commands[0]?.name ?? "status"}",
-  "timestamp": "2026-03-05T...",
-  "format": "${selectedFormat}",
-  "version": "1.0",
-  "project": "my-project"
-}`}
-            </pre>
-          </article>
+            {TRACKS.map((t) => {
+              const isSelected = t.id === selectedTrack;
+              const Icon = TRACK_ICONS[t.id] ?? Terminal;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setSelectedTrack(t.id)}
+                  className={`relative flex items-center gap-3 rounded-lg border p-3 transition-all cursor-pointer overflow-hidden ${isSelected ? "shadow-lg" : "hover:bg-slate-800/50"}`}
+                  style={{
+                    borderColor: isSelected ? t.color : "#334155",
+                    background: isSelected ? `${t.color}20` : "#0F172A",
+                  }}
+                >
+                  <Icon className="w-5 h-5 z-10 shrink-0" style={{ color: isSelected ? t.color : "#64748B" }} />
+                  <div className="flex flex-col text-left z-10 w-full overflow-hidden">
+                    <span className="text-xs font-bold text-slate-200 truncate">{t.label}</span>
+                    <span className="text-[10px] text-slate-500">{t.commands.length} commands</span>
+                  </div>
+                  
+                  {isSelected && (
+                    <motion.div layoutId="track-highlight" className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: t.color }} />
+                  )}
+                  {isSelected && (
+                    <motion.div className="absolute right-3 opacity-50 z-10 hidden sm:block">
+                      <ArrowRight className="w-4 h-4" style={{ color: t.color }} />
+                    </motion.div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Right Column: Track Details & Envelopes */}
+          <div className="flex-1 flex flex-col h-full z-10">
+            <AnimatePresence mode="wait">
+              <motion.article
+                key={track.id}
+                className="flex-1 rounded-xl border border-white/10 bg-black/50 p-5 flex flex-col shadow-2xl backdrop-blur-sm"
+                initial={reducedMotion ? { opacity: 1 } : { opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={reducedMotion ? { opacity: 1 } : { opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <div className="flex items-center gap-3 mb-4 border-b border-slate-800 pb-4">
+                  <div className="p-2 rounded-lg shrink-0" style={{ backgroundColor: `${track.color}20`, border: `1px solid ${track.color}50` }}>
+                    <TrackIcon className="w-6 h-6" style={{ color: track.color }} />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-black text-white">{track.label}</h4>
+                    <p className="text-xs text-slate-400">{track.objective}</p>
+                  </div>
+                </div>
+
+                {/* Subcommands Grid */}
+                <div className="grid sm:grid-cols-2 gap-3 mb-6">
+                  {track.commands.map((cmd) => (
+                    <div key={cmd.name} className="rounded border border-slate-700 bg-slate-900/50 p-2.5 hover:border-slate-500 transition-colors group cursor-default">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Terminal className="w-3 h-3 text-slate-500 group-hover:text-slate-300 shrink-0" />
+                        <code className="text-xs font-mono font-bold truncate" style={{ color: track.color }}>
+                          am robot {cmd.name}
+                        </code>
+                      </div>
+                      <p className="text-[10px] text-slate-400 leading-snug">{cmd.description}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Format Output Preview */}
+                <div className="mt-auto">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                      Output Format Playground
+                    </p>
+                    <div className="flex bg-slate-900 border border-slate-700 rounded-lg p-1 w-full sm:w-auto">
+                      {(["toon", "json", "md"] as const).map((fmt) => (
+                        <button
+                          key={fmt}
+                          onClick={() => setSelectedFormat(fmt)}
+                          className={`flex-1 sm:flex-none px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded transition-colors ${selectedFormat === fmt ? "bg-slate-700 text-white shadow-sm" : "text-slate-500 hover:text-slate-300"}`}
+                        >
+                          {fmt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="relative rounded-lg border border-slate-700 bg-black overflow-hidden group">
+                     {/* Window Header */}
+                     <div className="h-6 bg-slate-900 border-b border-slate-800 flex items-center px-3 gap-1.5">
+                       <div className="w-2 h-2 rounded-full bg-rose-500/50"></div>
+                       <div className="w-2 h-2 rounded-full bg-amber-500/50"></div>
+                       <div className="w-2 h-2 rounded-full bg-green-500/50"></div>
+                       <div className="mx-auto text-[9px] font-mono text-slate-500 tracking-wider hidden sm:block">am robot {track.commands[0]?.name} --format {selectedFormat}</div>
+                     </div>
+                     <pre className="p-4 text-xs font-mono whitespace-pre-wrap overflow-x-auto min-h-[140px] text-slate-300">
+                        <AnimatePresence mode="wait">
+                          <motion.div
+                            key={`${track.id}-${selectedFormat}`}
+                            initial={reducedMotion ? { opacity: 1 } : { opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={reducedMotion ? { opacity: 1 } : { opacity: 0 }}
+                            transition={{ duration: 0.15 }}
+                          >
+                            {selectedFormat === "json" && <span className="text-slate-500 opacity-50 block mb-2">{`{ "_meta": { "cmd": "${track.commands[0]?.name}" }, ... }`}</span>}
+                            {format.example}
+                          </motion.div>
+                        </AnimatePresence>
+                     </pre>
+                  </div>
+                  <p className="mt-2 text-[10px] text-slate-400 text-right">{format.description}</p>
+                </div>
+              </motion.article>
+            </AnimatePresence>
+          </div>
         </div>
       </div>
+
+      <VizLearningBlock
+        className="mt-4"
+        accent="cyan"
+        title="Pedagogical Takeaways"
+        items={[
+          "Track-based grouping reduces command selection ambiguity for autonomous agents.",
+          "Format choice is a control surface: toon for token cost, JSON for tooling, Markdown for human review.",
+          "Consistent _meta envelopes make downstream automation and logging deterministic.",
+        ]}
+      />
     </VizSurface>
   );
 }

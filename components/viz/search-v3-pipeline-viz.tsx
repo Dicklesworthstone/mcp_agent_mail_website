@@ -1,453 +1,288 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { motion, AnimatePresence } from "@/components/motion";
+import { useState } from "react";
+import { motion } from "@/components/motion";
 import {
   VizControlButton,
+  VizHeader,
+  VizLearningBlock,
+  VizMetricCard,
   VizSurface,
   useVizReducedMotion,
 } from "@/components/viz/viz-framework";
-import { Search, Zap, Brain, Merge, BarChart3, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Search, Brain, Merge, BarChart3, AlertTriangle, Database, Network, Shield, Lock } from "lucide-react";
 
 /* ---------- data model ---------- */
 
-interface PipelineStage {
-  id: string;
-  label: string;
-  icon: "parse" | "lexical" | "semantic" | "fusion" | "rank" | "fallback";
-  description: string;
-  detail: string[];
-}
-
 type SearchMode = "hybrid" | "lexical-only" | "degraded";
-
-const HYBRID_STAGES: PipelineStage[] = [
-  {
-    id: "parse",
-    label: "Query Parse",
-    icon: "parse",
-    description:
-      "Raw query is tokenized, field prefixes extracted (subject:, body:, from:), and the query class is determined.",
-    detail: [
-      "Tokenize input string",
-      "Extract field filters (subject:, body:, from:, to:)",
-      "Detect query class: keyword, phrase, boolean, wildcard",
-      "Derive candidate budget from query complexity",
-    ],
-  },
-  {
-    id: "lexical",
-    label: "Lexical Tier",
-    icon: "lexical",
-    description:
-      "FTS5 full-text search over the message corpus with field-weighted BM25 scoring.",
-    detail: [
-      "SQLite FTS5 query execution",
-      "BM25 relevance scoring per document",
-      "Field weighting: subject 3x, body 1x, sender 2x",
-      "Budget cap: top-K candidates (K derived from query budget)",
-    ],
-  },
-  {
-    id: "semantic",
-    label: "Semantic Tier",
-    icon: "semantic",
-    description:
-      "Embedding-based similarity search over vector representations of messages.",
-    detail: [
-      "Encode query via embedding model",
-      "Cosine similarity against stored vectors",
-      "Cross-project reach via product bus (if enabled)",
-      "Budget cap: top-M candidates (M = budget - K)",
-    ],
-  },
-  {
-    id: "fusion",
-    label: "Fusion",
-    icon: "fusion",
-    description:
-      "Reciprocal Rank Fusion (RRF) merges lexical and semantic candidate lists into a unified ranking.",
-    detail: [
-      "Deduplicate overlapping candidates",
-      "RRF score = Σ 1/(k + rank_i) across tiers",
-      "Recency boost: exponential decay on message age",
-      "Project-scope weighting for cross-project queries",
-    ],
-  },
-  {
-    id: "rank",
-    label: "Rerank & Score",
-    icon: "rank",
-    description:
-      "Final reranking applies field-match boosts, thread-coherence signals, and produces the scored result set.",
-    detail: [
-      "Apply field-match bonus (exact subject hit → +weight)",
-      "Thread coherence: boost messages in same thread cluster",
-      "Normalize scores to [0, 1] range",
-      "Emit diagnostics: per-result score breakdown",
-    ],
-  },
-];
-
-const LEXICAL_ONLY_STAGES: PipelineStage[] = [
-  HYBRID_STAGES[0],
-  HYBRID_STAGES[1],
-  {
-    id: "rank-lexical",
-    label: "Rank (Lexical)",
-    icon: "rank",
-    description:
-      "Without semantic tier, ranking uses BM25 scores with field-match and recency boosts only.",
-    detail: [
-      "BM25 + field-match bonus",
-      "Recency boost applied",
-      "No fusion step needed",
-      "Diagnostics note: semantic tier skipped",
-    ],
-  },
-];
-
-const DEGRADED_STAGES: PipelineStage[] = [
-  HYBRID_STAGES[0],
-  {
-    id: "fallback",
-    label: "Fallback",
-    icon: "fallback",
-    description:
-      "When both tiers fail or budget is exhausted, the pipeline falls back to recent-message scan.",
-    detail: [
-      "Detect failure: FTS5 timeout or embedding unavailable",
-      "Switch to chronological scan with LIKE matching",
-      "Limited to last N messages (configurable)",
-      "Diagnostics: degraded mode flag + reason",
-    ],
-  },
-  {
-    id: "rank-degraded",
-    label: "Best-Effort Rank",
-    icon: "rank",
-    description:
-      "Degraded ranking uses recency as primary signal with basic keyword overlap scoring.",
-    detail: [
-      "Recency-first ordering",
-      "Simple keyword overlap score",
-      "No fusion or reranking",
-      "Result includes degraded_mode: true in diagnostics",
-    ],
-  },
-];
-
-function getStages(mode: SearchMode): PipelineStage[] {
-  switch (mode) {
-    case "hybrid":
-      return HYBRID_STAGES;
-    case "lexical-only":
-      return LEXICAL_ONLY_STAGES;
-    case "degraded":
-      return DEGRADED_STAGES;
-  }
-}
-
-const ICON_MAP = {
-  parse: Search,
-  lexical: Zap,
-  semantic: Brain,
-  fusion: Merge,
-  rank: BarChart3,
-  fallback: AlertTriangle,
-} as const;
-
-const STAGE_COLORS: Record<string, { border: string; bg: string; text: string }> = {
-  parse: { border: "#6366F1", bg: "#6366F11A", text: "#A5B4FC" },
-  lexical: { border: "#F59E0B", bg: "#F59E0B1A", text: "#FCD34D" },
-  semantic: { border: "#8B5CF6", bg: "#8B5CF61A", text: "#C4B5FD" },
-  fusion: { border: "#3B82F6", bg: "#3B82F61A", text: "#93C5FD" },
-  rank: { border: "#22C55E", bg: "#22C55E1A", text: "#86EFAC" },
-  fallback: { border: "#EF4444", bg: "#EF44441A", text: "#FCA5A5" },
-};
-
-/* ---------- budget viz ---------- */
-
-interface BudgetBarProps {
-  lexicalPct: number;
-  semanticPct: number;
-  mode: SearchMode;
-}
-
-function BudgetBar({ lexicalPct, semanticPct, mode }: BudgetBarProps) {
-  return (
-    <div className="mt-4 rounded-lg border border-white/10 bg-black/30 p-3">
-      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">
-        Candidate Budget Allocation
-      </p>
-      <div className="relative h-6 w-full rounded-full bg-slate-800 overflow-hidden flex">
-        <motion.div
-          className="h-full"
-          style={{ backgroundColor: "#F59E0B" }}
-          initial={{ width: 0 }}
-          animate={{ width: `${lexicalPct}%` }}
-          transition={{ duration: 0.5 }}
-        />
-        {mode === "hybrid" && (
-          <motion.div
-            className="h-full"
-            style={{ backgroundColor: "#8B5CF6" }}
-            initial={{ width: 0 }}
-            animate={{ width: `${semanticPct}%` }}
-            transition={{ duration: 0.5, delay: 0.15 }}
-          />
-        )}
-        {mode === "degraded" && (
-          <motion.div
-            className="h-full"
-            style={{ backgroundColor: "#EF4444" }}
-            initial={{ width: 0 }}
-            animate={{ width: `${semanticPct}%` }}
-            transition={{ duration: 0.5, delay: 0.15 }}
-          />
-        )}
-      </div>
-      <div className="flex gap-4 mt-2 text-xs text-slate-400">
-        <span className="flex items-center gap-1">
-          <span className="inline-block w-2 h-2 rounded-full bg-amber-500" /> Lexical {lexicalPct}%
-        </span>
-        {mode === "hybrid" && (
-          <span className="flex items-center gap-1">
-            <span className="inline-block w-2 h-2 rounded-full bg-purple-500" /> Semantic{" "}
-            {semanticPct}%
-          </span>
-        )}
-        {mode === "degraded" && (
-          <span className="flex items-center gap-1">
-            <span className="inline-block w-2 h-2 rounded-full bg-red-500" /> Fallback scan{" "}
-            {semanticPct}%
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ---------- main viz ---------- */
 
 export default function SearchV3PipelineViz() {
   const reducedMotion = useVizReducedMotion();
   const [mode, setMode] = useState<SearchMode>("hybrid");
-  const [stepIndex, setStepIndex] = useState(0);
-
-  const stages = useMemo(() => getStages(mode), [mode]);
-  const clampedStep = Math.min(stepIndex, stages.length - 1);
-  const currentStage = stages[clampedStep];
-
+  
   const handleModeChange = (newMode: SearchMode) => {
     setMode(newMode);
-    setStepIndex(0);
   };
 
-  const budgetConfig: Record<SearchMode, { lexical: number; semantic: number }> = {
-    hybrid: { lexical: 55, semantic: 45 },
-    "lexical-only": { lexical: 100, semantic: 0 },
-    degraded: { lexical: 30, semantic: 70 },
-  };
+  const isHybrid = mode === "hybrid";
+  const isLexical = mode === "lexical-only" || mode === "hybrid";
+  const isSemantic = mode === "hybrid";
+  const isDegraded = mode === "degraded";
 
-  const budget = budgetConfig[mode];
-  const Icon = ICON_MAP[currentStage.icon];
-  const color = STAGE_COLORS[currentStage.icon];
+  const diagnostics =
+    mode === "hybrid"
+      ? {
+          lexical: 42,
+          secondaryLabel: "Semantic Candidates",
+          secondaryValue: 28,
+          finalResults: 20,
+          elapsedMs: 12,
+        }
+      : mode === "lexical-only"
+        ? {
+            lexical: 38,
+            secondaryLabel: "Semantic Candidates",
+            secondaryValue: 0,
+            finalResults: 20,
+            elapsedMs: 4,
+          }
+        : {
+            lexical: 12,
+            secondaryLabel: "Fallback Scan Rows",
+            secondaryValue: 500,
+            finalResults: 12,
+            elapsedMs: 45,
+          };
 
   return (
     <VizSurface aria-label="Search V3 hybrid pipeline visualization">
-      {/* Header */}
-      <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h3 className="text-lg font-black text-white">Search V3 Hybrid Pipeline</h3>
-          <p className="text-sm text-slate-400">
-            Step through query parse → lexical/semantic retrieval → fusion → reranking.
+      <VizHeader
+        accent="violet"
+        eyebrow="Retrieval Pipeline"
+        title="Search V3: Hybrid + Degraded Paths"
+        subtitle="Watch how queries propagate through the multi-tier retrieval engine. Compare candidate budgets, RRF fusion, and fallback behavior across modes."
+        controls={
+          <div className="flex flex-wrap gap-2">
+            <VizControlButton
+              tone={mode === "hybrid" ? "violet" : "neutral"}
+              onClick={() => handleModeChange("hybrid")}
+            >
+              Hybrid
+            </VizControlButton>
+            <VizControlButton
+              tone={mode === "lexical-only" ? "amber" : "neutral"}
+              onClick={() => handleModeChange("lexical-only")}
+            >
+              Lexical Only
+            </VizControlButton>
+            <VizControlButton
+              tone={mode === "degraded" ? "red" : "neutral"}
+              onClick={() => handleModeChange("degraded")}
+            >
+              Degraded
+            </VizControlButton>
+          </div>
+        }
+      />
+
+      <div className="mb-4 grid gap-3 sm:grid-cols-4">
+        <VizMetricCard label="Lexical Candidates" value={diagnostics.lexical} tone="amber" />
+        <VizMetricCard
+          label={diagnostics.secondaryLabel}
+          value={diagnostics.secondaryValue}
+          tone={mode === "degraded" ? "red" : "blue"}
+        />
+        <VizMetricCard label="Final Results" value={diagnostics.finalResults} tone="green" />
+        <VizMetricCard label="Latency" value={`${diagnostics.elapsedMs}ms`} tone={mode === "degraded" ? "red" : "neutral"} />
+      </div>
+
+      <div className="relative rounded-xl border border-slate-700/50 bg-[#0B1120] p-6 lg:p-12 overflow-hidden mb-6 min-h-[450px] flex flex-col items-center justify-center">
+        
+        {/* Animated Background Grid */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)", backgroundSize: "30px 30px" }}></div>
+
+        {/* --- PIPELINE SVG --- */}
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <svg className="w-full h-full" preserveAspectRatio="none">
+             
+             {/* Parse -> Split */}
+             <path d="M 15% 50% L 30% 50%" fill="none" stroke="#6366F1" strokeWidth="2" strokeDasharray="4 4" className="opacity-40" />
+             
+             {/* Split -> Lexical */}
+             <path d="M 30% 50% C 40% 50%, 40% 25%, 50% 25%" fill="none" stroke={isLexical && !isDegraded ? "#F59E0B" : "#334155"} strokeWidth="2" strokeDasharray="4 4" className="opacity-40" />
+             
+             {/* Split -> Semantic */}
+             <path d="M 30% 50% C 40% 50%, 40% 75%, 50% 75%" fill="none" stroke={isSemantic ? "#8B5CF6" : "#334155"} strokeWidth="2" strokeDasharray="4 4" className="opacity-40" />
+
+             {/* Split -> Fallback */}
+             <path d="M 30% 50% L 50% 50%" fill="none" stroke={isDegraded ? "#EF4444" : "#334155"} strokeWidth="2" strokeDasharray="4 4" className="opacity-40" />
+             
+             {/* Lexical -> Fusion */}
+             <path d="M 50% 25% C 65% 25%, 65% 50%, 75% 50%" fill="none" stroke={isLexical && !isDegraded ? "#F59E0B" : "#334155"} strokeWidth="2" strokeDasharray="4 4" className="opacity-40" />
+             
+             {/* Semantic -> Fusion */}
+             <path d="M 50% 75% C 65% 75%, 65% 50%, 75% 50%" fill="none" stroke={isSemantic ? "#8B5CF6" : "#334155"} strokeWidth="2" strokeDasharray="4 4" className="opacity-40" />
+
+             {/* Fallback -> Ranking */}
+             <path d="M 50% 50% L 75% 50%" fill="none" stroke={isDegraded ? "#EF4444" : "transparent"} strokeWidth="2" strokeDasharray="4 4" className="opacity-40" />
+             
+             {/* Fusion -> Rank */}
+             <path d="M 75% 50% L 90% 50%" fill="none" stroke={!isDegraded ? "#22C55E" : "#EF4444"} strokeWidth="2" strokeDasharray="4 4" className="opacity-40" />
+
+             {!reducedMotion && (
+               <>
+                 {/* Parse Particle */}
+                 <motion.circle r="4" fill="#6366F1" filter="blur(1px)">
+                   <animateMotion dur="1s" repeatCount="indefinite" path="M 15% 50% L 30% 50%" />
+                 </motion.circle>
+
+                 {/* Lexical Particle */}
+                 {isLexical && !isDegraded && (
+                   <motion.circle r="4" fill="#F59E0B" filter="blur(1px)">
+                     <animateMotion dur="1.5s" repeatCount="indefinite" begin="1s" path="M 30% 50% C 40% 50%, 40% 25%, 50% 25%" />
+                   </motion.circle>
+                 )}
+                 {isLexical && !isDegraded && (
+                   <motion.circle r="4" fill="#F59E0B" filter="blur(1px)">
+                     <animateMotion dur="1.5s" repeatCount="indefinite" begin="2.5s" path="M 50% 25% C 65% 25%, 65% 50%, 75% 50%" />
+                   </motion.circle>
+                 )}
+
+                 {/* Semantic Particle */}
+                 {isSemantic && (
+                   <motion.circle r="4" fill="#8B5CF6" filter="blur(1px)">
+                     <animateMotion dur="1.5s" repeatCount="indefinite" begin="1s" path="M 30% 50% C 40% 50%, 40% 75%, 50% 75%" />
+                   </motion.circle>
+                 )}
+                 {isSemantic && (
+                   <motion.circle r="4" fill="#8B5CF6" filter="blur(1px)">
+                     <animateMotion dur="1.5s" repeatCount="indefinite" begin="2.5s" path="M 50% 75% C 65% 75%, 65% 50%, 75% 50%" />
+                   </motion.circle>
+                 )}
+
+                 {/* Fallback Particle */}
+                 {isDegraded && (
+                   <motion.circle r="4" fill="#EF4444" filter="blur(1px)">
+                     <animateMotion dur="2s" repeatCount="indefinite" begin="1s" path="M 30% 50% L 50% 50%" />
+                   </motion.circle>
+                 )}
+                 {isDegraded && (
+                   <motion.circle r="4" fill="#EF4444" filter="blur(1px)">
+                     <animateMotion dur="1.5s" repeatCount="indefinite" begin="3s" path="M 50% 50% L 75% 50%" />
+                   </motion.circle>
+                 )}
+
+                 {/* Output Particle */}
+                 <motion.circle r="4" fill={!isDegraded ? "#22C55E" : "#EF4444"} filter="blur(1px)">
+                   <animateMotion dur="1s" repeatCount="indefinite" begin="4s" path="M 75% 50% L 90% 50%" />
+                 </motion.circle>
+               </>
+             )}
+          </svg>
+        </div>
+
+        {/* --- NODES --- */}
+        <div className="absolute inset-0 flex items-center justify-between px-4 sm:px-[10%] lg:px-[15%] z-10 pointer-events-none">
+          
+          {/* 1. Parse Node */}
+          <div className="flex flex-col items-center transform -translate-y-12 sm:translate-y-0">
+            <div className="w-12 h-12 bg-indigo-500/10 border-2 border-indigo-500 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(99,102,241,0.3)] backdrop-blur-md">
+              <Search className="w-5 h-5 text-indigo-400" />
+            </div>
+            <div className="mt-2 text-center bg-slate-900 border border-slate-800 rounded px-2 py-1 shadow-lg">
+              <p className="text-[10px] font-bold text-indigo-300 uppercase tracking-widest">Parse</p>
+            </div>
+          </div>
+
+          {/* 2. Middle Tiers */}
+          <div className="flex flex-col justify-between h-64 w-32 relative">
+            
+            {/* Lexical Tier */}
+            <div className={`flex flex-col items-center transition-all duration-500 absolute -top-4 w-full ${isLexical && !isDegraded ? "opacity-100" : "opacity-30 grayscale"}`}>
+              <div className="w-12 h-12 bg-amber-500/10 border-2 border-amber-500 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(245,158,11,0.3)] backdrop-blur-md">
+                <Database className="w-5 h-5 text-amber-400" />
+              </div>
+              <div className="mt-2 text-center bg-slate-900 border border-slate-800 rounded px-2 py-1 shadow-lg">
+                <p className="text-[10px] font-bold text-amber-300 uppercase tracking-widest">Lexical</p>
+                <p className="text-[8px] text-amber-500/70 font-mono">FTS5 / BM25</p>
+              </div>
+            </div>
+
+            {/* Fallback Tier */}
+            <div className={`flex flex-col items-center transition-all duration-500 absolute top-1/2 -translate-y-1/2 w-full ${isDegraded ? "opacity-100" : "opacity-0"}`}>
+              <div className="w-12 h-12 bg-red-500/10 border-2 border-red-500 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(239,68,68,0.3)] backdrop-blur-md">
+                <AlertTriangle className="w-5 h-5 text-red-400" />
+              </div>
+              <div className="mt-2 text-center bg-slate-900 border border-slate-800 rounded px-2 py-1 shadow-lg">
+                <p className="text-[10px] font-bold text-red-300 uppercase tracking-widest">Fallback</p>
+                <p className="text-[8px] text-red-500/70 font-mono">Chrono Scan</p>
+              </div>
+            </div>
+
+            {/* Semantic Tier */}
+            <div className={`flex flex-col items-center transition-all duration-500 absolute -bottom-4 w-full ${isSemantic ? "opacity-100" : "opacity-30 grayscale"}`}>
+              <div className="w-12 h-12 bg-violet-500/10 border-2 border-violet-500 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(139,92,246,0.3)] backdrop-blur-md">
+                <Brain className="w-5 h-5 text-violet-400" />
+              </div>
+              <div className="mt-2 text-center bg-slate-900 border border-slate-800 rounded px-2 py-1 shadow-lg">
+                <p className="text-[10px] font-bold text-violet-300 uppercase tracking-widest">Semantic</p>
+                <p className="text-[8px] text-violet-500/70 font-mono">Vector / Cosine</p>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Fusion & Rank Node */}
+          <div className="flex flex-col items-center transform -translate-y-12 sm:translate-y-0">
+            <div className={`w-14 h-14 bg-green-500/10 border-2 ${!isDegraded ? "border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.3)]" : "border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)]"} rounded-xl flex items-center justify-center backdrop-blur-md`}>
+              <BarChart3 className={`w-6 h-6 ${!isDegraded ? "text-green-400" : "text-red-400"}`} />
+            </div>
+            <div className="mt-2 text-center bg-slate-900 border border-slate-800 rounded px-2 py-1 shadow-lg">
+              <p className={`text-[10px] font-bold uppercase tracking-widest ${!isDegraded ? "text-green-300" : "text-red-300"}`}>{isHybrid ? "RRF + Rank" : isDegraded ? "Best-Effort" : "BM25 Rank"}</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-4">
+        {/* Mode indicator */}
+        <article className="rounded-xl border border-white/10 bg-black/30 p-4">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+            Pipeline Mode Execution
           </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <VizControlButton
-            tone={mode === "hybrid" ? "blue" : "neutral"}
-            onClick={() => handleModeChange("hybrid")}
-          >
-            Hybrid
-          </VizControlButton>
-          <VizControlButton
-            tone={mode === "lexical-only" ? "amber" : "neutral"}
-            onClick={() => handleModeChange("lexical-only")}
-          >
-            Lexical Only
-          </VizControlButton>
-          <VizControlButton
-            tone={mode === "degraded" ? "red" : "neutral"}
-            onClick={() => handleModeChange("degraded")}
-          >
-            Degraded
-          </VizControlButton>
-        </div>
-      </div>
+          <div className="mt-3 flex items-center gap-2 mb-2">
+            {mode === "hybrid" && (
+              <>
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-violet-500/20 text-violet-400"><Network className="w-4 h-4"/></span>
+                <span className="text-sm font-bold text-violet-300">Hybrid (Lexical + Semantic)</span>
+              </>
+            )}
+            {mode === "lexical-only" && (
+              <>
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-amber-500/20 text-amber-400"><Database className="w-4 h-4"/></span>
+                <span className="text-sm font-bold text-amber-300">Lexical Only</span>
+              </>
+            )}
+            {mode === "degraded" && (
+              <>
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-red-500/20 text-red-400"><AlertTriangle className="w-4 h-4"/></span>
+                <span className="text-sm font-bold text-red-300">Degraded / Fallback</span>
+              </>
+            )}
+          </div>
+          <p className="text-xs text-slate-400">
+            {mode === "hybrid" &&
+              "Query splits into parallel FTS5 and Vector database hits. Candidates are fused via Reciprocal Rank Fusion (RRF)."}
+            {mode === "lexical-only" &&
+              "Semantic tier disabled to save tokens. BM25 + field matching only."}
+            {mode === "degraded" &&
+              "SQLite index failure or embedding timeout. System gracefully degrades to a chronological LIKE scan to ensure operability."}
+          </p>
 
-      {/* Pipeline stages */}
-      <div className="rounded-xl border border-white/10 bg-black/30 p-4">
-        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${stages.length}, minmax(0, 1fr))` }}>
-          {stages.map((stage, idx) => {
-            const isCurrent = idx === clampedStep;
-            const isDone = idx < clampedStep;
-            const stageColor = STAGE_COLORS[stage.icon];
-            const StageIcon = ICON_MAP[stage.icon];
-            return (
-              <button
-                key={stage.id}
-                type="button"
-                onClick={() => setStepIndex(idx)}
-                className="relative rounded-lg border p-3 text-left transition-colors cursor-pointer"
-                style={{
-                  borderColor: isCurrent ? stageColor.border : isDone ? "#22C55E66" : "#334155",
-                  background: isCurrent ? stageColor.bg : isDone ? "#22C55E14" : "#020617",
-                }}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <StageIcon
-                    className="w-4 h-4"
-                    style={{ color: isCurrent ? stageColor.text : isDone ? "#86EFAC" : "#64748B" }}
-                  />
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                    {idx + 1}/{stages.length}
-                  </span>
-                </div>
-                <p className="text-sm font-bold text-white">{stage.label}</p>
-                {isCurrent && (
-                  <motion.div
-                    className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full"
-                    style={{ backgroundColor: stageColor.border }}
-                    animate={reducedMotion ? { opacity: 1 } : { opacity: [0.45, 1, 0.45] }}
-                    transition={reducedMotion ? { duration: 0 } : { duration: 1.2, repeat: Infinity }}
-                  />
-                )}
-                {isDone && (
-                  <CheckCircle2 className="absolute -top-1 -right-1 w-4 h-4 text-green-400" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Arrow connectors (visible on md+) */}
-        <div className="hidden md:flex items-center justify-around mt-2 px-8">
-          {stages.slice(0, -1).map((_, idx) => (
-            <motion.div
-              key={idx}
-              className="flex-1 h-0.5 mx-1 rounded-full"
-              style={{
-                backgroundColor: idx < clampedStep ? "#22C55E" : idx === clampedStep ? STAGE_COLORS[stages[idx].icon].border : "#334155",
-              }}
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ duration: 0.3, delay: idx * 0.1 }}
-            />
-          ))}
-        </div>
-
-        {/* Controls */}
-        <div className="mt-4 flex flex-wrap gap-2">
-          <VizControlButton
-            tone="neutral"
-            onClick={() => setStepIndex((prev) => Math.max(0, prev - 1))}
-            disabled={clampedStep === 0}
-          >
-            Previous
-          </VizControlButton>
-          <VizControlButton
-            tone="blue"
-            onClick={() => setStepIndex((prev) => Math.min(stages.length - 1, prev + 1))}
-            disabled={clampedStep >= stages.length - 1}
-          >
-            Next
-          </VizControlButton>
-          <VizControlButton tone="neutral" onClick={() => setStepIndex(0)}>
-            Reset
-          </VizControlButton>
-        </div>
-      </div>
-
-      {/* Detail panels */}
-      <div className="mt-5 grid gap-4 md:grid-cols-2">
-        <AnimatePresence mode="wait">
-          <motion.article
-            key={currentStage.id}
-            className="rounded-xl border border-white/10 bg-black/30 p-4"
-            initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reducedMotion ? { opacity: 1 } : { opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div className="flex items-center gap-2">
-              <Icon className="w-5 h-5" style={{ color: color.text }} />
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                Current Stage
-              </p>
-            </div>
-            <p className="mt-2 text-base font-bold text-white">{currentStage.label}</p>
-            <p className="mt-2 text-sm text-slate-300">{currentStage.description}</p>
-            <ul className="mt-3 space-y-2 text-sm text-slate-400">
-              {currentStage.detail.map((item) => (
-                <li key={item} className="flex gap-2">
-                  <span className="text-slate-600 select-none">•</span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </motion.article>
-        </AnimatePresence>
-
-        <div className="flex flex-col gap-4">
-          {/* Mode indicator */}
-          <article className="rounded-xl border border-white/10 bg-black/30 p-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-              Pipeline Mode
-            </p>
-            <div className="mt-2 flex items-center gap-2">
-              {mode === "hybrid" && (
-                <>
-                  <span className="inline-block w-2 h-2 rounded-full bg-blue-500" />
-                  <span className="text-sm font-bold text-blue-200">Hybrid (Lexical + Semantic)</span>
-                </>
-              )}
-              {mode === "lexical-only" && (
-                <>
-                  <span className="inline-block w-2 h-2 rounded-full bg-amber-500" />
-                  <span className="text-sm font-bold text-amber-200">Lexical Only</span>
-                </>
-              )}
-              {mode === "degraded" && (
-                <>
-                  <span className="inline-block w-2 h-2 rounded-full bg-red-500" />
-                  <span className="text-sm font-bold text-red-200">Degraded / Fallback</span>
-                </>
-              )}
-            </div>
-            <p className="mt-2 text-xs text-slate-500">
-              {mode === "hybrid" &&
-                "Full pipeline: lexical FTS5 + semantic embeddings fused via RRF."}
-              {mode === "lexical-only" &&
-                "Semantic tier disabled. BM25 + field matching only."}
-              {mode === "degraded" &&
-                "Both tiers failed. Falling back to chronological LIKE scan."}
-            </p>
-          </article>
-
-          {/* Budget bar */}
-          <BudgetBar
-            lexicalPct={budget.lexical}
-            semanticPct={budget.semantic}
-            mode={mode}
-          />
-
-          {/* Diagnostics */}
-          <article className="rounded-xl border border-white/10 bg-black/30 p-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-              Diagnostics Output
-            </p>
-            <pre className="mt-2 text-xs text-slate-400 font-mono whitespace-pre-wrap overflow-x-auto">
+          {/* Diagnostics Preview */}
+          <div className="mt-4 bg-black/50 border border-slate-700 rounded p-3">
+             <p className="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-2">Diagnostics Blob</p>
+             <pre className="text-[10px] text-slate-400 font-mono whitespace-pre-wrap">
 {mode === "hybrid" ? `{
   "mode": "hybrid",
   "query_class": "phrase",
@@ -462,20 +297,58 @@ export default function SearchV3PipelineViz() {
   "lexical_candidates": 38,
   "semantic_candidates": 0,
   "final_results": 20,
-  "semantic_skip_reason": "disabled",
   "elapsed_ms": 4
 }` : `{
   "mode": "degraded",
   "degraded_reason": "fts5_timeout",
   "fallback_scan_rows": 500,
   "final_results": 12,
-  "elapsed_ms": 45,
-  "degraded_mode": true
+  "elapsed_ms": 45
 }`}
             </pre>
-          </article>
-        </div>
+          </div>
+        </article>
+
+        {/* Top Results */}
+        <article className="rounded-xl border border-white/10 bg-black/30 p-4">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+            Top Results Preview
+          </p>
+          <div className="mt-4 space-y-3">
+            {[
+              { title: "Thread: reservation conflict remediation", score: mode === "degraded" ? "0.53" : "0.92", source: "project: mcp_agent_mail", icon: Merge, color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/30" },
+              { title: "Guard policy runbook", score: mode === "degraded" ? "0.47" : "0.84", source: "project: mcp_agent_mail_website", icon: Shield, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/30" },
+              { title: "Stale lock force-release message", score: mode === "degraded" ? "0.41" : "0.79", source: "thread: br-123", icon: Lock, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/30" },
+            ].map((result, i) => (
+              <div key={i} className={`rounded-lg border bg-slate-900 p-3 transition-colors ${result.border}`}>
+                <div className="flex items-start gap-3">
+                  <div className={`p-1.5 rounded-md mt-0.5 ${result.bg}`}>
+                     <result.icon className={`w-3.5 h-3.5 ${result.color}`} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-slate-200 leading-tight">{result.title}</p>
+                    <div className="mt-1.5 flex items-center justify-between text-[10px] text-slate-400">
+                      <span className="uppercase tracking-wider">{result.source}</span>
+                      <span className="font-mono bg-black px-1.5 py-0.5 rounded text-slate-300">score={result.score}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </article>
       </div>
+
+      <VizLearningBlock
+        className="mt-4"
+        accent="violet"
+        title="Pedagogical Takeaways"
+        items={[
+          "Hybrid mode improves relevance by combining exact-match lexical precision with contextual semantic recall.",
+          "Degraded mode preserves operability. Agents can still find recent messages even if vector embeddings fail.",
+          "Search diagnostic payloads are always attached, letting operators see exactly why a document ranked highly.",
+        ]}
+      />
     </VizSurface>
   );
 }

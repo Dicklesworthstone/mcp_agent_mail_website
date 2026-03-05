@@ -6,20 +6,28 @@ import {
   VizControlButton,
   VizSurface,
   VizMetricCard,
+  VizHeader,
+  VizLearningBlock,
   useVizReducedMotion,
 } from "@/components/viz/viz-framework";
+import { ShieldAlert, Terminal, Lock, Map as MapIcon, RefreshCw } from "lucide-react";
 
-/* ─── File tree structure ────────────────────────────────────────── */
+/* ---------- Data Model ---------- */
 
-interface FileNode {
-  path: string;
-  shortName: string;
-  size: number; // Relative visual weight
-  x: number;
-  y: number;
-  w: number;
-  h: number;
+interface AgentDef {
+  id: string;
+  name: string;
+  color: string;
+  glow: string;
 }
+
+const AGENTS: AgentDef[] = [
+  { id: "A", name: "GreenCastle", color: "#10B981", glow: "rgba(16,185,129,0.4)" }, // emerald
+  { id: "B", name: "BlueLake", color: "#3B82F6", glow: "rgba(59,130,246,0.4)" }, // blue
+  { id: "C", name: "RedBear", color: "#EF4444", glow: "rgba(239,68,68,0.4)" }, // red
+];
+
+const AGENT_MAP = new Map(AGENTS.map((a) => [a.id, a]));
 
 interface Reservation {
   id: number;
@@ -30,85 +38,29 @@ interface Reservation {
   exclusive: boolean;
 }
 
-interface AgentDef {
-  id: string;
-  name: string;
-  color: string;
-  borderColor: string;
-}
-
-const AGENTS: AgentDef[] = [
-  { id: "gc", name: "GreenCastle", color: "#22C55E", borderColor: "#22C55E60" },
-  { id: "bl", name: "BlueLake", color: "#3B82F6", borderColor: "#3B82F660" },
-  { id: "rh", name: "RedHarbor", color: "#EF4444", borderColor: "#EF444460" },
-  { id: "gp", name: "GoldPeak", color: "#EAB308", borderColor: "#EAB30860" },
-];
-
-// File tree laid out in a grid (pre-computed treemap positions)
-const FILES: FileNode[] = [
-  // src/auth/
-  { path: "src/auth/jwt.rs", shortName: "jwt.rs", size: 3, x: 0, y: 0, w: 2, h: 2 },
-  { path: "src/auth/session.rs", shortName: "session.rs", size: 2, x: 2, y: 0, w: 2, h: 1 },
-  { path: "src/auth/middleware.rs", shortName: "middleware.rs", size: 2, x: 2, y: 1, w: 2, h: 1 },
-  // src/api/
-  { path: "src/api/routes.rs", shortName: "routes.rs", size: 3, x: 4, y: 0, w: 2, h: 2 },
-  { path: "src/api/handlers.rs", shortName: "handlers.rs", size: 2, x: 6, y: 0, w: 2, h: 1 },
-  { path: "src/api/middleware.rs", shortName: "api_mw.rs", size: 1, x: 6, y: 1, w: 2, h: 1 },
-  // src/db/
-  { path: "src/db/schema.rs", shortName: "schema.rs", size: 3, x: 0, y: 2, w: 2, h: 2 },
-  { path: "src/db/queries.rs", shortName: "queries.rs", size: 2, x: 2, y: 2, w: 2, h: 1 },
-  { path: "src/db/pool.rs", shortName: "pool.rs", size: 1, x: 2, y: 3, w: 2, h: 1 },
-  // tests/
-  { path: "tests/auth_test.rs", shortName: "auth_test.rs", size: 2, x: 4, y: 2, w: 2, h: 1 },
-  { path: "tests/api_test.rs", shortName: "api_test.rs", size: 2, x: 6, y: 2, w: 2, h: 1 },
-  { path: "tests/db_test.rs", shortName: "db_test.rs", size: 2, x: 4, y: 3, w: 2, h: 1 },
-  // config/
-  { path: "config/default.toml", shortName: "default.toml", size: 1, x: 6, y: 3, w: 1, h: 1 },
-  { path: "config/test.toml", shortName: "test.toml", size: 1, x: 7, y: 3, w: 1, h: 1 },
-];
-
-// Glob patterns and which file indices they match
 const GLOB_MATCHES: Record<string, number[]> = {
-  "src/auth/**": [0, 1, 2],
-  "src/api/**": [3, 4, 5],
-  "src/db/**": [6, 7, 8],
-  "tests/**": [9, 10, 11],
-  "config/**": [12, 13],
+  "src/auth/**/*.ts": [0, 1, 2, 8, 9, 10], // Top-left area
+  "src/db/**/*.ts": [6, 7, 14, 15, 22, 23], // Top-right area
+  "src/ui/**/*.tsx": [16, 17, 18, 24, 25, 26], // Bottom-left area
+  "src/core/*.ts": [11, 12, 13, 19, 20, 21], // Center area
 };
 
-/* ─── Scenario steps ─────────────────────────────────────────────── */
-
-interface ScenarioStep {
-  action: "reserve" | "release" | "conflict" | "expire";
-  agentId: string;
-  glob: string;
-  description: string;
-}
-
-const SCENARIO: ScenarioStep[] = [
-  { action: "reserve", agentId: "gc", glob: "src/auth/**", description: "GreenCastle reserves src/auth/**" },
-  { action: "reserve", agentId: "bl", glob: "src/api/**", description: "BlueLake reserves src/api/**" },
-  { action: "reserve", agentId: "rh", glob: "src/db/**", description: "RedHarbor reserves src/db/**" },
-  { action: "reserve", agentId: "gp", glob: "tests/**", description: "GoldPeak reserves tests/**" },
-  { action: "conflict", agentId: "bl", glob: "src/auth/**", description: "BlueLake tries src/auth/** -- BLOCKED (GreenCastle holds it)" },
-  { action: "reserve", agentId: "bl", glob: "config/**", description: "BlueLake reserves config/** instead" },
-  { action: "release", agentId: "gc", glob: "src/auth/**", description: "GreenCastle releases src/auth/**" },
-  { action: "reserve", agentId: "bl", glob: "src/auth/**", description: "BlueLake now reserves src/auth/**" },
-  { action: "expire", agentId: "rh", glob: "src/db/**", description: "RedHarbor's reservation on src/db/** expires (TTL)" },
-  { action: "release", agentId: "gp", glob: "tests/**", description: "GoldPeak releases tests/** (work done)" },
+const SCENARIO = [
+  { glob: "src/auth/**/*.ts", agentId: "A", action: "reserve", description: "GreenCastle locks auth module." },
+  { glob: "src/ui/**/*.tsx", agentId: "B", action: "reserve", description: "BlueLake locks UI components." },
+  { glob: "src/db/**/*.ts", agentId: "C", action: "reserve", description: "RedBear locks database schema." },
+  { glob: "src/core/*.ts", agentId: "A", action: "reserve", description: "GreenCastle expands lock to core." },
+  { glob: "src/auth/**/*.ts", agentId: "B", action: "conflict", description: "BlueLake tries to lock auth -> CONFLICT!" },
+  { glob: "src/core/*.ts", agentId: "C", action: "conflict", description: "RedBear tries to lock core -> CONFLICT!" },
+  { glob: "src/auth/**/*.ts", agentId: "A", action: "release", description: "GreenCastle releases auth module." },
+  { glob: "src/auth/**/*.ts", agentId: "B", action: "reserve", description: "BlueLake successfully locks auth." },
+  { glob: "src/db/**/*.ts", agentId: "C", action: "release", description: "RedBear releases database schema." },
 ];
 
-/* ─── Component ──────────────────────────────────────────────────── */
-
-const CELL_SIZE = 38;
-const GAP = 3;
-const PAD = 16;
 const GRID_W = 8;
 const GRID_H = 4;
-const SVG_W = GRID_W * (CELL_SIZE + GAP) + PAD * 2;
-const SVG_H = GRID_H * (CELL_SIZE + GAP) + PAD * 2;
-
-const AGENT_MAP = new Map(AGENTS.map((a) => [a.id, a]));
+const CELL_SIZE = 40;
+const GAP = 8;
 
 export default function TerritoryMapViz() {
   const reducedMotion = useVizReducedMotion();
@@ -156,7 +108,7 @@ export default function TerritoryMapViz() {
           return next.filter((r) => !(r.agentId === s.agentId && r.glob === s.glob));
         case "conflict":
           setConflictFlash(matchingFiles);
-          setTimeout(() => setConflictFlash([]), 1200);
+          setTimeout(() => setConflictFlash([]), 800);
           return next;
         default:
           return next;
@@ -184,7 +136,7 @@ export default function TerritoryMapViz() {
 
   useEffect(() => {
     if (running && step < SCENARIO.length) {
-      intervalRef.current = setInterval(advanceStep, 1200);
+      intervalRef.current = setInterval(advanceStep, 1500);
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
       intervalRef.current = null;
@@ -194,215 +146,160 @@ export default function TerritoryMapViz() {
     };
   }, [running, step, advanceStep]);
 
-  const isDone = step >= SCENARIO.length;
-
-  // Gather directory group labels
-  const dirGroups = [
-    { label: "src/auth/", x: 0, y: 0, w: 4, h: 2 },
-    { label: "src/api/", x: 4, y: 0, w: 4, h: 2 },
-    { label: "src/db/", x: 0, y: 2, w: 4, h: 2 },
-    { label: "tests/", x: 4, y: 2, w: 2, h: 2 },
-    { label: "config/", x: 6, y: 3, w: 2, h: 1 },
-  ];
+  // Generate grid cells
+  const cells = [];
+  for (let i = 0; i < GRID_W * GRID_H; i++) {
+    const isConflict = conflictFlash.includes(i);
+    const owner = getFileOwner(i);
+    
+    cells.push(
+      <motion.div
+        key={i}
+        className="relative rounded-lg flex items-center justify-center transition-colors duration-500 overflow-hidden"
+        style={{
+          width: CELL_SIZE,
+          height: CELL_SIZE,
+          backgroundColor: owner ? owner.color + "1A" : "#1E293B",
+          borderColor: owner ? owner.color : "#334155",
+          borderWidth: 1,
+          boxShadow: owner ? `0 0 10px ${owner.glow}` : "none",
+        }}
+      >
+        <AnimatePresence>
+           {owner && (
+             <motion.div 
+               initial={{ scale: 0 }} 
+               animate={{ scale: 1 }} 
+               exit={{ scale: 0 }}
+               className="absolute z-10"
+             >
+               <Lock className="w-4 h-4" style={{ color: owner.color }} />
+             </motion.div>
+           )}
+           {isConflict && (
+             <motion.div
+               initial={{ opacity: 1 }}
+               animate={{ opacity: 0 }}
+               transition={{ duration: 0.8 }}
+               className="absolute inset-0 bg-red-500 z-20 flex items-center justify-center"
+             >
+               <ShieldAlert className="w-4 h-4 text-white" />
+             </motion.div>
+           )}
+        </AnimatePresence>
+      </motion.div>
+    );
+  }
 
   return (
-    <VizSurface aria-label="File reservation territory map showing which agent owns which files">
-      <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h3 className="text-lg font-black text-white">Reservation Territory Map</h3>
-          <p className="text-sm text-slate-400">
-            Spatial view of file ownership: agents claim glob patterns, conflicts are caught, TTLs expire.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <VizControlButton tone="blue" onClick={running ? () => setRunning(false) : handlePlay} disabled={isDone}>
-            {isDone ? "Complete" : running ? "Pause" : "Play Scenario"}
-          </VizControlButton>
-          {!running && step < SCENARIO.length && (
-            <VizControlButton tone="neutral" onClick={advanceStep}>
-              Step
+    <VizSurface aria-label="Agent territory map visualization">
+      <VizHeader
+        accent="blue"
+        eyebrow="Collision Prevention"
+        title="Territory Mapping via Reservations"
+        subtitle="Watch agents dynamically partition the repository using path-based glob locks. This prevents merge conflicts and duplicated work before code is even written."
+        controls={
+          <div className="flex gap-2">
+            {!running && step < SCENARIO.length && (
+              <VizControlButton tone="blue" onClick={handlePlay}>
+                Play Scenario
+              </VizControlButton>
+            )}
+            {running && (
+              <VizControlButton tone="neutral" onClick={() => setRunning(false)}>
+                Pause
+              </VizControlButton>
+            )}
+            <VizControlButton tone="neutral" onClick={handleReset} disabled={step === 0}>
+              Reset
             </VizControlButton>
-          )}
-          <VizControlButton tone="neutral" onClick={handleReset}>
-            Reset
-          </VizControlButton>
-        </div>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        {/* Territory map */}
-        <div className="lg:col-span-2 rounded-xl border border-white/10 bg-black/30 p-4 flex items-center justify-center">
-          <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`} className="w-full max-w-xl" role="img" aria-label="Treemap of project files with colored territory ownership">
-            {/* Directory group outlines */}
-            {dirGroups.map((g) => (
-              <g key={g.label}>
-                <rect
-                  x={PAD + g.x * (CELL_SIZE + GAP) - 2}
-                  y={PAD + g.y * (CELL_SIZE + GAP) - 2}
-                  width={g.w * (CELL_SIZE + GAP) - GAP + 4}
-                  height={g.h * (CELL_SIZE + GAP) - GAP + 4}
-                  rx={4}
-                  fill="none"
-                  stroke="#1E293B"
-                  strokeWidth="0.8"
-                  strokeDasharray="3 3"
-                />
-                <text
-                  x={PAD + g.x * (CELL_SIZE + GAP)}
-                  y={PAD + g.y * (CELL_SIZE + GAP) - 5}
-                  fill="#475569"
-                  fontSize="6"
-                  fontFamily="monospace"
-                  fontWeight="bold"
-                >
-                  {g.label}
-                </text>
-              </g>
-            ))}
-
-            {/* File cells */}
-            {FILES.map((file, idx) => {
-              const owner = getFileOwner(idx);
-              const isConflictTarget = conflictFlash.includes(idx);
-              const cellX = PAD + file.x * (CELL_SIZE + GAP);
-              const cellY = PAD + file.y * (CELL_SIZE + GAP);
-              const cellW = file.w * (CELL_SIZE + GAP) - GAP;
-              const cellH = file.h * (CELL_SIZE + GAP) - GAP;
-
-              return (
-                <g key={file.path}>
-                  {/* Background */}
-                  <motion.rect
-                    x={cellX} y={cellY}
-                    width={cellW} height={cellH}
-                    rx={4}
-                    fill={
-                      isConflictTarget ? "#EF444430"
-                      : owner ? `${owner.color}18`
-                      : "#0F172A"
-                    }
-                    stroke={
-                      isConflictTarget ? "#EF4444"
-                      : owner ? owner.borderColor
-                      : "#1E293B"
-                    }
-                    strokeWidth={isConflictTarget ? 2 : owner ? 1.5 : 0.8}
-                    animate={isConflictTarget && !reducedMotion
-                      ? { x: [cellX, cellX - 2, cellX + 2, cellX - 1, cellX + 1, cellX] }
-                      : {}}
-                    transition={{ duration: 0.3 }}
-                  />
-
-                  {/* File name */}
-                  <text
-                    x={cellX + cellW / 2}
-                    y={cellY + cellH / 2 - (owner ? 3 : 0)}
-                    textAnchor="middle"
-                    fill={owner ? "#E2E8F0" : "#64748B"}
-                    fontSize="6"
-                    fontFamily="monospace"
-                    fontWeight={owner ? "bold" : "normal"}
-                  >
-                    {file.shortName}
-                  </text>
-
-                  {/* Owner label */}
-                  {owner && (
-                    <text
-                      x={cellX + cellW / 2}
-                      y={cellY + cellH / 2 + 7}
-                      textAnchor="middle"
-                      fill={owner.color}
-                      fontSize="5"
-                      fontFamily="monospace"
-                      fontWeight="bold"
-                    >
-                      {owner.name}
-                    </text>
-                  )}
-
-                  {/* Conflict X marker */}
-                  {isConflictTarget && (
-                    <text
-                      x={cellX + cellW - 6}
-                      y={cellY + 9}
-                      fill="#EF4444"
-                      fontSize="10"
-                      fontWeight="bold"
-                    >
-                      X
-                    </text>
-                  )}
-                </g>
-              );
-            })}
-          </svg>
-        </div>
-
-        {/* Event log + Legend */}
-        <div className="space-y-4">
-          {/* Agent legend */}
-          <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">
-              Agents
-            </p>
-            <div className="space-y-1.5">
-              {AGENTS.map((a) => {
-                const hasReservation = reservations.some((r) => r.agentId === a.id);
-                return (
-                  <div key={a.id} className="flex items-center gap-2">
-                    <div
-                      className="h-2.5 w-2.5 rounded-full"
-                      style={{ background: a.color, opacity: hasReservation ? 1 : 0.3 }}
-                    />
-                    <span
-                      className="text-[10px] font-bold"
-                      style={{ color: hasReservation ? a.color : "#64748B" }}
-                    >
-                      {a.name}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
           </div>
+        }
+      />
 
-          {/* Event feed */}
-          <div className="rounded-xl border border-white/10 bg-black/30 p-3 max-h-56 overflow-hidden">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2">
-              Events ({step}/{SCENARIO.length})
-            </p>
-            <div className="space-y-1">
-              <AnimatePresence initial={false}>
-                {events.slice(0, 10).map((evt, i) => (
-                  <motion.p
-                    key={`${step}-${i}`}
-                    initial={reducedMotion ? {} : { opacity: 0, x: 12 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="text-[9px] leading-tight"
-                    style={{ color: evt.color }}
-                  >
-                    {evt.bad ? "!! " : "> "}
-                    {evt.text}
-                  </motion.p>
-                ))}
-              </AnimatePresence>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Metrics */}
-      <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-        <VizMetricCard label="Active Reservations" value={reservations.length} tone="blue" />
-        <VizMetricCard label="Files Covered" value={new Set(reservations.flatMap((r) => r.matchingFiles)).size} tone="green" />
-        <VizMetricCard
-          label="Conflicts Blocked"
+      <div className="mb-4 grid gap-3 sm:grid-cols-4">
+        <VizMetricCard label="Active Locks" value={reservations.length} tone="blue" />
+        <VizMetricCard label="Agents Claiming" value={new Set(reservations.map(r => r.agentId)).size} tone="green" />
+        <VizMetricCard 
+          label="Conflicts Averted" 
           value={events.filter((e) => e.bad).length}
           tone={events.some((e) => e.bad) ? "red" : "neutral"}
         />
         <VizMetricCard label="Step" value={`${step}/${SCENARIO.length}`} tone="neutral" />
       </div>
+
+      <div className="grid lg:grid-cols-[1fr_250px] gap-6 mb-4">
+        {/* Repository Grid Map */}
+        <div className="relative rounded-xl border border-white/10 bg-[#0B1120] p-6 flex flex-col items-center justify-center min-h-[350px] overflow-hidden">
+          {/* Background Grid Lines */}
+          <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)", backgroundSize: "48px 48px", backgroundPosition: "center" }}></div>
+          
+          <div className="flex items-center gap-2 mb-6">
+            <MapIcon className="w-5 h-5 text-slate-400" />
+            <h4 className="text-sm font-black uppercase tracking-widest text-slate-300">Repository Map</h4>
+          </div>
+
+          <div 
+            className="grid z-10" 
+            style={{ 
+              gridTemplateColumns: `repeat(${GRID_W}, ${CELL_SIZE}px)`, 
+              gap: GAP 
+            }}
+          >
+            {cells}
+          </div>
+
+          {/* Active Agents Legend */}
+          <div className="mt-8 flex flex-wrap justify-center gap-4 z-10">
+             {AGENTS.map(agent => (
+                <div key={agent.id} className="flex items-center gap-2 bg-slate-900/80 border border-slate-700 px-3 py-1.5 rounded-full">
+                  <div className="w-3 h-3 rounded-full border" style={{ backgroundColor: `${agent.color}40`, borderColor: agent.color }}></div>
+                  <span className="text-xs font-bold text-slate-300">{agent.name}</span>
+                </div>
+             ))}
+          </div>
+        </div>
+
+        {/* Event Log Log */}
+        <div className="rounded-xl border border-white/10 bg-black/40 flex flex-col overflow-hidden h-[350px]">
+          <div className="p-3 border-b border-white/10 bg-slate-900/50 flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
+              <Terminal className="w-3 h-3" /> Event Log
+            </span>
+            {running && <RefreshCw className="w-3 h-3 text-blue-400 animate-spin" />}
+          </div>
+          <div className="p-3 flex-1 overflow-y-auto space-y-2 flex flex-col-reverse">
+            <AnimatePresence>
+              {events.length === 0 && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-slate-500 text-center py-4">
+                  Press play to start scenario...
+                </motion.div>
+              )}
+              {events.map((e, idx) => (
+                <motion.div
+                  key={events.length - idx}
+                  initial={reducedMotion ? { opacity: 1 } : { opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className={`text-xs p-2 rounded border ${e.bad ? "bg-red-500/10 border-red-500/30 text-red-300" : "bg-slate-800 border-slate-700 text-slate-300"}`}
+                >
+                  <span className="font-bold" style={{ color: e.color }}>▸</span> {e.text}
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        </div>
+      </div>
+
+      <VizLearningBlock
+        className="mt-4"
+        accent="blue"
+        title="Pedagogical Takeaways"
+        items={[
+          "Path-based glob locking allows dynamic, graph-aware partitioning of the codebase without manual setup.",
+          "Conflict detection is immediate and advisory, letting agents wait or negotiate instead of failing a commit 10 minutes later.",
+          "Visualizing the territory map prevents swarms from accidentally stepping on each other's toes during massive refactors.",
+        ]}
+      />
     </VizSurface>
   );
 }
