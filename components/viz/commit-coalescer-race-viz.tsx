@@ -6,6 +6,8 @@ import {
   VizLearningBlock,
   VizMetricCard,
   VizSurface,
+  useVizAutoStart,
+  useVizInViewport,
   useVizReducedMotion,
 } from "@/components/viz/viz-framework";
 import { Play, Pause, RotateCcw } from "lucide-react";
@@ -53,6 +55,7 @@ interface SimState {
 
 export default function CommitCoalescerRaceViz() {
   const prefersReducedMotion = useVizReducedMotion();
+  const inViewport = useVizInViewport();
   const [isRunning, setIsRunning] = useState(false);
   const [messageRate, setMessageRate] = useState(8);
   const [batchWindow, setBatchWindow] = useState(500);
@@ -61,12 +64,21 @@ export default function CommitCoalescerRaceViz() {
   const lastTimeRef = useRef(0);
   const spawnTimerRef = useRef(0);
 
+  const autoStart = useCallback(() => setIsRunning(true), []);
+  useVizAutoStart(autoStart);
+  const shouldAnimate = isRunning && inViewport;
+  const shouldAnimateRef = useRef(shouldAnimate);
+
   const [state, setState] = useState<SimState>(() => initState());
 
   const paramsRef = useRef({ messageRate, batchWindow, speed });
   useEffect(() => {
     paramsRef.current = { messageRate, batchWindow, speed };
   }, [messageRate, batchWindow, speed]);
+
+  useEffect(() => {
+    shouldAnimateRef.current = shouldAnimate;
+  }, [shouldAnimate]);
 
   const reset = useCallback(() => {
     setIsRunning(false);
@@ -78,11 +90,12 @@ export default function CommitCoalescerRaceViz() {
   const tickRef = useRef<(now: number) => void>(undefined);
   useEffect(() => {
     tickRef.current = (now: number) => {
+      if (!shouldAnimateRef.current) return;
       if (lastTimeRef.current === 0) lastTimeRef.current = now;
       const rawDelta = now - lastTimeRef.current;
-      const delta = rawDelta * paramsRef.current.speed;
       lastTimeRef.current = now;
-      if (delta > 0 && delta < 200) {
+      if (rawDelta > 0 && rawDelta < 200) {
+        const delta = rawDelta * paramsRef.current.speed;
         spawnTimerRef.current += delta;
         const spawnInterval = 1000 / paramsRef.current.messageRate;
         let spawns = 0;
@@ -94,20 +107,25 @@ export default function CommitCoalescerRaceViz() {
           simulateTick(prev, delta, paramsRef.current, spawns)
         );
       }
-      rafRef.current = requestAnimationFrame((t) => tickRef.current?.(t));
+      if (shouldAnimateRef.current) {
+        rafRef.current = requestAnimationFrame((t) => tickRef.current?.(t));
+      }
     };
   });
 
   useEffect(() => {
-    if (isRunning) {
+    if (shouldAnimate) {
       lastTimeRef.current = 0;
       spawnTimerRef.current = 0;
       rafRef.current = requestAnimationFrame((t) => tickRef.current?.(t));
     }
     return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = 0;
+      }
     };
-  }, [isRunning]);
+  }, [shouldAnimate]);
 
   const elapsedSec = state.elapsed / 1000;
   const leftMps = elapsedSec > 0.5 ? Math.round(state.leftMessages / elapsedSec) : 0;
@@ -158,6 +176,7 @@ export default function CommitCoalescerRaceViz() {
         controls={
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={() => setIsRunning((r) => !r)}
               className="flex items-center justify-center h-10 w-10 rounded-lg border border-white/10 bg-white/5 text-white transition-all hover:bg-white/10 hover:border-cyan-500/30 focus-visible:ring-2 focus-visible:ring-cyan-500/50 outline-none"
               aria-label={isRunning ? "Pause" : "Play"}
@@ -165,6 +184,7 @@ export default function CommitCoalescerRaceViz() {
               {isRunning ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
             </button>
             <button
+              type="button"
               onClick={reset}
               className="flex items-center justify-center h-10 w-10 rounded-lg border border-white/10 bg-white/5 text-white transition-all hover:bg-white/10 hover:border-cyan-500/30 focus-visible:ring-2 focus-visible:ring-cyan-500/50 outline-none"
               aria-label="Reset"
@@ -641,7 +661,6 @@ function simulateTick(
     nextId,
     rightBatchTimer,
   } = prev;
-  const { rightErrors } = prev;
 
   // Spawn new writes
   for (let s = 0; s < spawns; s++) {
@@ -755,7 +774,7 @@ function simulateTick(
     leftMessages,
     rightMessages,
     leftErrors,
-    rightErrors,
+    rightErrors: prev.rightErrors,
     leftLockActive,
     rightBatchQueue,
     rightBatchFlushCount,

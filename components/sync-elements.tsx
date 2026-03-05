@@ -1,8 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { motion, useAnimationControls } from "framer-motion";
-import { useEffect, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 
 /**
  * A rounded node element for corners — tech-clean aesthetic
@@ -17,32 +17,17 @@ export function SyncNode({
   color?: string;
   baseScale?: number;
 }) {
-  const [isHovered, setIsHovered] = useState(false);
-  const controls = useAnimationControls();
-
-  useEffect(() => {
-    if (isHovered) {
-      controls.start({
-        scale: [1, 1.8, 1],
-        opacity: [0.6, 0, 0.6],
-        transition: {
-          duration: 1.2,
-          repeat: Infinity,
-          ease: "easeOut",
-        },
-      });
-    } else {
-      controls.stop();
-    }
-  }, [isHovered, controls]);
+  const prefersReducedMotion = useReducedMotion();
 
   return (
     <motion.div
-      onHoverStart={() => setIsHovered(true)}
-      onHoverEnd={() => setIsHovered(false)}
-      initial={{ scale: baseScale }}
-      animate={{ scale: baseScale }}
-      whileHover={{ scale: baseScale * 1.15 }}
+      variants={{
+        rest: { scale: baseScale },
+        hover: { scale: baseScale * 1.15 },
+      }}
+      initial="rest"
+      animate="rest"
+      whileHover={prefersReducedMotion ? undefined : "hover"}
       className={cn(
         "group relative h-3.5 w-3.5 rounded-md flex items-center justify-center",
         className
@@ -58,8 +43,18 @@ export function SyncNode({
       <motion.div
         className="absolute inset-[-3px] rounded-lg border"
         style={{ borderColor: color }}
-        animate={controls}
-        initial={{ scale: 1, opacity: 0 }}
+        variants={{
+          rest: { scale: 1, opacity: 0 },
+          hover: {
+            scale: [1, 1.8, 1],
+            opacity: [0.6, 0, 0.6],
+            transition: {
+              duration: 1.2,
+              repeat: Infinity,
+              ease: "easeOut",
+            },
+          },
+        }}
       />
     </motion.div>
   );
@@ -121,7 +116,21 @@ export function ConnectionLine({
 /**
  * A traveling data packet that moves along the border of a container
  */
-export function DataPulse({ className, color = "#60A5FA" }: { className?: string; color?: string }) {
+export function DataPulse({
+  className,
+  color = "#60A5FA",
+  active = true,
+}: {
+  className?: string;
+  color?: string;
+  active?: boolean;
+}) {
+  const prefersReducedMotion = useReducedMotion();
+
+  if (prefersReducedMotion || !active) {
+    return null;
+  }
+
   return (
     <div
       className={cn("absolute inset-0 pointer-events-none overflow-hidden rounded-[inherit]", className)}
@@ -273,8 +282,21 @@ export function SyncContainer({
   withPulse?: boolean;
   accentColor?: string;
 }) {
+  const [pulseActive, setPulseActive] = useState(false);
+
   return (
-    <div className={cn("relative group/container rounded-2xl border border-white/5 bg-black/40", className)}>
+    <div
+      className={cn("relative group/container rounded-2xl border border-white/5 bg-black/40", className)}
+      onMouseEnter={() => setPulseActive(true)}
+      onMouseLeave={() => setPulseActive(false)}
+      onFocusCapture={() => setPulseActive(true)}
+      onBlurCapture={(event) => {
+        const next = event.relatedTarget as Node | null;
+        if (!next || !event.currentTarget.contains(next)) {
+          setPulseActive(false);
+        }
+      }}
+    >
       {/* Internal Skin Layer */}
       <div className="absolute inset-0 overflow-hidden rounded-[inherit] pointer-events-none z-0">
         {/* Hexagonal grid texture */}
@@ -286,7 +308,13 @@ export function SyncContainer({
         />
         {/* Subtle curved top border (glass dome inspired) */}
         <div className="absolute top-0 left-[10%] right-[10%] h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-        {withPulse && <DataPulse color={accentColor} className="opacity-0 group-hover/container:opacity-100 transition-opacity duration-700" />}
+        {withPulse && (
+          <DataPulse
+            color={accentColor}
+            active={pulseActive}
+            className="opacity-0 group-hover/container:opacity-100 transition-opacity duration-700"
+          />
+        )}
       </div>
 
       {withNodes && (

@@ -388,6 +388,7 @@ export default function AgentFlywheel() {
 
                     <Magnetic strength={0.5}>
                       <button
+                        type="button"
                         onClick={() => handleSelect(tool.id)}
                         onMouseEnter={() => setHoveredId(tool.id)}
                         onMouseLeave={() => setHoveredId(null)}

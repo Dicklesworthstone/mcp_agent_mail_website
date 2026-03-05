@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { motion } from "@/components/motion";
 import {
   VizControlButton,
@@ -8,6 +8,7 @@ import {
   VizLearningBlock,
   VizMetricCard,
   VizSurface,
+  useVizAutoStart,
   useVizReducedMotion,
 } from "@/components/viz/viz-framework";
 import {
@@ -127,6 +128,9 @@ export default function ReliabilityInternalsViz() {
   const [autoPlay, setAutoPlay] = useState(false);
   const [workload, setWorkload] = useState<"normal" | "stress">("normal");
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const autoStart = useCallback(() => setAutoPlay(true), []);
+  useVizAutoStart(autoStart);
 
   const { queueDepth, coalescedOps, commitLatency, workers } = useMemo(
     () => derivePhaseState(phase),

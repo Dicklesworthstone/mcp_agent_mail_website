@@ -31,13 +31,20 @@ function parseTimecodeToMs(timecode: string): number {
 }
 
 function normalizeEpochMs(ts: number): number {
-  if (ts > 1_000_000_000_000) {
+  // Support ns/us/ms/s epochs without drifting normal ms timestamps into 1970.
+  if (ts >= 1_000_000_000_000_000_000) {
+    return Math.floor(ts / 1_000_000);
+  }
+  if (ts >= 1_000_000_000_000_000) {
     return Math.floor(ts / 1_000);
   }
-  if (ts > 1_000_000_000) {
+  if (ts >= 1_000_000_000_000) {
     return ts;
   }
-  return ts * 1_000;
+  if (ts >= 1_000_000_000) {
+    return ts * 1_000;
+  }
+  return ts;
 }
 
 function formatEventTime(ts: number): string {
@@ -146,7 +153,7 @@ export default function HeroMedia() {
               <div className="grid h-full grid-cols-1 gap-3 p-3 md:grid-cols-[2fr_1fr] md:p-4">
                 <div className="rounded-xl border border-white/10 bg-black/45 p-3">
                   <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-2 text-[10px] uppercase tracking-[0.18em] text-slate-400">
-                    <span>am dashboard --project /data/projects/mcp_agent_mail_rust</span>
+                    <span>am dashboard --project mcp-agent-mail-production-snapshot</span>
                     <span className="text-blue-300">sqlite snapshot replay</span>
                   </div>
                   <div className="mt-2 h-1.5 rounded-full bg-white/10 overflow-hidden">

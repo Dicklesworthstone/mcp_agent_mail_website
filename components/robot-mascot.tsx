@@ -6,7 +6,7 @@ import { motion, useReducedMotion } from "framer-motion";
 
 /**
  * An interactive robot mascot with cursor-tracking eyes.
- * Inspired by the Asupersync illustration: blue body, orange cap, green eyes.
+ * Inspired by the Agent Mail illustration: blue body, orange cap, green eyes.
  */
 export default function RobotMascot({ className }: { className?: string }) {
   const prefersReducedMotion = useReducedMotion();
@@ -18,6 +18,7 @@ export default function RobotMascot({ className }: { className?: string }) {
   const rectRef = useRef<DOMRect | null>(null);
   const frameRef = useRef<number | null>(null);
   const blinkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isBlinkingRef = useRef(false);
   const isVisibleRef = useRef(false);
 
   const updateRect = useCallback(() => {
@@ -88,10 +89,14 @@ export default function RobotMascot({ className }: { className?: string }) {
     if (prefersReducedMotion) return undefined;
 
     const blinkInterval = setInterval(() => {
-      if (isVisibleRef.current && Math.random() > 0.8 && !isBlinking) {
+      if (isVisibleRef.current && Math.random() > 0.8 && !isBlinkingRef.current) {
+        isBlinkingRef.current = true;
         setIsBlinking(true);
         if (blinkTimeoutRef.current) clearTimeout(blinkTimeoutRef.current);
-        blinkTimeoutRef.current = setTimeout(() => setIsBlinking(false), 120);
+        blinkTimeoutRef.current = setTimeout(() => {
+          isBlinkingRef.current = false;
+          setIsBlinking(false);
+        }, 120);
       }
     }, 2500);
 
@@ -99,7 +104,7 @@ export default function RobotMascot({ className }: { className?: string }) {
       clearInterval(blinkInterval);
       if (blinkTimeoutRef.current) clearTimeout(blinkTimeoutRef.current);
     };
-  }, [isBlinking, prefersReducedMotion]);
+  }, [prefersReducedMotion]);
 
   return (
     <motion.div
@@ -112,7 +117,7 @@ export default function RobotMascot({ className }: { className?: string }) {
       <svg
         viewBox="0 0 120 140"
         className="w-full h-full"
-        aria-label="Asupersync robot mascot"
+        aria-label="Agent Mail robot mascot"
       >
         {/* Glow behind robot */}
         <defs>

@@ -116,8 +116,11 @@ export default function SystemTopologyViz() {
       <div className="overflow-x-auto rounded-xl border border-white/10 bg-black/30 p-3">
         <svg viewBox="0 0 820 460" className="mx-auto w-full min-w-[760px]" role="img" aria-label="System topology graph">
           <defs>
-            <marker id="topology-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <marker id="topology-arrow-active" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
               <path d="M 0 0 L 10 5 L 0 10 z" fill={FLOW_META[mode].color} />
+            </marker>
+            <marker id="topology-arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155" />
             </marker>
           </defs>
 
@@ -140,7 +143,7 @@ export default function SystemTopologyViz() {
                   stroke={active ? FLOW_META[mode].color : "#334155"}
                   strokeWidth={active ? 2.6 : 1.2}
                   strokeDasharray={active ? "none" : "6 5"}
-                  markerEnd="url(#topology-arrow)"
+                  markerEnd={active ? "url(#topology-arrow-active)" : "url(#topology-arrow-muted)"}
                   animate={{
                     stroke: active ? FLOW_META[mode].color : "#334155",
                     strokeWidth: active ? 2.6 : 1.2,
@@ -217,4 +220,3 @@ export default function SystemTopologyViz() {
     </VizSurface>
   );
 }
-

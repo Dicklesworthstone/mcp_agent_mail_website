@@ -6,6 +6,7 @@ import {
   VizControlButton,
   VizSurface,
   VizMetricCard,
+  useVizAutoStart,
   useVizReducedMotion,
   useVizInViewport,
 } from "@/components/viz/viz-framework";
@@ -77,6 +78,7 @@ interface SwarmState {
 type SwarmAction =
   | { type: "TICK" }
   | { type: "TOGGLE_RUNNING" }
+  | { type: "START" }
   | { type: "RESET" };
 
 /* ─── Deterministic PRNG ─────────────────────────────────────────── */
@@ -113,6 +115,9 @@ function swarmReducer(state: SwarmState, action: SwarmAction): SwarmState {
   switch (action.type) {
     case "TOGGLE_RUNNING":
       return { ...state, running: !state.running };
+
+    case "START":
+      return state.running ? state : { ...state, running: true };
 
     case "RESET":
       return {
@@ -309,6 +314,11 @@ export default function SwarmSimulationViz() {
     dispatch({ type: "TOGGLE_RUNNING" });
   }, []);
 
+  const autoStart = useCallback(() => {
+    dispatch({ type: "START" });
+  }, []);
+  useVizAutoStart(autoStart);
+
   const resetSimulation = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = null;
@@ -350,7 +360,7 @@ export default function SwarmSimulationViz() {
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-5">
+      <div className="grid gap-4 xl:grid-cols-5">
         {/* SVG constellation — spans 3 columns */}
         <div className="lg:col-span-3 rounded-xl border border-white/10 bg-black/30 p-4 flex items-center justify-center overflow-hidden">
           <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`} className="w-full max-w-lg" role="img" aria-label="Agent constellation showing agents as nodes with message particles flowing between them">

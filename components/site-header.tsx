@@ -161,6 +161,7 @@ export default function SiteHeader() {
             );
           })}
           <button
+            type="button"
             onClick={() => setOpen(true)}
             aria-label="Open navigation menu"
             aria-expanded={open}
@@ -191,7 +192,7 @@ export default function SiteHeader() {
             >
               <div className="flex items-center justify-between mb-12">
                 <span className="text-xs font-black text-blue-500 uppercase tracking-[0.4em]">MAIL_MENU</span>
-                <button onClick={() => setOpen(false)} aria-label="Close navigation menu" className="p-2 text-slate-500">
+                <button type="button" onClick={() => setOpen(false)} aria-label="Close navigation menu" className="p-2 text-slate-500">
                   <X className="h-6 w-6" />
                 </button>
               </div>
@@ -214,8 +215,8 @@ export default function SiteHeader() {
 
               <div className="mt-auto space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <button onClick={toggleLabMode} aria-pressed={isLabMode} className={cn("p-4 rounded-xl border text-[10px] font-black transition-all", isLabMode ? "bg-blue-500 text-white border-blue-400" : "bg-white/5 border-white/10 text-slate-400")}>LAB MODE</button>
-                  <button onClick={toggleAudio} aria-pressed={isAudioEnabled} className={cn("p-4 rounded-xl border text-[10px] font-black transition-all", isAudioEnabled ? "bg-blue-500 text-white border-blue-400" : "bg-white/5 border-white/10 text-slate-400")}>AUDIO</button>
+                  <button type="button" onClick={toggleLabMode} aria-pressed={isLabMode} className={cn("p-4 rounded-xl border text-[10px] font-black transition-all", isLabMode ? "bg-blue-500 text-white border-blue-400" : "bg-white/5 border-white/10 text-slate-400")}>LAB MODE</button>
+                  <button type="button" onClick={toggleAudio} aria-pressed={isAudioEnabled} className={cn("p-4 rounded-xl border text-[10px] font-black transition-all", isAudioEnabled ? "bg-blue-500 text-white border-blue-400" : "bg-white/5 border-white/10 text-slate-400")}>AUDIO</button>
                 </div>
               </div>
             </motion.div>

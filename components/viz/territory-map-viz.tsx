@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "@/components/motion";
 import {
   VizControlButton,
@@ -8,6 +8,7 @@ import {
   VizMetricCard,
   VizHeader,
   VizLearningBlock,
+  useVizAutoStart,
   useVizReducedMotion,
 } from "@/components/viz/viz-framework";
 import { ShieldAlert, Terminal, Lock, Map as MapIcon, RefreshCw } from "lucide-react";
@@ -70,7 +71,11 @@ export default function TerritoryMapViz() {
   const [running, setRunning] = useState(false);
   const [conflictFlash, setConflictFlash] = useState<number[]>([]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const conflictTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nextResId = useRef(1);
+
+  const autoStart = useCallback(() => setRunning(true), []);
+  useVizAutoStart(autoStart);
 
   const getFileOwner = useCallback((fileIdx: number): AgentDef | null => {
     for (const res of reservations) {
@@ -84,6 +89,10 @@ export default function TerritoryMapViz() {
   const advanceStep = useCallback(() => {
     if (step >= SCENARIO.length) {
       setRunning(false);
+      if (conflictTimerRef.current) {
+        clearTimeout(conflictTimerRef.current);
+        conflictTimerRef.current = null;
+      }
       return;
     }
     const s = SCENARIO[step];
@@ -108,7 +117,11 @@ export default function TerritoryMapViz() {
           return next.filter((r) => !(r.agentId === s.agentId && r.glob === s.glob));
         case "conflict":
           setConflictFlash(matchingFiles);
-          setTimeout(() => setConflictFlash([]), 800);
+          if (conflictTimerRef.current) clearTimeout(conflictTimerRef.current);
+          conflictTimerRef.current = setTimeout(() => {
+            setConflictFlash([]);
+            conflictTimerRef.current = null;
+          }, 800);
           return next;
         default:
           return next;
@@ -126,6 +139,8 @@ export default function TerritoryMapViz() {
   const handleReset = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = null;
+    if (conflictTimerRef.current) clearTimeout(conflictTimerRef.current);
+    conflictTimerRef.current = null;
     setRunning(false);
     setStep(0);
     setReservations([]);
@@ -133,6 +148,10 @@ export default function TerritoryMapViz() {
     setConflictFlash([]);
     nextResId.current = 1;
   }, []);
+
+  const agentCount = useMemo(() => new Set(reservations.map((r) => r.agentId)).size, [reservations]);
+  const conflictCount = useMemo(() => events.filter((e) => e.bad).length, [events]);
+  const hasConflicts = useMemo(() => events.some((e) => e.bad), [events]);
 
   useEffect(() => {
     if (running && step < SCENARIO.length) {
@@ -143,6 +162,10 @@ export default function TerritoryMapViz() {
     }
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      if (conflictTimerRef.current) {
+        clearTimeout(conflictTimerRef.current);
+        conflictTimerRef.current = null;
+      }
     };
   }, [running, step, advanceStep]);
 
@@ -219,16 +242,16 @@ export default function TerritoryMapViz() {
 
       <div className="mb-4 grid gap-3 sm:grid-cols-4">
         <VizMetricCard label="Active Locks" value={reservations.length} tone="blue" />
-        <VizMetricCard label="Agents Claiming" value={new Set(reservations.map(r => r.agentId)).size} tone="green" />
-        <VizMetricCard 
-          label="Conflicts Averted" 
-          value={events.filter((e) => e.bad).length}
-          tone={events.some((e) => e.bad) ? "red" : "neutral"}
+        <VizMetricCard label="Agents Claiming" value={agentCount} tone="green" />
+        <VizMetricCard
+          label="Conflicts Averted"
+          value={conflictCount}
+          tone={hasConflicts ? "red" : "neutral"}
         />
         <VizMetricCard label="Step" value={`${step}/${SCENARIO.length}`} tone="neutral" />
       </div>
 
-      <div className="grid lg:grid-cols-[1fr_250px] gap-6 mb-4">
+      <div className="grid xl:grid-cols-[1fr_250px] gap-6 mb-4">
         {/* Repository Grid Map */}
         <div className="relative rounded-xl border border-white/10 bg-[#0B1120] p-6 flex flex-col items-center justify-center min-h-[350px] overflow-hidden">
           {/* Background Grid Lines */}

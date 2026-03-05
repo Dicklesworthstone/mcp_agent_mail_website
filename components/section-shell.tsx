@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight, BarChart3, Blocks, Bomb, Braces, Bug, Calculator, Clock, Cpu, Droplets,
@@ -35,7 +36,7 @@ type Props = {
   forceReveal?: boolean;
 };
 
-export default function SectionShell({
+export default memo(function SectionShell({
   id, icon, eyebrow, title, kicker, children, className,
   headingLevel = 2, forceReveal = false,
 }: Props) {
@@ -120,4 +121,4 @@ export default function SectionShell({
       <div className="absolute bottom-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-blue-500/10 to-transparent" />
     </section>
   );
-}
+});

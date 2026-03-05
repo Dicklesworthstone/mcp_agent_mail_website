@@ -31,6 +31,24 @@ export default function ClientShell({ children }: { children: React.ReactNode })
     window.scrollTo({ top: 0, behavior: "auto" });
   }, [pathname]);
 
+  useEffect(() => {
+    const focusMainFromHash = () => {
+      if (window.location.hash !== "#main-content") return;
+      const main = document.getElementById("main-content");
+      if (!(main instanceof HTMLElement)) return;
+      if (!main.hasAttribute("tabindex")) {
+        main.setAttribute("tabindex", "-1");
+      }
+      main.focus({ preventScroll: true });
+    };
+
+    focusMainFromHash();
+    window.addEventListener("hashchange", focusMainFromHash);
+    return () => {
+      window.removeEventListener("hashchange", focusMainFromHash);
+    };
+  }, [pathname]);
+
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>

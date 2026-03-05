@@ -83,6 +83,7 @@ export default class ErrorBoundary extends Component<
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <button
+                type="button"
                 onClick={this.reset}
                 className="group inline-flex items-center gap-3 rounded-full bg-white text-black px-8 py-4 text-xs font-black uppercase tracking-widest transition-all hover:bg-red-500 hover:text-white shadow-xl active:scale-95"
               >
@@ -90,6 +91,7 @@ export default class ErrorBoundary extends Component<
                 Retry_Sync
               </button>
               <button
+                type="button"
                 onClick={() => window.location.reload()}
                 className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-8 py-4 text-xs font-black uppercase tracking-widest text-slate-400 transition-all hover:bg-white/10 hover:text-white active:scale-95"
               >

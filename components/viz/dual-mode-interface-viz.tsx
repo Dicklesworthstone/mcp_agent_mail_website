@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "@/components/motion";
 import {
   VizControlButton,
@@ -20,12 +20,27 @@ export default function DualModeInterfaceViz() {
   const [context, setContext] = useState<ModeContext>("agent");
   const [command, setCommand] = useState<CommandType>("cli");
   const [isTyping, setIsTyping] = useState(false);
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleRun = (cmd: CommandType) => {
+    if (typingTimerRef.current) {
+      clearTimeout(typingTimerRef.current);
+    }
     setCommand(cmd);
     setIsTyping(true);
-    setTimeout(() => setIsTyping(false), 800);
+    typingTimerRef.current = setTimeout(() => {
+      setIsTyping(false);
+      typingTimerRef.current = null;
+    }, 800);
   };
+
+  useEffect(() => {
+    return () => {
+      if (typingTimerRef.current) {
+        clearTimeout(typingTimerRef.current);
+      }
+    };
+  }, []);
 
   const isSafe =
     (context === "agent" && command === "mcp") ||
@@ -57,12 +72,14 @@ export default function DualModeInterfaceViz() {
             <VizControlButton
               tone={context === "agent" ? "blue" : "neutral"}
               onClick={() => setContext("agent")}
+              aria-pressed={context === "agent"}
             >
               Agent Context
             </VizControlButton>
             <VizControlButton
               tone={context === "human" ? "amber" : "neutral"}
               onClick={() => setContext("human")}
+              aria-pressed={context === "human"}
             >
               Human Context
             </VizControlButton>
@@ -93,7 +110,9 @@ export default function DualModeInterfaceViz() {
 
           <div className="flex flex-col gap-3">
             <button
+              type="button"
               onClick={() => handleRun("mcp")}
+              aria-pressed={command === "mcp" && !isTyping}
               className={`text-left p-3 rounded border font-mono text-sm transition-all relative overflow-hidden ${
                 command === "mcp" && !isTyping ? "border-blue-500 bg-blue-500/10 text-blue-200" : "border-slate-700 bg-slate-800/50 text-slate-400 hover:border-slate-500 hover:bg-slate-800"
               }`}
@@ -104,7 +123,9 @@ export default function DualModeInterfaceViz() {
               )}
             </button>
             <button
+              type="button"
               onClick={() => handleRun("cli")}
+              aria-pressed={command === "cli" && !isTyping}
               className={`text-left p-3 rounded border font-mono text-sm transition-all relative overflow-hidden ${
                 command === "cli" && !isTyping ? "border-blue-500 bg-blue-500/10 text-blue-200" : "border-slate-700 bg-slate-800/50 text-slate-400 hover:border-slate-500 hover:bg-slate-800"
               }`}

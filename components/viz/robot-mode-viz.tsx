@@ -249,6 +249,7 @@ export default function RobotModeViz() {
                     <div className="flex bg-slate-900 border border-slate-700 rounded-lg p-1 w-full sm:w-auto">
                       {(["toon", "json", "md"] as const).map((fmt) => (
                         <button
+                          type="button"
                           key={fmt}
                           onClick={() => setSelectedFormat(fmt)}
                           className={`flex-1 sm:flex-none px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded transition-colors ${selectedFormat === fmt ? "bg-slate-700 text-white shadow-sm" : "text-slate-500 hover:text-slate-300"}`}

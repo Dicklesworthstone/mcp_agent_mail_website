@@ -7,6 +7,7 @@ import {
   VizLearningBlock,
   VizMetricCard,
   VizSurface,
+  useVizAutoStart,
   useVizReducedMotion,
 } from "@/components/viz/viz-framework";
 
@@ -149,6 +150,8 @@ export default function StressGauntletViz() {
       }, startDelay + checkDuration));
     });
   }, [clearTimers]);
+
+  useVizAutoStart(runGauntlet);
 
   const totalTests = GAUNTLET_TESTS.length;
   const completedTests = state.passCount + state.failCount;

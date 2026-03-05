@@ -4,6 +4,8 @@ import { useEffect, useRef } from "react";
 import { useIntersectionObserver } from "@/hooks/use-intersection-observer";
 import { motion, useTransform, useSpring, useMotionValue, useReducedMotion } from "framer-motion";
 
+const SPECTRUM = ["#3B82F6", "#60A5FA", "#F97316", "#93C5FD", "#2563EB", "#FB923C", "#1D4ED8", "#38bdf8"];
+
 export default function GlowOrbits() {
   const rootRef = useRef<HTMLDivElement>(null);
   const { ref: observerRef, isIntersecting } = useIntersectionObserver<HTMLDivElement>({
@@ -26,8 +28,6 @@ export default function GlowOrbits() {
     if (typeof window === "undefined") return 0;
     return (val / window.innerHeight - 0.5) * -60;
   });
-
-  const spectrum = ["#3B82F6", "#60A5FA", "#F97316", "#93C5FD", "#2563EB", "#FB923C", "#1D4ED8", "#38bdf8"];
 
   useEffect(() => {
     if (prefersReducedMotion) return undefined;
@@ -80,26 +80,24 @@ export default function GlowOrbits() {
       className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
     >
       <div className="glow-ring absolute -top-[20%] -left-[10%] h-[60%] w-[60%] rounded-full blur-[120px]"
-           style={{ background: `radial-gradient(circle at center, ${spectrum[0]}33, transparent 70%)` }} />
+           style={{ background: `radial-gradient(circle at center, ${SPECTRUM[0]}33, transparent 70%)` }} />
       <div className="glow-ring absolute -bottom-[20%] -right-[10%] h-[70%] w-[70%] rounded-full blur-[140px]"
-           style={{ background: `radial-gradient(circle at center, ${spectrum[2]}22, transparent 70%)` }} />
+           style={{ background: `radial-gradient(circle at center, ${SPECTRUM[2]}22, transparent 70%)` }} />
       <div className="glow-ring absolute top-1/2 left-1/2 h-[80%] w-[80%] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[160px]"
-           style={{ background: `radial-gradient(circle at center, ${spectrum[4]}11, transparent 70%)` }} />
+           style={{ background: `radial-gradient(circle at center, ${SPECTRUM[4]}11, transparent 70%)` }} />
 
       <motion.div
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [0.1, 0.2, 0.1]
-        }}
-        transition={{ duration: 10, repeat: Infinity }}
+        animate={isIntersecting
+          ? { scale: [1, 1.2, 1], opacity: [0.1, 0.2, 0.1] }
+          : { scale: 1, opacity: 0.1 }}
+        transition={{ duration: 10, repeat: isIntersecting ? Infinity : 0 }}
         className="absolute top-1/4 right-1/4 h-64 w-64 rounded-full bg-blue-500/20 blur-[100px]"
       />
       <motion.div
-        animate={{
-          scale: [1.2, 1, 1.2],
-          opacity: [0.1, 0.15, 0.1]
-        }}
-        transition={{ duration: 12, repeat: Infinity, delay: 2 }}
+        animate={isIntersecting
+          ? { scale: [1.2, 1, 1.2], opacity: [0.1, 0.15, 0.1] }
+          : { scale: 1, opacity: 0.1 }}
+        transition={{ duration: 12, repeat: isIntersecting ? Infinity : 0, delay: isIntersecting ? 2 : 0 }}
         className="absolute bottom-1/4 left-1/3 h-80 w-80 rounded-full bg-orange-500/15 blur-[110px]"
       />
     </motion.div>

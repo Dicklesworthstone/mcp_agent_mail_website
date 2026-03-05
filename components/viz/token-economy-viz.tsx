@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "@/components/motion";
 import {
   VizControlButton,
   VizSurface,
+  useVizAutoStart,
   useVizReducedMotion,
   useVizInViewport,
   VizHeader,
@@ -68,6 +69,9 @@ export default function TokenEconomyViz() {
   });
   const [running, setRunning] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const autoStart = useCallback(() => setRunning(true), []);
+  useVizAutoStart(autoStart);
 
   const advance = useCallback(() => {
     setChatState((prev) => {
@@ -317,7 +321,7 @@ export default function TokenEconomyViz() {
         accent="green"
         title="Pedagogical Takeaways"
         items={[
-          "Without Agent Mail, multi-agent swarms quickly poison their own context windows with &apos;I am doing X&apos; messages.",
+          "Without Agent Mail, multi-agent swarms quickly poison their own context windows with 'I am doing X' messages.",
           "Agent Mail forces coordination into a structured Database (SQLite) rather than appending to the LLM context array.",
           "This enables the LLM to spend 99% of its token budget on the actual codebase instead of conversational logistics.",
         ]}

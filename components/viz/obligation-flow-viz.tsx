@@ -43,7 +43,7 @@ const PATHS: Record<PathKind, StepInfo[]> = {
   leak: [
     { label: "Reserve",  description: "A linear permit is allocated as usual.", nodeIndex: 0, color: COLORS.blue },
     { label: "Hold",     description: "The permit is held... but the programmer forgets to send or abort it.", nodeIndex: 1, color: COLORS.green },
-    { label: "LEAKED!",  description: "Without linear types this would be a silent resource leak. Asupersync catches this at COMPILE TIME -- this code will not build.", nodeIndex: 4, color: COLORS.red },
+    { label: "LEAKED!",  description: "Without linear types this would be a silent resource leak. Agent Mail catches this at COMPILE TIME; this code will not build.", nodeIndex: 4, color: COLORS.red },
   ],
 };
 
@@ -189,7 +189,7 @@ export default function ObligationFlowViz() {
       <div className="px-5 py-4 border-b border-white/[0.06] flex items-center gap-3">
         <PermitIcon color={COLORS.blue} size={20} />
         <span className="text-sm font-semibold tracking-wide" style={{ color: COLORS.text }}>
-          Permit Lifecycle &mdash; Linear Obligation System
+          Permit Lifecycle: Linear Obligation System
         </span>
       </div>
 
@@ -335,7 +335,7 @@ export default function ObligationFlowViz() {
                 <div className="text-xs" style={{ color: COLORS.text }}>
                   Linear permit was never consumed.
                   <br />
-                  Asupersync rejects this at compile time.
+                  Agent Mail rejects this at compile time.
                 </div>
               </motion.div>
             </motion.div>
@@ -352,6 +352,7 @@ export default function ObligationFlowViz() {
             const isSelected = p === path;
             return (
               <button
+                type="button"
                 key={p}
                 onClick={() => selectPath(p)}
                 className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
@@ -370,6 +371,7 @@ export default function ObligationFlowViz() {
         {/* Step controls */}
         <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={nextStep}
             disabled={step >= steps.length - 1}
             className="px-4 py-1.5 rounded-lg text-xs font-semibold transition-opacity cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
@@ -378,6 +380,7 @@ export default function ObligationFlowViz() {
             Next Step
           </button>
           <button
+            type="button"
             onClick={reset}
             className="px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
             style={{

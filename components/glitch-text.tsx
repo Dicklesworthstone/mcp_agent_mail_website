@@ -75,13 +75,25 @@ export default function GlitchText({
     },
   }), [intensity]);
 
+  const shouldHandleHover = trigger === "hover" && !prefersReducedMotion;
+  const handlePointerEnter = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!shouldHandleHover) return;
+    if (event.pointerType === "mouse") {
+      setIsHovered(true);
+    }
+  };
+  const handlePointerLeave = () => {
+    if (shouldHandleHover) {
+      setIsHovered(false);
+    }
+  };
+
   return (
     <div
       className={cn("relative inline-block will-change-transform", className)}
-      onMouseEnter={() => trigger === "hover" && setIsHovered(true)}
-      onMouseLeave={() => trigger === "hover" && setIsHovered(false)}
-      onTouchStart={() => trigger === "hover" && setIsHovered(true)}
-      onTouchEnd={() => trigger === "hover" && setIsHovered(false)}
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={handlePointerLeave}
+      onPointerCancel={handlePointerLeave}
       style={{ transform: "translateZ(0)" }}
     >
       <motion.div
@@ -103,6 +115,7 @@ export default function GlitchText({
               transition={{ duration: 0.1, repeat: Infinity, repeatType: "reverse" }}
               className="absolute inset-0 z-0 pointer-events-none text-orange-500/30 overflow-hidden"
               style={{ clipPath: "inset(0 0 70% 0)", transform: "translateZ(0)" }}
+              aria-hidden="true"
             >
               {children}
             </motion.div>
@@ -113,6 +126,7 @@ export default function GlitchText({
               transition={{ duration: 0.1, repeat: Infinity, repeatType: "reverse", delay: 0.05 }}
               className="absolute inset-0 z-0 pointer-events-none text-blue-500/30 overflow-hidden"
               style={{ clipPath: "inset(70% 0 0 0)", transform: "translateZ(0)" }}
+              aria-hidden="true"
             >
               {children}
             </motion.div>

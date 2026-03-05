@@ -7,6 +7,8 @@ import {
   VizLearningBlock,
   VizMetricCard,
   VizSurface,
+  useVizAutoStart,
+  useVizInViewport,
   useVizReducedMotion,
 } from "@/components/viz/viz-framework";
 import { Play, Pause, RotateCcw } from "lucide-react";
@@ -69,20 +71,25 @@ const PARTICLE_COLORS = [
   "#34d399", "#fbbf24", "#22d3ee", "#e879f9",
 ];
 
-let colorIndex = 0;
-function nextColor(): string {
-  return PARTICLE_COLORS[colorIndex++ % PARTICLE_COLORS.length];
+function colorForId(id: number): string {
+  return PARTICLE_COLORS[id % PARTICLE_COLORS.length];
 }
 
 // ---- Component ---------------------------------------------------------------
 
 export default function DualWritePipelineViz() {
   const prefersReducedMotion = useVizReducedMotion();
+  const inViewport = useVizInViewport();
   const [isRunning, setIsRunning] = useState(false);
   const [messageRate, setMessageRate] = useState(3);
   const [showReadPath, setShowReadPath] = useState(false);
   const rafRef = useRef<number>(0);
   const lastTimeRef = useRef(0);
+  const shouldAnimate = isRunning && inViewport;
+  const shouldAnimateRef = useRef(shouldAnimate);
+
+  const autoStart = useCallback(() => setIsRunning(true), []);
+  useVizAutoStart(autoStart);
 
   const [state, setState] = useState<PipelineState>(() => initPipeline());
 
@@ -91,35 +98,44 @@ export default function DualWritePipelineViz() {
     paramsRef.current = { messageRate };
   }, [messageRate]);
 
+  useEffect(() => {
+    shouldAnimateRef.current = shouldAnimate;
+  }, [shouldAnimate]);
+
   const reset = useCallback(() => {
     setIsRunning(false);
     setState(initPipeline());
     lastTimeRef.current = 0;
-    colorIndex = 0;
   }, []);
 
   const tickRef = useRef<(now: number) => void>(undefined);
   useEffect(() => {
     tickRef.current = (now: number) => {
+      if (!shouldAnimateRef.current) return;
       if (lastTimeRef.current === 0) lastTimeRef.current = now;
       const delta = now - lastTimeRef.current;
       lastTimeRef.current = now;
       if (delta > 0 && delta < 200) {
         setState((prev) => pipelineTick(prev, delta, paramsRef.current));
       }
-      rafRef.current = requestAnimationFrame((t) => tickRef.current?.(t));
+      if (shouldAnimateRef.current) {
+        rafRef.current = requestAnimationFrame((t) => tickRef.current?.(t));
+      }
     };
   });
 
   useEffect(() => {
-    if (isRunning) {
+    if (shouldAnimate) {
       lastTimeRef.current = 0;
       rafRef.current = requestAnimationFrame((t) => tickRef.current?.(t));
     }
     return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = 0;
+      }
     };
-  }, [isRunning]);
+  }, [shouldAnimate]);
 
   if (prefersReducedMotion) {
     return (
@@ -162,6 +178,7 @@ export default function DualWritePipelineViz() {
         controls={
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={() => setIsRunning((r) => !r)}
               className="flex items-center justify-center h-10 w-10 rounded-lg border border-white/10 bg-white/5 text-white transition-all hover:bg-white/10 hover:border-violet-500/30 focus-visible:ring-2 focus-visible:ring-violet-500/50 outline-none"
               aria-label={isRunning ? "Pause" : "Play"}
@@ -169,6 +186,7 @@ export default function DualWritePipelineViz() {
               {isRunning ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
             </button>
             <button
+              type="button"
               onClick={reset}
               className="flex items-center justify-center h-10 w-10 rounded-lg border border-white/10 bg-white/5 text-white transition-all hover:bg-white/10 hover:border-violet-500/30 focus-visible:ring-2 focus-visible:ring-violet-500/50 outline-none"
               aria-label="Reset"
@@ -495,7 +513,7 @@ function pipelineTick(
   const spawnInterval = 1000 / params.messageRate;
   while (spawnTimer >= spawnInterval) {
     spawnTimer -= spawnInterval;
-    const color = nextColor();
+    const color = colorForId(nextId);
     const msgLabel = `M${nextId + 1}`;
     // Spawn two particles: one for each path
     particles.push({
@@ -547,7 +565,7 @@ function pipelineTick(
   if (gitBatchTimer >= 1500 && gitBatchQueue > 0) {
     gitBatchTimer = 0;
     gitCommits++;
-    gitBatchQueue = Math.max(0, gitBatchQueue - 3); // Flush up to 3
+    gitBatchQueue = 0;
   }
 
   // Remove particles that are past the end

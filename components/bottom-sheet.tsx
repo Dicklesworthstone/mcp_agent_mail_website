@@ -77,6 +77,7 @@ export default function BottomSheet({
                   )}
                 </div>
                 <button
+                  type="button"
                   onClick={onClose}
                   className="h-12 w-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:bg-white/10 hover:text-white transition-all group"
                   aria-label="Close"
