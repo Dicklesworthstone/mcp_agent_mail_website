@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { existsSync } from "node:fs";
 import {
   siteConfig,
   navItems,
@@ -15,7 +16,12 @@ import {
   gettingStartedPillars,
   gettingStartedFaq,
 } from "@/lib/content";
-import { specCategories, specDocs } from "@/lib/spec-docs";
+import {
+  specCategories,
+  specDocs,
+  resolveSpecDocFromHref,
+  toSpecDocPublicHref,
+} from "@/lib/spec-docs";
 
 // Note: Basic navItems, siteConfig, heroStats, faq, glossaryTerms, changelog
 // tests are in navigation.test.ts.
@@ -189,6 +195,28 @@ describe("specDocs", () => {
   it("has at least one document per category", () => {
     for (const category of specCategories) {
       expect(specDocs.some((doc) => doc.category === category)).toBe(true);
+    }
+  });
+
+  it("resolves relative markdown links to known spec docs", () => {
+    const macroDsl = resolveSpecDocFromHref("./macro-dsl.md#structured-concurrency");
+    const semantics = resolveSpecDocFromHref("../asupersync_v4_formal_semantics.md");
+
+    expect(macroDsl?.slug).toBe("macro-dsl");
+    expect(semantics?.slug).toBe("formal-semantics");
+  });
+
+  it("builds safe public spec-doc hrefs for known markdown links", () => {
+    expect(toSpecDocPublicHref("./macro-dsl.md#structured-concurrency")).toBe(
+      "/spec-docs/macro-dsl.md#structured-concurrency",
+    );
+    expect(toSpecDocPublicHref("../src/lab/oracle/mod.rs")).toBeNull();
+    expect(toSpecDocPublicHref("javascript:alert(1)")).toBeNull();
+  });
+
+  it("points to files that exist in public/spec-docs", () => {
+    for (const doc of specDocs) {
+      expect(existsSync(`public/spec-docs/${doc.filename}`)).toBe(true);
     }
   });
 });

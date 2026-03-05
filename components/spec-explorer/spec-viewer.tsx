@@ -39,6 +39,7 @@ import {
   specCategories,
   type SpecDoc,
   type SpecCategory,
+  toSpecDocPublicHref,
 } from "@/lib/spec-docs";
 import { SyncContainer } from "@/components/sync-elements";
 import GlitchText from "@/components/glitch-text";
@@ -72,7 +73,8 @@ type SidebarItem =
 
 const PANEL_TRANSITION = { duration: 0.24, ease: "easeOut" } as const;
 const SPEC_DOC_FILENAME_PATTERN = /^[A-Za-z0-9._-]+\.md$/;
-const SANITIZED_URI_REGEXP = /^(?:(?:https?|mailto|tel):|\/(?!\/)|#)/i;
+const SANITIZED_URI_REGEXP =
+  /^(?:(?:https?|mailto|tel):|\/(?!\/)|#|\.\.?\/|[^/:#?][^:#?]*(?:\/[^:#?]*)*(?:[?#][^#]*)?)$/i;
 
 async function loadSpecDocHtml(filename: string, signal?: AbortSignal): Promise<string> {
   if (!SPEC_DOC_FILENAME_PATTERN.test(filename)) {
@@ -114,9 +116,17 @@ function normalizeRenderedLinks(html: string): string {
   const doc = new DOMParser().parseFromString(html, "text/html");
   for (const anchor of doc.querySelectorAll("a[href]")) {
     const href = anchor.getAttribute("href")?.trim() ?? "";
-    if (!href || !/^(?:https?:)?\/\//i.test(href)) {
+    if (!href) {
       continue;
     }
+
+    const specDocHref = toSpecDocPublicHref(href);
+    if (specDocHref) {
+      anchor.setAttribute("href", specDocHref);
+    }
+
+    const normalizedHref = anchor.getAttribute("href")?.trim() ?? "";
+    if (!/^(?:https?:)?\/\//i.test(normalizedHref)) continue;
 
     anchor.setAttribute("target", "_blank");
     const rel = new Set((anchor.getAttribute("rel") ?? "").split(/\s+/).filter(Boolean));

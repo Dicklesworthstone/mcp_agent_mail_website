@@ -216,6 +216,13 @@ If there are errors:
 
 ## Testing
 
+Unit tests run with **Vitest**:
+
+```bash
+# Run unit tests
+bun run test
+```
+
 We use **Playwright** for end-to-end testing:
 
 ```bash
@@ -223,8 +230,10 @@ We use **Playwright** for end-to-end testing:
 bunx playwright install
 
 # Run E2E tests
-bunx playwright test
+bun run test:e2e
 ```
+
+**Important:** Use `bun run test` for unit tests. Plain `bun test` invokes Bun's native runner and does not run the Vitest/jsdom suite correctly.
 
 Test files live in the project root or a `tests/` directory. Tests should:
 * Cover critical user flows (navigation, search, 3D scene loading)

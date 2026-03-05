@@ -122,14 +122,6 @@ export interface Feature {
   category?: string;
 }
 
-export interface ComparisonRow {
-  feature: string;
-  agentMail: string;
-  gitWorktrees: string;
-  sharedDocs: string;
-  noCoordination: string;
-}
-
 export interface ChangelogEntry {
   id: string;
   period: string;

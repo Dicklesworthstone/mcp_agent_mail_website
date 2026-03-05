@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* ==========================================================================
-   Asupersync - Global Styles
+   MCP Agent Mail - Global Styles
    Stripe-Grade Technical Design System
    ========================================================================== */
 
@@ -18,7 +18,7 @@
   --tracking-wide: 0.025em;
   --tracking-widest: 0.1em;
 
-  /* -- Refined Palette (Asupersync) -------------------------------- */
+  /* -- Refined Palette ------------------------------------------------ */
   --color-bg: #020a14;
   --color-surface: #0A1628;
   --color-border: rgba(59, 130, 246, 0.1);
@@ -404,6 +404,15 @@ body::before {
 @keyframes spinSlow {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .text-animate-blue,
+  .animate-float,
+  .animate-border-beam,
+  .animate-spin-slow {
+    animation: none;
+  }
 }
 
 .custom-scrollbar::-webkit-scrollbar {

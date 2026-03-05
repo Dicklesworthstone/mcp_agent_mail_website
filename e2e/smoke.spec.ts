@@ -45,12 +45,20 @@ test.describe("Smoke tests", () => {
     await expect(searchInput).toBeVisible();
     diagnostics.breadcrumb("Search input visible");
 
-    await searchInput.click();
-    diagnostics.breadcrumb("Search input focus verified");
+    const docButtons = page.locator("[data-spec-doc-item]:visible");
+    const initialCount = await docButtons.count();
+    diagnostics.breadcrumb(`Initial visible docs: ${initialCount}`);
 
-    const firstDocButton = page.locator("[data-spec-doc-item]:visible").first();
+    await searchInput.fill("RaptorQ");
+    diagnostics.breadcrumb("Filter query applied: RaptorQ");
+
+    const firstDocButton = docButtons.first();
     await expect(firstDocButton).toBeVisible();
+    const filteredCount = await docButtons.count();
+    diagnostics.breadcrumb(`Filtered visible docs: ${filteredCount}`);
+
     const selectedSlug = await firstDocButton.getAttribute("data-spec-doc-item");
+    expect(selectedSlug?.toLowerCase()).toContain("raptorq");
     diagnostics.breadcrumb(`Opening doc from list: ${selectedSlug ?? "unknown"}`);
     await firstDocButton.click();
 

@@ -242,3 +242,35 @@ export const specDocs: SpecDoc[] = [
     order: 26,
   },
 ];
+
+const specDocFilenameLookup = new Map(
+  specDocs.map((doc) => [doc.filename.toLowerCase(), doc]),
+);
+
+export function resolveSpecDocFromHref(href: string): SpecDoc | null {
+  const trimmed = href.trim();
+  if (!trimmed) return null;
+
+  if (/^(?:https?:|mailto:|tel:|#)/i.test(trimmed)) {
+    return null;
+  }
+
+  const withoutFragment = trimmed.split("#", 1)[0] ?? "";
+  const withoutQuery = withoutFragment.split("?", 1)[0] ?? "";
+  const segments = withoutQuery.split("/").filter(Boolean);
+  const basename = segments.at(-1)?.trim().toLowerCase();
+  if (!basename || !basename.endsWith(".md")) {
+    return null;
+  }
+
+  return specDocFilenameLookup.get(basename) ?? null;
+}
+
+export function toSpecDocPublicHref(href: string): string | null {
+  const doc = resolveSpecDocFromHref(href);
+  if (!doc) return null;
+
+  const hashIndex = href.indexOf("#");
+  const fragment = hashIndex >= 0 ? href.slice(hashIndex) : "";
+  return `/spec-docs/${encodeURIComponent(doc.filename)}${fragment}`;
+}

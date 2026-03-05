@@ -20,6 +20,7 @@ function FaqAccordion({ question, answer }: { question: string; answer: string }
     <button
       type="button"
       onClick={() => setOpen(!open)}
+      aria-expanded={open}
       className="w-full text-left rounded-xl border border-white/5 bg-white/[0.02] p-6 hover:border-blue-500/20 hover:bg-white/[0.04] transition-all"
     >
       <div className="flex items-center justify-between">

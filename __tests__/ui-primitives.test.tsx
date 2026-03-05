@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { JsonLd } from "@/components/json-ld";
+import SpecSearch from "@/components/spec-explorer/spec-search";
 import { cn, isTextInputLike } from "@/lib/utils";
 
 // ─── JsonLd Component ────────────────────────────────────────────
@@ -142,5 +144,60 @@ describe("motion module exports", () => {
     expect(mod.fadeScale).toHaveProperty("visible");
     expect(mod.staggerContainer).toHaveProperty("hidden");
     expect(mod.staggerContainer).toHaveProperty("visible");
+  });
+});
+
+function SpecSearchHarness({ initialValue = "" }: { initialValue?: string }) {
+  const [value, setValue] = useState(initialValue);
+
+  return (
+    <div>
+      <input aria-label="Other input" />
+      <SpecSearch value={value} onChange={setValue} />
+    </div>
+  );
+}
+
+// ─── Spec Search ────────────────────────────────────────────────
+
+describe("SpecSearch", () => {
+  it("focuses the search input when / is pressed outside text inputs", () => {
+    render(<SpecSearchHarness />);
+
+    const search = screen.getByLabelText("Search spec documents");
+    expect(search).not.toHaveFocus();
+
+    fireEvent.keyDown(document, { key: "/" });
+    expect(search).toHaveFocus();
+  });
+
+  it("does not steal focus when / is pressed inside another text input", () => {
+    render(<SpecSearchHarness />);
+
+    const otherInput = screen.getByLabelText("Other input");
+    const search = screen.getByLabelText("Search spec documents");
+
+    otherInput.focus();
+    expect(otherInput).toHaveFocus();
+
+    fireEvent.keyDown(document, { key: "/" });
+
+    expect(otherInput).toHaveFocus();
+    expect(search).not.toHaveFocus();
+  });
+
+  it("clears and blurs the search input on Escape", () => {
+    render(<SpecSearchHarness initialValue="seed" />);
+
+    const search = screen.getByLabelText("Search spec documents") as HTMLInputElement;
+    expect(search.value).toBe("seed");
+
+    search.focus();
+    expect(search).toHaveFocus();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(search.value).toBe("");
+    expect(search).not.toHaveFocus();
   });
 });

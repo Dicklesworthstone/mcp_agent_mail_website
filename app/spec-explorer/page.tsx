@@ -41,11 +41,11 @@ export default function SpecExplorerPage() {
             and an optimized split-pane reader built for real implementation work.
           </p>
 
-          <dl className="mt-7 grid gap-3 sm:grid-cols-3">
+          <div className="mt-7 grid gap-3 sm:grid-cols-3">
             <MetricTile label="Documents" value={String(specDocs.length)} />
             <MetricTile label="Categories" value={String(specCategories.length)} />
             <MetricTile label="Hotkeys" value="/ + Esc" />
-          </dl>
+          </div>
         </div>
       </section>
 
@@ -59,8 +59,8 @@ export default function SpecExplorerPage() {
 function MetricTile({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-white/10 bg-black/30 px-4 py-3">
-      <dt className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{label}</dt>
-      <dd className="mt-1 text-xl font-black text-white">{value}</dd>
+      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{label}</p>
+      <p className="mt-1 text-xl font-black text-white">{value}</p>
     </div>
   );
 }
