@@ -199,16 +199,16 @@ describe("specDocs", () => {
   });
 
   it("resolves relative markdown links to known spec docs", () => {
-    const macroDsl = resolveSpecDocFromHref("./macro-dsl.md#structured-concurrency");
-    const semantics = resolveSpecDocFromHref("../asupersync_v4_formal_semantics.md");
+    const topology = resolveSpecDocFromHref("./system-topology.md#visual-mental-model");
+    const migration = resolveSpecDocFromHref("../migration-rollout-and-parity.md");
 
-    expect(macroDsl?.slug).toBe("macro-dsl");
-    expect(semantics?.slug).toBe("formal-semantics");
+    expect(topology?.slug).toBe("system-topology");
+    expect(migration?.slug).toBe("migration-rollout-and-parity");
   });
 
   it("builds safe public spec-doc hrefs for known markdown links", () => {
-    expect(toSpecDocPublicHref("./macro-dsl.md#structured-concurrency")).toBe(
-      "/spec-docs/macro-dsl.md#structured-concurrency",
+    expect(toSpecDocPublicHref("./system-topology.md#visual-mental-model")).toBe(
+      "/spec-docs/system-topology.md#visual-mental-model",
     );
     expect(toSpecDocPublicHref("../src/lab/oracle/mod.rs")).toBeNull();
     expect(toSpecDocPublicHref("javascript:alert(1)")).toBeNull();

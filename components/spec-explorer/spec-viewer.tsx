@@ -25,11 +25,10 @@ import {
   AlertCircle,
   BookOpen,
   Shield,
-  Beaker,
-  Wrench,
-  Code2,
+  Search,
   Network,
-  FlaskConical,
+  RefreshCw,
+  AlertTriangle,
 } from "lucide-react";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
@@ -47,13 +46,12 @@ import { Magnetic } from "@/components/motion-wrapper";
 import SpecSearch from "./spec-search";
 
 const categoryIcons: Record<SpecCategory, ComponentType<{ className?: string }>> = {
-  "Formal Semantics": BookOpen,
-  Testing: Beaker,
-  Security: Shield,
-  RaptorQ: Network,
-  Spork: FlaskConical,
-  Operations: Wrench,
-  Development: Code2,
+  "Core Concepts": BookOpen,
+  "Coordination Flows": Network,
+  "Storage & Search": Search,
+  "Interface Surfaces": Shield,
+  "Reliability & Safety": AlertTriangle,
+  "Migration & Parity": RefreshCw,
 };
 
 marked.setOptions({

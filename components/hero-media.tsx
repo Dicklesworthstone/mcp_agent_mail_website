@@ -152,11 +152,13 @@ export default function HeroMedia() {
               className="h-full w-full min-h-[260px] md:min-h-[340px] bg-[#020611] font-mono text-slate-200"
               aria-label={heroTuiDemo.ariaLabel}
             >
-              <div className="grid h-full grid-cols-1 gap-3 p-3 md:grid-cols-[2fr_1fr] md:p-4">
-                <div className="rounded-xl border border-white/10 bg-black/45 p-3">
-                  <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-2 text-[10px] uppercase tracking-[0.18em] text-slate-400">
-                    <span>am dashboard --project mcp-agent-mail-production-snapshot</span>
-                    <span className="text-blue-300">sqlite snapshot replay</span>
+              <div className="grid h-full min-w-0 grid-cols-1 gap-3 p-3 md:grid-cols-[2fr_1fr] md:p-4">
+                <div className="min-w-0 rounded-xl border border-white/10 bg-black/45 p-3">
+                  <div className="flex flex-col gap-2 border-b border-white/10 pb-2 text-[10px] uppercase tracking-[0.18em] text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+                    <span className="min-w-0 break-all text-[9px] sm:text-[10px] sm:break-normal">
+                      am dashboard --project mcp-agent-mail-production-snapshot
+                    </span>
+                    <span className="shrink-0 text-blue-300">sqlite snapshot replay</span>
                   </div>
                   <div className="mt-2 h-1.5 rounded-full bg-white/10 overflow-hidden">
                     <div
@@ -185,7 +187,7 @@ export default function HeroMedia() {
                   </div>
 
                   <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <div className="rounded-lg border border-white/10 bg-black/35 p-3">
+                    <div className="min-w-0 rounded-lg border border-white/10 bg-black/35 p-3">
                       <div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-[0.15em] text-slate-400">
                         <span className="inline-flex items-center gap-1">
                           <Activity className="h-3 w-3" />
@@ -206,7 +208,7 @@ export default function HeroMedia() {
                       </div>
                     </div>
 
-                    <div className="rounded-lg border border-white/10 bg-black/35 p-3">
+                    <div className="min-w-0 rounded-lg border border-white/10 bg-black/35 p-3">
                       <div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-[0.15em] text-slate-400">
                         <span className="inline-flex items-center gap-1">
                           <Users className="h-3 w-3" />
@@ -225,7 +227,7 @@ export default function HeroMedia() {
                     </div>
                   </div>
 
-                  <div className="mt-3 rounded-lg border border-white/10 bg-black/35 p-3">
+                  <div className="mt-3 min-w-0 rounded-lg border border-white/10 bg-black/35 p-3">
                     <div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-[0.15em] text-slate-400">
                       <span className="inline-flex items-center gap-1">
                         <MessageSquare className="h-3 w-3" />
@@ -235,16 +237,16 @@ export default function HeroMedia() {
                     </div>
                     <div className="space-y-1 text-xs">
                       {heroTuiDemo.topThreads.slice(0, 4).map((thread) => (
-                        <div key={thread.threadId} className="flex items-center justify-between gap-3">
+                        <div key={thread.threadId} className="flex min-w-0 items-center justify-between gap-3">
                           <span className="truncate text-slate-300">{thread.threadId}</span>
-                          <span className="tabular-nums text-slate-500">{thread.messageCount}</span>
+                          <span className="shrink-0 tabular-nums text-slate-500">{thread.messageCount}</span>
                         </div>
                       ))}
                     </div>
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-white/10 bg-black/45 p-3">
+                <div className="min-w-0 rounded-xl border border-white/10 bg-black/45 p-3">
                   <div className="mb-2 flex items-center justify-between border-b border-white/10 pb-2 text-[10px] uppercase tracking-[0.18em] text-slate-400">
                     <span>event feed</span>
                     <span className="text-cyan-300">deterministic loop</span>
@@ -371,7 +373,7 @@ export default function HeroMedia() {
           Open Real Web App
         </a>
 
-        <span className="text-[10px] text-slate-500 font-mono">
+        <span className="min-w-0 break-all text-[10px] text-slate-500 font-mono">
           source db: {heroTuiDemo.sourceDatabasePath}
         </span>
       </div>

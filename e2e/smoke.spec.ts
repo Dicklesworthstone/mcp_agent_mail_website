@@ -49,8 +49,8 @@ test.describe("Smoke tests", () => {
     const initialCount = await docButtons.count();
     diagnostics.breadcrumb(`Initial visible docs: ${initialCount}`);
 
-    await searchInput.fill("RaptorQ");
-    diagnostics.breadcrumb("Filter query applied: RaptorQ");
+    await searchInput.fill("product bus");
+    diagnostics.breadcrumb("Filter query applied: product bus");
 
     const firstDocButton = docButtons.first();
     await expect(firstDocButton).toBeVisible();
@@ -58,7 +58,7 @@ test.describe("Smoke tests", () => {
     diagnostics.breadcrumb(`Filtered visible docs: ${filteredCount}`);
 
     const selectedSlug = await firstDocButton.getAttribute("data-spec-doc-item");
-    expect(selectedSlug?.toLowerCase()).toContain("raptorq");
+    expect(selectedSlug?.toLowerCase()).toContain("product-bus");
     diagnostics.breadcrumb(`Opening doc from list: ${selectedSlug ?? "unknown"}`);
     await firstDocButton.click();
 

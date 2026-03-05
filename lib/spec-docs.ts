@@ -8,240 +8,139 @@ export interface SpecDoc {
 }
 
 export const specCategories = [
-  "Formal Semantics",
-  "Testing",
-  "Security",
-  "RaptorQ",
-  "Spork",
-  "Operations",
-  "Development",
+  "Core Concepts",
+  "Coordination Flows",
+  "Storage & Search",
+  "Interface Surfaces",
+  "Reliability & Safety",
+  "Migration & Parity",
 ] as const;
 
 export type SpecCategory = (typeof specCategories)[number];
 
-export const specDocs: SpecDoc[] = [
-  // ── Formal Semantics ─────────────────────────────────────────────
+const specDocSections = [
   {
-    slug: "formal-semantics",
-    title: "V4 Formal Semantics",
-    filename: "asupersync_v4_formal_semantics.md",
-    category: "Formal Semantics",
-    description: "Complete formal semantics specification for the Agent Mail v4 runtime.",
-    order: 1,
+    category: "Core Concepts",
+    docs: [
+      {
+        slug: "agent-mail-at-a-glance",
+        title: "Agent Mail At A Glance",
+        filename: "agent-mail-at-a-glance.md",
+        description:
+          "A glossary-aware overview of the Rust system: what it is, why it exists, and how the major primitives fit together.",
+      },
+      {
+        slug: "jargon-map",
+        title: "Jargon Map",
+        filename: "jargon-map.md",
+        description:
+          "A reader-oriented vocabulary bridge for the terms that appear across the site, MCP surface, TUI, and archive model.",
+      },
+    ],
   },
   {
-    slug: "calm-analysis",
-    title: "CALM Analysis",
-    filename: "calm_analysis.md",
-    category: "Formal Semantics",
-    description: "Consistency As Logical Monotonicity analysis of runtime invariants.",
-    order: 2,
+    category: "Coordination Flows",
+    docs: [
+      {
+        slug: "system-topology",
+        title: "System Topology",
+        filename: "system-topology.md",
+        description:
+          "The end-to-end flow from agent request to SQLite state, git-audited archive artifacts, and operator-visible surfaces.",
+      },
+      {
+        slug: "message-lifecycle-and-threads",
+        title: "Message Lifecycle And Threads",
+        filename: "message-lifecycle-and-threads.md",
+        description:
+          "How targeted messages move through inbox delivery, read and ack state, thread continuity, and search visibility.",
+      },
+      {
+        slug: "file-reservations-and-guardrails",
+        title: "File Reservations And Guardrails",
+        filename: "file-reservations-and-guardrails.md",
+        description:
+          "How advisory leases, conflict detection, TTL expiry, and the pre-commit guard reduce destructive edit collisions.",
+      },
+      {
+        slug: "product-bus-and-cross-project",
+        title: "Product Bus And Cross-Project Coordination",
+        filename: "product-bus-and-cross-project.md",
+        description:
+          "How Agent Mail links multiple repos into one coordination plane without collapsing them into a single git history.",
+      },
+    ],
   },
   {
-    slug: "otp-comparison",
-    title: "OTP Comparison",
-    filename: "otp_comparison.md",
-    category: "Formal Semantics",
-    description: "Comparison of Agent Mail's supervision model with Erlang/OTP.",
-    order: 3,
+    category: "Storage & Search",
+    docs: [
+      {
+        slug: "dual-write-and-commit-coalescer",
+        title: "Dual Write And Commit Coalescer",
+        filename: "dual-write-and-commit-coalescer.md",
+        description:
+          "Why the system writes to SQLite first, how archive writes are batched, and how the coalescer avoids git lock contention.",
+      },
+      {
+        slug: "search-v3-explained",
+        title: "Search V3 Explained",
+        filename: "search-v3-explained.md",
+        description:
+          "A practical tour of lexical and semantic retrieval, ranking modes, scope filters, and graceful degradation behavior.",
+      },
+    ],
   },
+  {
+    category: "Interface Surfaces",
+    docs: [
+      {
+        slug: "mcp-surface-tools-resources-macros",
+        title: "MCP Surface: Tools, Resources, And Macros",
+        filename: "mcp-surface-tools-resources-macros.md",
+        description:
+          "How the 34-tool MCP surface is organized, what resources are for, and when the macro helpers collapse multi-step workflows.",
+      },
+      {
+        slug: "operator-surfaces",
+        title: "Operator Surfaces",
+        filename: "operator-surfaces.md",
+        description:
+          "How the TUI, robot CLI, and web UI fit together for humans and automation without blurring their responsibilities.",
+      },
+    ],
+  },
+  {
+    category: "Reliability & Safety",
+    docs: [
+      {
+        slug: "reliability-and-safety",
+        title: "Reliability And Safety",
+        filename: "reliability-and-safety.md",
+        description:
+          "Stress gauntlet scenarios, backpressure, lock recovery, privacy boundaries, and the operational safety model behind the Rust rewrite.",
+      },
+    ],
+  },
+  {
+    category: "Migration & Parity",
+    docs: [
+      {
+        slug: "migration-rollout-and-parity",
+        title: "Migration, Rollout, And Parity",
+        filename: "migration-rollout-and-parity.md",
+        description:
+          "How the Rust implementation is rolled out, how parity is proven, and how legacy Python state moves safely into the new system.",
+      },
+    ],
+  },
+] as const satisfies ReadonlyArray<{
+  category: SpecCategory;
+  docs: ReadonlyArray<Omit<SpecDoc, "category" | "order">>;
+}>;
 
-  // ── Testing ──────────────────────────────────────────────────────
-  {
-    slug: "cancellation-testing",
-    title: "Cancellation Testing",
-    filename: "cancellation-testing.md",
-    category: "Testing",
-    description: "Test strategies and harnesses for validating cancel-correctness.",
-    order: 4,
-  },
-  {
-    slug: "benchmarking",
-    title: "Benchmarking",
-    filename: "benchmarking.md",
-    category: "Testing",
-    description: "Performance benchmarks and methodology for the Agent Mail runtime.",
-    order: 5,
-  },
-  {
-    slug: "replay-debugging",
-    title: "Replay Debugging",
-    filename: "replay-debugging.md",
-    category: "Testing",
-    description: "Deterministic replay infrastructure for reproducing concurrency bugs.",
-    order: 6,
-  },
-
-  // ── Security ─────────────────────────────────────────────────────
-  {
-    slug: "security-threat-model",
-    title: "Security Threat Model",
-    filename: "security_threat_model.md",
-    category: "Security",
-    description: "Threat model covering capability isolation, resource exhaustion, and side-channels.",
-    order: 7,
-  },
-  {
-    slug: "threat-model",
-    title: "THREAT_MODEL",
-    filename: "THREAT_MODEL.md",
-    category: "Security",
-    description: "Top-level threat model document with attack trees and mitigations.",
-    order: 8,
-  },
-
-  // ── RaptorQ ──────────────────────────────────────────────────────
-  {
-    slug: "raptorq-baseline-bench",
-    title: "RaptorQ Baseline Bench Profile",
-    filename: "raptorq_baseline_bench_profile.md",
-    category: "RaptorQ",
-    description: "Baseline benchmarks for the RaptorQ forward-error-correction codec.",
-    order: 9,
-  },
-  {
-    slug: "raptorq-rollout-policy",
-    title: "RaptorQ Controlled Rollout Policy",
-    filename: "raptorq_controlled_rollout_policy.md",
-    category: "RaptorQ",
-    description: "Staged rollout plan for enabling RaptorQ in production.",
-    order: 10,
-  },
-  {
-    slug: "raptorq-expected-loss",
-    title: "RaptorQ Expected Loss Contract",
-    filename: "raptorq_expected_loss_decision_contract.md",
-    category: "RaptorQ",
-    description: "Decision contract for acceptable packet-loss thresholds.",
-    order: 11,
-  },
-  {
-    slug: "raptorq-optimization",
-    title: "RaptorQ Optimization Records",
-    filename: "raptorq_optimization_decision_records.md",
-    category: "RaptorQ",
-    description: "ADRs for RaptorQ performance optimizations.",
-    order: 12,
-  },
-  {
-    slug: "raptorq-closure-backlog",
-    title: "RaptorQ Closure Backlog",
-    filename: "raptorq_post_closure_opportunity_backlog.md",
-    category: "RaptorQ",
-    description: "Post-closure opportunity backlog for further RaptorQ improvements.",
-    order: 13,
-  },
-  {
-    slug: "raptorq-closure-signoff",
-    title: "RaptorQ Closure Signoff",
-    filename: "raptorq_program_closure_signoff_packet.md",
-    category: "RaptorQ",
-    description: "Program closure signoff packet for RaptorQ implementation.",
-    order: 14,
-  },
-  {
-    slug: "raptorq-rfc6330",
-    title: "RaptorQ RFC 6330 Clause Matrix",
-    filename: "raptorq_rfc6330_clause_matrix.md",
-    category: "RaptorQ",
-    description: "Compliance matrix mapping RFC 6330 clauses to implementation.",
-    order: 15,
-  },
-  {
-    slug: "raptorq-unit-tests",
-    title: "RaptorQ Unit Test Matrix",
-    filename: "raptorq_unit_test_matrix.md",
-    category: "RaptorQ",
-    description: "Comprehensive unit test coverage matrix for the RaptorQ codec.",
-    order: 16,
-  },
-
-  // ── Spork ────────────────────────────────────────────────────────
-  {
-    slug: "spork-deterministic-ordering",
-    title: "Spork Deterministic Ordering",
-    filename: "spork_deterministic_ordering.md",
-    category: "Spork",
-    description: "Deterministic ordering guarantees for Spork (spawn+fork) operations.",
-    order: 17,
-  },
-  {
-    slug: "spork-glossary-invariants",
-    title: "Spork Glossary & Invariants",
-    filename: "spork_glossary_invariants.md",
-    category: "Spork",
-    description: "Glossary of Spork terms and the invariants they must maintain.",
-    order: 18,
-  },
-  {
-    slug: "spork-operational-semantics",
-    title: "Spork Operational Semantics",
-    filename: "spork_operational_semantics.md",
-    category: "Spork",
-    description: "Formal operational semantics of the Spork concurrency primitive.",
-    order: 19,
-  },
-
-  // ── Operations ───────────────────────────────────────────────────
-  {
-    slug: "deadline-monitoring",
-    title: "Deadline Monitoring",
-    filename: "deadline-monitoring.md",
-    category: "Operations",
-    description: "Runtime deadline monitoring and alerting infrastructure.",
-    order: 20,
-  },
-  {
-    slug: "runtime-state-contention",
-    title: "Runtime State Contention Inventory",
-    filename: "runtime_state_contention_inventory.md",
-    category: "Operations",
-    description: "Catalog of contention points in the runtime's shared state.",
-    order: 21,
-  },
-  {
-    slug: "scheduler-arena-plan",
-    title: "Scheduler Arena Plan",
-    filename: "scheduler_arena_plan.md",
-    category: "Operations",
-    description: "Arena allocation strategy for the three-lane scheduler.",
-    order: 22,
-  },
-  {
-    slug: "integration",
-    title: "Integration Guide",
-    filename: "integration.md",
-    category: "Operations",
-    description: "Guide for integrating Agent Mail with existing Rust projects.",
-    order: 23,
-  },
-
-  // ── Development ──────────────────────────────────────────────────
-  {
-    slug: "api-audit",
-    title: "API Audit",
-    filename: "api_audit.md",
-    category: "Development",
-    description: "Audit of the public API surface for consistency and ergonomics.",
-    order: 24,
-  },
-  {
-    slug: "macro-dsl",
-    title: "Macro DSL",
-    filename: "macro-dsl.md",
-    category: "Development",
-    description: "Design of the #[agent_mail::main] and Region macro DSL.",
-    order: 25,
-  },
-  {
-    slug: "bead-harmonization",
-    title: "Bead Harmonization Migration",
-    filename: "bead-harmonization-migration.md",
-    category: "Development",
-    description: "Migration plan for harmonizing bead-based task tracking.",
-    order: 26,
-  },
-];
+export const specDocs: SpecDoc[] = specDocSections
+  .flatMap(({ category, docs }) => docs.map((doc) => ({ ...doc, category })))
+  .map((doc, index) => ({ ...doc, order: index + 1 }));
 
 const specDocFilenameLookup = new Map(
   specDocs.map((doc) => [doc.filename.toLowerCase(), doc]),

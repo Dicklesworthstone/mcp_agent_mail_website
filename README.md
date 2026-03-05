@@ -21,8 +21,8 @@ The marketing, documentation, and interactive visualization site for **MCP Agent
 <h3>Quick Install</h3>
 
 ```bash
-git clone https://github.com/Dicklesworthstone/jeffrey_emanuel_personal_site.git
-cd jeffrey_emanuel_personal_site
+git clone https://github.com/Dicklesworthstone/mcp_agent_mail_website.git
+cd mcp_agent_mail_website
 bun install
 bun dev
 ```
@@ -34,7 +34,7 @@ bun dev
 
 **The Problem:** Multi-agent AI coding sessions (Claude Code, Codex CLI, Gemini CLI) need coordination, but most project sites either explain the internals poorly or treat documentation as an afterthought. Interactive systems with 34 MCP tools, file reservations, threaded messaging, and cross-project coordination need something better than a flat docs page.
 
-**The Solution:** This site keeps product narrative, technical architecture, and interactive demonstrations in one place. 50+ interactive visualizations let users explore identity systems, message lifecycles, file reservations, stress gauntlet scenarios, and formal concurrency models, all rendered client-side with zero backend dependencies.
+**The Solution:** This site keeps product narrative, technical architecture, and interactive demonstrations in one place. 50+ interactive visualizations let users explore identity systems, message lifecycles, file reservations, Search V3, stress gauntlet scenarios, and rollout mechanics, all rendered client-side with zero backend dependencies.
 
 ### Why This Setup Works
 
@@ -61,7 +61,7 @@ bun dev
 # 3) Visit key pages
 #    http://localhost:3000/                  Home (hero, features, comparisons, code examples)
 #    http://localhost:3000/showcase          50+ interactive viz gallery
-#    http://localhost:3000/architecture      Formal system internals
+#    http://localhost:3000/architecture      Engine internals
 #    http://localhost:3000/spec-explorer     Specification browser
 #    http://localhost:3000/getting-started   Onboarding guide
 #    http://localhost:3000/glossary          Searchable terminology
@@ -379,15 +379,13 @@ The site features 50+ interactive visualization components built on a shared fra
 
 | Category | Examples | Count |
 |---|---|---|
-| Core Agent Mail | File reservations, message lifecycle, agent handshake, reliability internals | ~4 |
-| Advanced Coordination | Swarm simulation, conflict cascade, territory map, product bus, dual-write pipeline | ~8 |
-| Operator Tooling | TUI screens, robot mode CLI, human overseer, dual-mode interface | ~4 |
-| MCP Integration | MCP architecture, beads integration, search V3 pipeline, token economy | ~6 |
-| Formal Systems | Region tree, cancel protocol/state machine/fuel, scheduler lanes, obligation flow | ~8 |
-| Capability Security | Macaroon capabilities, caveat application, capability tiers | ~3 |
-| Advanced Theory | DPOR pruning, EXP3 scheduler, Lyapunov potential, CALM theorem, Foata fingerprint, spectral deadlock | ~8 |
-| Testing & Reliability | Test oracles, oracle dashboard, stress gauntlet, backpressure health, lab runtime | ~6 |
-| Infrastructure | Tokio comparison, e-process monitor, budget algebra, fountain codes, Spork OTP | ~5 |
+| Core Coordination | File reservations, message lifecycle, agent handshake, build-slot coordination | ~6 |
+| Swarm Dynamics | Swarm simulation, conflict cascade, territory map, human overseer | ~5 |
+| Storage & Throughput | Dual-write pipeline, commit coalescer, race view, backpressure health | ~4 |
+| Search & Retrieval | Search V3 pipeline, token economy, MCP resource flows | ~3 |
+| Operator Surfaces | TUI screens, robot mode, dual-mode interface, Product Bus | ~4 |
+| Architecture Maps | System topology, MCP architecture, Beads integration, reliability internals | ~4 |
+| Stress & Resilience | Stress gauntlet, failure handling, load behaviors across shared state | ~3 |
 
 ### Showcase Highlights
 
@@ -410,8 +408,8 @@ The most complex visualizations simulate real coordination scenarios:
 ### Option 1: Clone Repository
 
 ```bash
-git clone https://github.com/Dicklesworthstone/jeffrey_emanuel_personal_site.git
-cd jeffrey_emanuel_personal_site
+git clone https://github.com/Dicklesworthstone/mcp_agent_mail_website.git
+cd mcp_agent_mail_website
 bun install
 ```
 
@@ -419,7 +417,7 @@ bun install
 
 ```bash
 export REPO_OWNER="Dicklesworthstone"
-export REPO_NAME="jeffrey_emanuel_personal_site"
+export REPO_NAME="mcp_agent_mail_website"
 curl -fsSL "https://codeload.github.com/${REPO_OWNER}/${REPO_NAME}/tar.gz/refs/heads/master" \
   | tar -xz
 cd "${REPO_NAME}-master"
@@ -566,39 +564,19 @@ All site content lives in `lib/content.ts` (3200+ lines) as typed TypeScript exp
 | `changelog` | Development timeline |
 | `get*JsonLd()` | Five JSON-LD schema generators for SEO |
 
-### Formal Systems & Algorithms
+### Runtime Architecture & Operational Contracts
 
-The architecture page and visualization gallery cover formal concurrency models from the Agent Mail runtime:
+The architecture page and spec explorer are centered on the actual `mcp_agent_mail_rust` system design:
 
-**Structured Concurrency (Regions).** Execution is organized into a tree of regions. Each region owns its child tasks and is responsible for their lifecycle. Closing a region cancels all children, preventing task leaks and orphaned goroutines.
+**Dual persistence.** Agent Mail writes coordination state into SQLite for fast queries while preserving a Git-auditable archive for messages, reservations, and profiles. The site visualizes this as the dual-write pipeline and commit coalescer.
 
-**Three-Phase Cancel Protocol.** Cancellation follows Request → Drain → Finalize. Cancel Fuel (a bounded integer budget) guarantees termination: every scheduler tick decrements fuel, so even adversarial tasks eventually stop. A Lyapunov potential function (strictly decreasing supermartingale) provides the mathematical proof.
+**Dual-mode interface.** The docs cover the contract between the MCP-first server surface and the operator CLI surface, including deny UX, mode switching, rollout, and migration guidance.
 
-**Capability Security (5 Tiers).** Permissions are hierarchical and cannot be escalated without explicit grant:
+**Search V3 migration.** A large part of the corpus is dedicated to the search stack transition: query contracts, quality gates, corpus design, component mapping, and rollout/rollback procedures.
 
-| Tier | Allows | Cannot |
-|---|---|---|
-| FiberCap | Compute only | Spawn tasks, do I/O |
-| TaskCap | Spawn child tasks | Network, filesystem, timers |
-| IoCap | Network, filesystem, timers | Cross-machine communication |
-| RemoteCap | Cross-machine communication | Manage other tasks |
-| SupervisorCap | Manage, restart, inspect tasks | N/A (top tier) |
+**Operator surfaces.** The TUI product contract, parity matrix, developer guide, operator runbook, and web UI parity docs show how the 15-screen operations console and `/mail/*` surfaces are expected to behave.
 
-Capabilities use macaroon-style attenuation: a capability can be delegated with additional caveats (time limits, path restrictions) but never strengthened.
-
-**DPOR (Dynamic Partial Order Reduction).** Explores execution interleavings exhaustively without checking redundant orderings. Finds concurrency bugs that random testing misses.
-
-**EXP3 Scheduler.** Multi-armed bandit algorithm for fair task scheduling. Balances exploration (trying underused lanes) and exploitation (favoring high-reward tasks) with provable regret bounds.
-
-**CALM Theorem.** Consistency As Logical Monotonicity. Identifies which operations can be safely distributed without coordination (monotone operations) versus which require synchronization.
-
-**Foata Normal Form.** Canonical representation of concurrent execution traces. Two executions that differ only in scheduling order produce the same Foata fingerprint, enabling deterministic replay verification.
-
-**Spectral Deadlock Detection.** Uses spectral clustering on the wait-for graph to detect deadlock cycles.
-
-**Fountain Codes (RaptorQ).** Forward-error-correction codec for efficient data transfer under loss. The spec explorer includes RFC 6330 compliance matrix, optimization records, and rollout policy documentation.
-
-**17 Test Oracles.** Built-in verification checks run during testing: TaskLeak, ObligationLeak, CancelProtocol, BudgetOverrun, RegionNesting, SchedulerFairness, QuiescenceCheck, FinalizerOrder, CapabilityEscalation, SporkInvariant, DeadlockFreedom, ProgressGuarantee, SeedDeterminism, MemoryOrdering, FuelExhaustion, SupervisorPolicy, EffectAtomicity. Each oracle monitors a specific invariant and reports violations with diagnostic context.
+**Release, cutover, and incident discipline.** The bundled specs include release gates, artifact schemas, deployment verification, Python-to-Rust import procedures, and real incident diagnostics from the Rust repo.
 
 ### Visual Design System
 
@@ -637,19 +615,18 @@ Audio Context lifecycle is managed properly (created on first interaction, resum
 
 ### Spec Explorer Deep Dive
 
-The spec explorer provides a browsable library of 26 technical specification documents organized into 7 categories:
+The spec explorer now serves a site-authored library of `mcp_agent_mail_rust` explainers organized around the real system surfaces this website visualizes:
 
-| Category | Documents | Topics |
+| Category | Representative Docs | Focus |
 |---|---|---|
-| **Formal Semantics** | 3 | V4 runtime spec, CALM analysis, OTP comparison |
-| **Testing** | 3 | Cancellation testing, benchmarking methodology, replay debugging |
-| **Security** | 2 | Threat model, attack trees + mitigations |
-| **RaptorQ** | 7 | RFC 6330 compliance, bench profiles, rollout policy, optimization records |
-| **Spork** | 3 | Deterministic ordering, glossary + invariants, operational semantics |
-| **Operations** | 4 | Deadline monitoring, contention inventory, scheduler arena, integration guide |
-| **Development** | 4 | API audit, macro DSL, bead harmonization, migration |
+| **Core Concepts** | `agent-mail-at-a-glance`, `jargon-map` | Product mental model and vocabulary |
+| **Coordination Flows** | `system-topology`, `message-lifecycle-and-threads`, `file-reservations-and-guardrails`, `product-bus-and-cross-project` | How work moves through the system |
+| **Storage & Search** | `dual-write-and-commit-coalescer`, `search-v3-explained` | Persistence, indexing, ranking, and degradation behavior |
+| **Interface Surfaces** | `mcp-surface-tools-resources-macros`, `operator-surfaces` | MCP tools/resources, robot CLI, TUI, and web UI responsibilities |
+| **Reliability & Safety** | `reliability-and-safety` | Stress gauntlet, backpressure, privacy, auditability, and recovery |
+| **Migration & Parity** | `migration-rollout-and-parity` | Python-to-Rust cutover, release discipline, and parity proofs |
 
-The viewer uses TanStack Query for data fetching, TanStack Table for the sidebar index, TanStack Virtual for scroll performance on long documents, and `marked` + DOMPurify for XSS-safe markdown rendering. Keyboard navigation: `/` focuses search, `Escape` clears.
+The viewer uses TanStack Query for data fetching, TanStack Table for the sidebar index, TanStack Virtual for scroll performance on long documents, and `marked` + DOMPurify for XSS-safe markdown rendering. The docs intentionally cross-link to `/glossary`, `/architecture`, and `/showcase` so the prose and visual explanations reinforce each other. Keyboard navigation: `/` focuses search, `Escape` clears.
 
 ### Accessibility
 
@@ -795,7 +772,7 @@ No. This repository is the marketing and documentation website. The Rust server 
 
 ### Why are there 50+ visualization components?
 
-Each visualization demonstrates a specific coordination concept interactively. File reservations, message lifecycles, swarm coordination, stress testing, capability security, and formal concurrency models are all better understood through animation than prose.
+Each visualization demonstrates a specific coordination concept interactively. File reservations, message lifecycles, swarm coordination, Search V3, storage internals, and stress behavior are all easier to understand through animation than prose.
 
 ### Which package manager is supported?
 
@@ -821,9 +798,9 @@ No, for core local development. If needed, use `.env.local` and do not commit it
 
 It fetches markdown files from `/public/spec-docs/`, renders them with `marked` + DOMPurify, and presents them in a dual-pane layout with TanStack Table for the sidebar index and TanStack Virtual for scroll performance. Search uses the `/` hotkey with debounced filtering.
 
-### What formal methods does the architecture page cover?
+### What does the architecture page and spec explorer cover?
 
-Structured concurrency (region trees), three-phase cancel protocol with cancel fuel, capability security (5 hierarchical tiers with macaroon attenuation), DPOR, EXP3 scheduling, Lyapunov potential functions, CALM theorem, Foata normal form, spectral deadlock detection, fountain codes (RaptorQ), and 17 test oracles.
+They cover the actual `mcp_agent_mail_rust` design surface: MCP/CLI dual-mode behavior, SQLite + Git dual-write persistence, Search V3 migration contracts, TUI/web parity, rollout and release gates, Python-to-Rust import/cutover, and incident diagnostics pulled from the Rust repo’s documentation set.
 
 ### What is Lab Mode?
 

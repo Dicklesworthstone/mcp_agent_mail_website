@@ -199,26 +199,26 @@ export default function FileReservationViz() {
         <VizMetricCard label="TTL" value={`${step.ttlSeconds}s`} tone={step.ttlSeconds > 0 ? "green" : "neutral"} />
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-[#0B1120] px-4 py-8 md:p-6 mb-4 relative overflow-hidden flex items-center justify-between min-h-[300px]">
+      <div className="relative mb-4 flex min-h-[420px] flex-col items-center justify-center gap-4 overflow-hidden rounded-xl border border-white/10 bg-[#0B1120] px-4 py-8 md:min-h-[300px] md:flex-row md:justify-between md:gap-0 md:p-6">
         {/* Background Grids */}
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)", backgroundSize: "20px 20px" }}></div>
 
         {/* BlueLake (Left) */}
-        <div className={`z-10 relative flex flex-col items-center p-3 md:p-4 rounded-xl border-2 transition-all duration-500 w-24 md:w-36 shrink-0 ${isBlueActive ? "bg-blue-500/10 border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.3)]" : "bg-slate-900/80 border-slate-700"}`}>
+        <div className={`z-10 relative flex w-full max-w-[11rem] shrink-0 flex-col items-center rounded-xl border-2 p-3 transition-all duration-500 md:w-36 md:p-4 ${isBlueActive ? "bg-blue-500/10 border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.3)]" : "bg-slate-900/80 border-slate-700"}`}>
           <User className={`w-8 h-8 md:w-10 md:h-10 mb-2 ${isBlueActive ? "text-blue-400" : "text-slate-500"}`} />
           <span className="font-black tracking-widest uppercase text-[10px] md:text-xs text-slate-200">BlueLake</span>
           <span className="text-[9px] md:text-[10px] text-slate-500 font-mono mt-1">claude-code</span>
         </div>
 
         {/* Connection Line Left */}
-        <div className={`flex-1 h-1 transition-colors duration-500 relative overflow-hidden -mx-1 md:-mx-2 z-0 ${isBlueActive ? "bg-blue-500" : "bg-transparent border-dashed border-t border-slate-600"}`}>
+        <div className={`relative z-0 h-10 w-1 overflow-hidden transition-colors duration-500 md:-mx-2 md:h-1 md:w-auto md:flex-1 ${isBlueActive ? "bg-blue-500" : "border-l border-dashed border-slate-600 bg-transparent md:border-l-0 md:border-t"}`}>
            {isBlueActive && !reducedMotion && (
-             <motion.div className="absolute inset-0 bg-white opacity-50" animate={{ x: ["-100%", "100%"] }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} />
+             <motion.div className="absolute inset-0 hidden bg-white opacity-50 md:block" animate={{ x: ["-100%", "100%"] }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} />
            )}
         </div>
 
         {/* Central File Node */}
-        <div className={`z-20 relative flex flex-col items-center justify-center w-28 h-28 md:w-36 md:h-36 rounded-xl border-2 transition-all duration-500 shrink-0 ${step.lockHolder !== "none" ? "bg-black/80 border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.1)]" : "bg-black/40 border-slate-700"}`}>
+        <div className={`z-20 relative flex h-32 w-32 shrink-0 flex-col items-center justify-center rounded-xl border-2 transition-all duration-500 md:h-36 md:w-36 ${step.lockHolder !== "none" ? "bg-black/80 border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.1)]" : "bg-black/40 border-slate-700"}`}>
           <FileCode className={`w-8 h-8 md:w-12 md:h-12 mb-2 transition-colors duration-500 ${step.lockHolder !== "none" ? "text-amber-400" : "text-slate-400"}`} />
           <p className="font-mono text-xs md:text-sm font-bold text-slate-200">src/auth.ts</p>
           <div className="absolute -top-3 -right-3">
@@ -233,19 +233,19 @@ export default function FileReservationViz() {
         </div>
 
         {/* Connection Line Right */}
-        <div className={`flex-1 h-1 transition-colors duration-500 relative overflow-hidden -mx-1 md:-mx-2 z-0 ${isRedActive ? "bg-red-500" : step.id === "red-conflict" || step.id === "guard-precommit-block" || step.id === "guard-prepush-warn" ? "bg-amber-500" : "bg-transparent border-dashed border-t border-slate-600"}`}>
+        <div className={`relative z-0 h-10 w-1 overflow-hidden transition-colors duration-500 md:-mx-2 md:h-1 md:w-auto md:flex-1 ${isRedActive ? "bg-red-500" : step.id === "red-conflict" || step.id === "guard-precommit-block" || step.id === "guard-prepush-warn" ? "bg-amber-500" : "border-l border-dashed border-slate-600 bg-transparent md:border-l-0 md:border-t"}`}>
            {isRedActive && !reducedMotion && (
-             <motion.div className="absolute inset-0 bg-white opacity-50" animate={{ x: ["100%", "-100%"] }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} />
+             <motion.div className="absolute inset-0 hidden bg-white opacity-50 md:block" animate={{ x: ["100%", "-100%"] }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} />
            )}
            {(step.id === "red-conflict" || step.id === "guard-precommit-block") && (
-             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-8 bg-amber-500 rounded flex items-center justify-center">
+             <div className="absolute top-1/2 left-1/2 flex h-4 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded bg-amber-500 md:h-8 md:w-4">
                <ShieldAlert className="w-3 h-3 text-black" />
              </div>
            )}
         </div>
 
         {/* RedBear (Right) */}
-        <div className={`z-10 relative flex flex-col items-center p-3 md:p-4 rounded-xl border-2 transition-all duration-500 w-24 md:w-36 shrink-0 ${isRedActive ? "bg-red-500/10 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)]" : step.id === "red-conflict" || step.id === "guard-precommit-block" || step.id === "guard-prepush-warn" ? "bg-amber-500/10 border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.2)]" : "bg-slate-900/80 border-slate-700"}`}>
+        <div className={`z-10 relative flex w-full max-w-[11rem] shrink-0 flex-col items-center rounded-xl border-2 p-3 transition-all duration-500 md:w-36 md:p-4 ${isRedActive ? "bg-red-500/10 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)]" : step.id === "red-conflict" || step.id === "guard-precommit-block" || step.id === "guard-prepush-warn" ? "bg-amber-500/10 border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.2)]" : "bg-slate-900/80 border-slate-700"}`}>
           <User className={`w-8 h-8 md:w-10 md:h-10 mb-2 ${isRedActive ? "text-red-400" : step.id === "red-conflict" || step.id === "guard-precommit-block" || step.id === "guard-prepush-warn" ? "text-amber-400" : "text-slate-500"}`} />
           <span className="font-black tracking-widest uppercase text-[10px] md:text-xs text-slate-200">RedBear</span>
           <span className="text-[9px] md:text-[10px] text-slate-500 font-mono mt-1">cursor</span>
