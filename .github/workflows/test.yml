@@ -1,0 +1,69 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+env:
+  CI: true
+  TZ: America/New_York
+
+jobs:
+  unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      - run: bun tsc --noEmit
+        name: TypeScript check
+
+      - run: bun run lint
+        name: Lint check
+
+      - run: bun run test
+        name: Vitest unit tests
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-results
+          path: test-results/unit-results.json
+          retention-days: 14
+
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: unit
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      - run: bunx playwright install chromium --with-deps
+        name: Install Playwright browsers
+
+      - run: bun run test:e2e
+        name: Playwright E2E tests
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-test-results
+          path: |
+            test-results/e2e/
+            test-results/e2e-report/
+            test-results/e2e-results.json
+          retention-days: 14

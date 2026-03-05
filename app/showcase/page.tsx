@@ -41,6 +41,10 @@ const AgentHandshakeViz = dynamic(() => import("@/components/viz/agent-handshake
 const McpArchitectureViz = dynamic(() => import("@/components/viz/mcp-architecture-viz"), { ssr: false });
 const McpBeadsIntegrationViz = dynamic(() => import("@/components/viz/mcp-beads-integration-viz"), { ssr: false });
 const SearchV3PipelineViz = dynamic(() => import("@/components/viz/search-v3-pipeline-viz"), { ssr: false });
+const TuiScreensViz = dynamic(() => import("@/components/viz/tui-screens-viz"), { ssr: false });
+const RobotModeViz = dynamic(() => import("@/components/viz/robot-mode-viz"), { ssr: false });
+const ProductBusViz = dynamic(() => import("@/components/viz/product-bus-viz"), { ssr: false });
+const ReliabilityInternalsViz = dynamic(() => import("@/components/viz/reliability-internals-viz"), { ssr: false });
 
 function VizLoader() {
   return (
@@ -227,6 +231,118 @@ export default function ShowcasePage() {
           <div className="space-y-4 text-slate-400 leading-relaxed">
             <p>
               Search V3 parses queries, routes them through lexical and semantic tiers with budget-derived candidate caps, fuses results via RRF, and applies field-match and recency reranking. When tiers fail, the pipeline gracefully degrades to a chronological fallback scan.
+            </p>
+          </div>
+        </div>
+      </SectionShell>
+
+      {/* ================================================================
+          0.6 TUI Screens Architecture
+          ================================================================ */}
+      <SectionShell
+        id="tui-screens"
+        icon="monitor"
+        eyebrow="Operations Console"
+        title="15-Screen TUI Architecture"
+        kicker="Jump-key navigation across four screen categories: operations, coordination, observability, and system."
+      >
+        <div className="space-y-6">
+          <SyncContainer withPulse={true} className="p-4 md:p-8">
+            <Suspense fallback={<VizLoader />}>
+              <TuiScreensViz />
+            </Suspense>
+          </SyncContainer>
+          <div className="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              The TUI organizes 15 screens into four categories. Each screen answers a single core question
+              and surfaces the primary signals needed for operators to make fast decisions. Jump keys provide
+              O(1) navigation to any screen.
+            </p>
+          </div>
+        </div>
+      </SectionShell>
+
+      {/* ================================================================
+          0.7 Robot Mode CLI
+          ================================================================ */}
+      <SectionShell
+        id="robot-mode"
+        icon="cpu"
+        eyebrow="Agent Interface"
+        title="Robot Mode CLI"
+        kicker="16 non-interactive commands across 5 tracks with toon, JSON, and Markdown output formats."
+      >
+        <div className="space-y-6">
+          <SyncContainer withPulse={true} className="p-4 md:p-8">
+            <Suspense fallback={<VizLoader />}>
+              <RobotModeViz />
+            </Suspense>
+          </SyncContainer>
+          <div className="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              Robot mode provides agents with 16 non-interactive commands designed for machine consumption.
+              The toon format minimizes token usage, JSON provides full data fidelity for programmatic use,
+              and Markdown renders threads and messages for human-readable contexts.
+            </p>
+          </div>
+        </div>
+      </SectionShell>
+
+      {/* ================================================================
+          0.8 Product Bus + Contact Governance
+          ================================================================ */}
+      <SectionShell
+        id="product-bus"
+        icon="network"
+        eyebrow="Cross-Project Coordination"
+        title="Product Bus + Contact Governance"
+        kicker="Link repositories under products for unified search, cross-project messaging, and contact-governed communication."
+      >
+        <div className="space-y-6">
+          <SyncContainer withPulse={true} className="p-4 md:p-8">
+            <Suspense fallback={<VizLoader />}>
+              <ProductBusViz />
+            </Suspense>
+          </SyncContainer>
+          <div className="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              The product bus groups multiple repositories under a shared product umbrella. Once linked,
+              agents can search across all repos, send messages to agents in other projects using
+              name@project addressing, and coordinate via contact governance policies.
+            </p>
+          </div>
+        </div>
+      </SectionShell>
+
+      {/* ================================================================
+          0.9 Reliability Internals
+          ================================================================ */}
+      <SectionShell
+        id="reliability-internals"
+        icon="shield"
+        eyebrow="Storage Reliability"
+        title="Reliability Internals"
+        kicker="Write batching, backpressure management, lock recovery, and worker loop health monitoring."
+      >
+        <div className="space-y-6">
+          <SyncContainer withPulse={true} className="p-4 md:p-8">
+            <Suspense fallback={<VizLoader />}>
+              <ReliabilityInternalsViz />
+            </Suspense>
+          </SyncContainer>
+          <div className="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              Agent Mail&apos;s SQLite storage layer coalesces individual writes into batched WAL
+              transactions. When 17 operations arrive in a 50ms burst, the commit coalescer groups
+              them into a single atomic fsync — reducing I/O overhead by an order of magnitude while
+              maintaining strict durability guarantees.
+            </p>
+            <p>
+              The backpressure system monitors write queue depth against a configurable threshold (default: 128).
+              When the queue exceeds this limit, callers receive advisory backpressure signals to throttle
+              submissions. Four independent worker loops — ACK processing, retention enforcement, metrics
+              collection, and integrity checking — each recover gracefully from stalls without blocking
+              the others.
             </p>
           </div>
         </div>

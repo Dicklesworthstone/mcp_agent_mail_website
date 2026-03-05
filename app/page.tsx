@@ -31,14 +31,25 @@ import {
   features,
   codeExample,
   changelog,
-  heroVideoPlaceholder,
+  getVideoObjectJsonLd,
+  credibilityHighlights,
+  adoptionMessages,
 } from "@/lib/content";
+import { JsonLd } from "@/components/json-ld";
+
+import { Suspense } from "react";
 
 const AgentFlywheel = dynamic(() => import("@/components/agent-flywheel"), { ssr: false });
+const HeroMedia = dynamic(() => import("@/components/hero-media"), { ssr: false });
+const FileReservationViz = dynamic(() => import("@/components/viz/file-reservation-viz"), { ssr: false });
+const MessageLifecycleViz = dynamic(() => import("@/components/viz/message-lifecycle-viz"), { ssr: false });
+const AgentHandshakeViz = dynamic(() => import("@/components/viz/agent-handshake-viz"), { ssr: false });
+const ReliabilityInternalsViz = dynamic(() => import("@/components/viz/reliability-internals-viz"), { ssr: false });
 
 export default function HomePage() {
   return (
     <main id="main-content">
+      <JsonLd data={getVideoObjectJsonLd()} />
       {/* ================================================================
           1. LIVING HERO
           ================================================================ */}
@@ -132,48 +143,10 @@ export default function HomePage() {
             <SyncContainer withNodes={false} className="relative glass-modern p-0 overflow-hidden shadow-2xl w-full">
               <BorderBeam />
 
-              {/* Dashboard video placeholder */}
-              <div className="relative bg-[#020a14] p-6 md:p-8 overflow-hidden min-h-[300px] md:min-h-[420px]">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,0.12),transparent_55%),radial-gradient(circle_at_80%_80%,rgba(14,165,233,0.10),transparent_55%)]" />
-                <div className="relative h-full rounded-2xl border border-blue-500/25 bg-black/40 overflow-hidden">
-                  <video
-                    className="h-full w-full min-h-[260px] md:min-h-[340px] object-cover bg-black/60"
-                    controls
-                    playsInline
-                    muted
-                    preload="metadata"
-                    poster={heroVideoPlaceholder.poster}
-                    aria-label={heroVideoPlaceholder.ariaLabel}
-                    width={heroVideoPlaceholder.width}
-                    height={heroVideoPlaceholder.height}
-                  >
-                    <source src={heroVideoPlaceholder.mediaSrc} type={heroVideoPlaceholder.mediaType} />
-                    {heroVideoPlaceholder.captionsTrack.map((track) => (
-                      <track
-                        key={track.src}
-                        src={track.src}
-                        srcLang={track.srcLang}
-                        label={track.label}
-                        kind={track.kind}
-                      />
-                    ))}
-                  </video>
-                  <div className="absolute inset-x-0 bottom-0 p-4 md:p-5 bg-gradient-to-t from-black/85 to-transparent">
-                    <p className="text-xs md:text-sm font-bold text-white tracking-wide uppercase">
-                      {heroVideoPlaceholder.overlayTitle}
-                    </p>
-                    <p className="text-[10px] md:text-xs text-slate-300 mt-1 font-mono">
-                      {heroVideoPlaceholder.overlaySubtitle}
-                    </p>
-                  </div>
-                </div>
-
-                {/* HUD overlay */}
-                <div className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1.5 rounded-md bg-black/60 backdrop-blur-md border border-white/10 opacity-60 group-hover:opacity-100 transition-opacity">
-                  <Activity className="h-3.5 w-3.5 text-blue-500" />
-                  <span className="text-[10px] font-black text-white uppercase tracking-widest">Dashboard_Video_Placeholder</span>
-                </div>
-              </div>
+              {/* Dashboard video with chapter nav + transcript panel */}
+              <Suspense fallback={<div className="min-h-[300px] md:min-h-[420px] bg-black/60 animate-pulse" />}>
+                <HeroMedia />
+              </Suspense>
             </SyncContainer>
 
             {/* Embedded Stats Card */}
@@ -188,8 +161,32 @@ export default function HomePage() {
       </section>
 
       {/* Hero stats */}
-      <section id="home-proof-strip" data-scaffold-slot="proof-strip" className="max-w-7xl mx-auto px-6 mb-32">
+      <section id="home-proof-strip" data-scaffold-slot="proof-strip" className="max-w-7xl mx-auto px-6 mb-16">
         <StatsGrid stats={heroStats} />
+      </section>
+
+      {/* Credibility Evidence Strip */}
+      <section id="home-evidence-strip" className="max-w-7xl mx-auto px-6 mb-32">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {credibilityHighlights.map((h) => (
+            <div
+              key={h.id}
+              className="group relative p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:border-blue-500/20 hover:bg-blue-500/5 transition-colors text-center"
+            >
+              <div className="text-2xl md:text-3xl font-black text-blue-400 tabular-nums tracking-tight">
+                {h.value}
+              </div>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mt-1">
+                {h.metric}
+              </div>
+              <div className="absolute inset-x-0 bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                <div className="mx-auto max-w-48 rounded-lg bg-slate-900 border border-white/10 px-3 py-2 text-xs text-slate-300 shadow-xl">
+                  {h.context}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* ================================================================
@@ -234,10 +231,10 @@ export default function HomePage() {
                 </p>
               </div>
               <div className="flex-1 w-full max-w-2xl">
-                <SyncContainer withPulse={true} accentColor="#F97316" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-orange-900/20">
-                  <div className="text-center py-12 text-slate-500 text-sm font-medium">
-                    Reservation flow visualization placeholder
-                  </div>
+                <SyncContainer withPulse={true} accentColor="#F97316" className="p-1 md:p-2 bg-black/40 shadow-2xl shadow-orange-900/20">
+                  <Suspense fallback={<div className="h-64 flex items-center justify-center text-slate-600 text-sm">Loading...</div>}>
+                    <FileReservationViz />
+                  </Suspense>
                 </SyncContainer>
               </div>
             </div>
@@ -260,8 +257,27 @@ export default function HomePage() {
               </div>
               <div className="flex-1 w-full max-w-2xl">
                 <SyncContainer withPulse={true} accentColor="#22C55E" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-green-900/20">
-                  <div className="text-center py-12 text-slate-500 text-sm font-medium">
-                    Worktree vs shared-space comparison visualization placeholder
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-3">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-400 mb-2">Git Worktrees</p>
+                        <ul className="space-y-1 text-xs text-slate-400">
+                          <li>Merge debt accumulates silently</li>
+                          <li>Divergence discovered too late</li>
+                          <li>N copies of entire repo</li>
+                          <li>Lost work on failed merges</li>
+                        </ul>
+                      </div>
+                      <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-3">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-green-400 mb-2">Agent Mail</p>
+                        <ul className="space-y-1 text-xs text-slate-400">
+                          <li>Conflicts surface immediately</li>
+                          <li>Reservations prevent collisions</li>
+                          <li>Single shared workspace</li>
+                          <li>Zero merge debt</li>
+                        </ul>
+                      </div>
+                    </div>
                   </div>
                 </SyncContainer>
               </div>
@@ -284,10 +300,10 @@ export default function HomePage() {
                 </p>
               </div>
               <div className="flex-1 w-full max-w-2xl">
-                <SyncContainer withPulse={true} accentColor="#3B82F6" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-blue-900/20">
-                  <div className="text-center py-12 text-slate-500 text-sm font-medium">
-                    Agent identity lifecycle visualization placeholder
-                  </div>
+                <SyncContainer withPulse={true} accentColor="#3B82F6" className="p-1 md:p-2 bg-black/40 shadow-2xl shadow-blue-900/20">
+                  <Suspense fallback={<div className="h-64 flex items-center justify-center text-slate-600 text-sm">Loading...</div>}>
+                    <AgentHandshakeViz />
+                  </Suspense>
                 </SyncContainer>
               </div>
             </div>
@@ -309,10 +325,10 @@ export default function HomePage() {
                 </p>
               </div>
               <div className="flex-1 w-full max-w-2xl">
-                <SyncContainer withPulse={true} accentColor="#A855F7" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-purple-900/20">
-                  <div className="text-center py-12 text-slate-500 text-sm font-medium">
-                    Message routing visualization placeholder
-                  </div>
+                <SyncContainer withPulse={true} accentColor="#A855F7" className="p-1 md:p-2 bg-black/40 shadow-2xl shadow-purple-900/20">
+                  <Suspense fallback={<div className="h-64 flex items-center justify-center text-slate-600 text-sm">Loading...</div>}>
+                    <MessageLifecycleViz />
+                  </Suspense>
                 </SyncContainer>
               </div>
             </div>
@@ -335,8 +351,24 @@ export default function HomePage() {
               </div>
               <div className="flex-1 w-full max-w-2xl">
                 <SyncContainer withPulse={true} accentColor="#14B8A6" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-teal-900/20">
-                  <div className="text-center py-12 text-slate-500 text-sm font-medium">
-                    Dependency graph prioritization visualization placeholder
+                  <div className="space-y-3">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-400">Graph Analysis Signals</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { metric: "PageRank", desc: "Structural importance" },
+                        { metric: "Betweenness", desc: "Bottleneck detection" },
+                        { metric: "Critical Path", desc: "Longest dependency chain" },
+                        { metric: "What-If", desc: "Cascade impact prediction" },
+                      ].map((item) => (
+                        <div key={item.metric} className="rounded-lg border border-teal-500/20 bg-teal-500/5 p-2.5">
+                          <p className="text-xs font-bold text-teal-300">{item.metric}</p>
+                          <p className="text-[10px] text-slate-500">{item.desc}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      bv combines these signals to recommend which task each agent should work on next.
+                    </p>
                   </div>
                 </SyncContainer>
               </div>
@@ -359,10 +391,10 @@ export default function HomePage() {
                 </p>
               </div>
               <div className="flex-1 w-full max-w-2xl">
-                <SyncContainer withPulse={true} accentColor="#EAB308" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-yellow-900/20">
-                  <div className="text-center py-12 text-slate-500 text-sm font-medium">
-                    Stress gauntlet results visualization placeholder
-                  </div>
+                <SyncContainer withPulse={true} accentColor="#EAB308" className="p-1 md:p-2 bg-black/40 shadow-2xl shadow-yellow-900/20">
+                  <Suspense fallback={<div className="h-64 flex items-center justify-center text-slate-600 text-sm">Loading...</div>}>
+                    <ReliabilityInternalsViz />
+                  </Suspense>
                 </SyncContainer>
               </div>
             </div>
@@ -438,6 +470,48 @@ export default function HomePage() {
           </Link>
         </div>
       </SectionShell>
+
+      {/* ================================================================
+          6.5 ADOPTION CTA RAIL (persona-targeted)
+          ================================================================ */}
+      <section id="home-adoption-rail" className="relative py-20 md:py-28 border-t border-white/5">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-black text-white tracking-tighter mb-4">
+              Built for How <span className="text-blue-400">You</span> Work
+            </h2>
+            <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+              Whether you run solo or manage a fleet of agents, Agent Mail fits your workflow.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {adoptionMessages.map((msg) => (
+              <div
+                key={msg.id}
+                className="group relative p-6 md:p-8 rounded-2xl border border-white/5 bg-white/[0.02] hover:border-blue-500/20 transition-colors"
+              >
+                <div className="text-[10px] font-bold uppercase tracking-widest text-blue-400/60 mb-3">
+                  {msg.targetAudience}
+                </div>
+                <h3 className="text-xl font-black text-white mb-3 leading-tight">
+                  {msg.headline}
+                </h3>
+                <p className="text-sm text-slate-400 leading-relaxed mb-6">
+                  {msg.subline}
+                </p>
+                <Link
+                  href={msg.ctaHref}
+                  className="inline-flex items-center gap-2 text-sm font-bold text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  {msg.ctaLabel}
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* ================================================================
           7. GET STARTED CTA

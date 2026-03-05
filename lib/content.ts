@@ -2251,6 +2251,14 @@ export interface StoryboardScene {
   keyAction: string;
   overlayText: string | null;
   narrativeBeat: string;
+  /** Which user personas this scene resonates with most */
+  targetPersonas: ("solo-builder" | "team-lead" | "platform-engineer")[];
+  /** Whether this scene contains a call-to-action moment */
+  ctaMoment: boolean;
+  /** Production cues for the person recording (camera/screen direction) */
+  productionCues: string[];
+  /** The core objection this scene addresses, if any */
+  addressesObjection: string | null;
 }
 
 export interface RecordingBrief {
@@ -2259,6 +2267,8 @@ export interface RecordingBrief {
   framerate: number;
   format: string;
   recordingSettings: string[];
+  preRecordingChecklist: string[];
+  postProductionNotes: string[];
   scenes: StoryboardScene[];
 }
 
@@ -2273,6 +2283,27 @@ export const dashboardDemoStoryboard: RecordingBrief = {
     "Use a dark terminal theme that matches the website aesthetic.",
     "Disable notifications and status bar indicators that could leak personal info.",
     "Keep mouse movements smooth and deliberate — avoid fast cursor jitter.",
+    "Record in a clean terminal with at least 120x40 character dimensions.",
+    "Pre-populate the project with realistic agent names and message threads before recording.",
+  ],
+  preRecordingChecklist: [
+    "Verify Agent Mail server starts cleanly with `am` (no stale PID or port conflicts).",
+    "Pre-register 5-10 agents across at least 2 projects for realistic scale.",
+    "Seed 10-20 messages with varied subjects and thread depths for inbox/search demos.",
+    "Create 2-3 active file reservations with visible TTL countdowns.",
+    "Confirm search index is populated (`search_messages` returns results for common queries).",
+    "Test every scene's key action once to verify no errors or unexpected prompts.",
+    "Clear terminal scrollback so recording starts with a clean buffer.",
+    "Set up a second terminal or tmux pane for agent registration events (scene 2).",
+  ],
+  postProductionNotes: [
+    "Trim dead air at scene boundaries — keep transitions under 0.5s.",
+    "Add subtle fade transitions (0.3s cross-dissolve) between scenes.",
+    "Overlay text should appear 0.5s after each scene starts, using the website's font (Inter).",
+    "Encode final output as H.264 MP4 with CRF 23 for quality-size balance.",
+    "Generate a WebM fallback at the same resolution for broader browser support.",
+    "Extract a poster frame from scene 1 at the moment the TUI dashboard fully renders.",
+    "Total file size target: under 15MB for the MP4, under 12MB for WebM.",
   ],
   scenes: [
     {
@@ -2284,6 +2315,14 @@ export const dashboardDemoStoryboard: RecordingBrief = {
       keyAction: "Type 'am' and press Enter. The server initializes and the TUI launches.",
       overlayText: "One command to start",
       narrativeBeat: "Establish simplicity — a single command boots the entire coordination system.",
+      targetPersonas: ["solo-builder", "team-lead", "platform-engineer"],
+      ctaMoment: false,
+      productionCues: [
+        "Start with a blank terminal prompt. Pause 1s before typing.",
+        "Type 'am' at normal speed (not pasted). Let the boot output scroll naturally.",
+        "Hold the final TUI dashboard view for 2s before transitioning.",
+      ],
+      addressesObjection: null,
     },
     {
       id: "scene-2-agents-register",
@@ -2294,6 +2333,14 @@ export const dashboardDemoStoryboard: RecordingBrief = {
       keyAction: "Navigate to the Agents screen. Watch agent entries appear as they register.",
       overlayText: "Semi-persistent identity",
       narrativeBeat: "Demonstrate the identity system — agents get memorable names automatically.",
+      targetPersonas: ["team-lead", "platform-engineer"],
+      ctaMoment: false,
+      productionCues: [
+        "Use a second tmux pane or terminal to trigger macro_start_session calls.",
+        "Space registrations 2-3s apart so each new agent is visible individually.",
+        "Highlight the auto-generated adjective+noun names appearing in the list.",
+      ],
+      addressesObjection: "I do not want to depend on another tool",
     },
     {
       id: "scene-3-reservations",
@@ -2304,6 +2351,15 @@ export const dashboardDemoStoryboard: RecordingBrief = {
       keyAction: "Show reservation creation, the TTL timer, and a conflict detection.",
       overlayText: "Advisory, not rigid",
       narrativeBeat: "Show that reservations prevent conflicts without creating deadlocks.",
+      targetPersonas: ["solo-builder", "team-lead"],
+      ctaMoment: false,
+      productionCues: [
+        "Show the glob pattern (e.g. 'src/auth/**/*.ts') being reserved.",
+        "Let the TTL countdown tick visibly for 3-4 seconds.",
+        "Trigger a second agent's reservation attempt to show the conflict response.",
+        "Pause on the conflict message for 2s so viewers can read it.",
+      ],
+      addressesObjection: "Advisory locks will not work at scale",
     },
     {
       id: "scene-4-messaging",
@@ -2314,6 +2370,15 @@ export const dashboardDemoStoryboard: RecordingBrief = {
       keyAction: "Open inbox, click into a thread, show the full conversation.",
       overlayText: "Targeted, not broadcast",
       narrativeBeat: "Demonstrate that messages are addressed to specific agents, not broadcast-to-all.",
+      targetPersonas: ["solo-builder", "team-lead"],
+      ctaMoment: false,
+      productionCues: [
+        "Navigate to inbox showing 3-5 unread messages with varied subjects.",
+        "Click into a multi-reply thread (at least 3 messages deep).",
+        "Show the acknowledgment status (green checkmark) on at least one message.",
+        "Scroll through the thread slowly enough to read subject lines.",
+      ],
+      addressesObjection: "Our agents work fine without coordination",
     },
     {
       id: "scene-5-search",
@@ -2324,6 +2389,14 @@ export const dashboardDemoStoryboard: RecordingBrief = {
       keyAction: "Type a query, toggle between search modes, show ranked results.",
       overlayText: "Find anything, instantly",
       narrativeBeat: "Show the power of searchable audit trails across all agent communication.",
+      targetPersonas: ["platform-engineer"],
+      ctaMoment: false,
+      productionCues: [
+        "Type a natural query like 'auth module changes' character by character.",
+        "Show results appearing as you type (if incremental search is available).",
+        "Toggle to semantic mode briefly to show different ranking.",
+      ],
+      addressesObjection: null,
     },
     {
       id: "scene-6-scale",
@@ -2334,6 +2407,15 @@ export const dashboardDemoStoryboard: RecordingBrief = {
       keyAction: "Show the health dashboard with live metrics updating in real time.",
       overlayText: "40-50 agents, zero issues",
       narrativeBeat: "Prove the scale claim — show many agents coordinating smoothly.",
+      targetPersonas: ["platform-engineer", "team-lead"],
+      ctaMoment: true,
+      productionCues: [
+        "Ensure at least 10 agents are active before recording this scene.",
+        "Let the live metrics counter tick for a full 5s cycle.",
+        "Highlight the messages/sec and active agents counts.",
+        "This is the key proof-of-scale moment — hold the shot steady.",
+      ],
+      addressesObjection: "This adds too much complexity to our workflow",
     },
     {
       id: "scene-7-cta",
@@ -2344,6 +2426,810 @@ export const dashboardDemoStoryboard: RecordingBrief = {
       keyAction: "Navigate back to the main dashboard. Hold the shot.",
       overlayText: "mcpagentmail.com",
       narrativeBeat: "End with the full picture — a coordinated multi-agent workspace in action.",
+      targetPersonas: ["solo-builder", "team-lead", "platform-engineer"],
+      ctaMoment: true,
+      productionCues: [
+        "Navigate back to the main dashboard showing all panels active.",
+        "Hold completely still for 3s — no cursor movement, no typing.",
+        "The overlay URL should appear centered during the final 3s.",
+        "This frame will be used as the poster image if no poster is extracted from scene 1.",
+      ],
+      addressesObjection: null,
     },
   ],
 };
+
+// ─── Demo Media Asset Packaging Spec ─────────────────────────────────────────
+// Strict contract for user-provided dashboard recordings so replacements
+// swap in without regressions across devices/browsers.
+
+export interface MediaCodecSpec {
+  container: string;
+  videoCodec: string;
+  audioCodec: string | null;
+  profile: string;
+  maxBitrateKbps: number;
+  crf: number;
+}
+
+export interface MediaPackagingSpec {
+  /** Primary video format */
+  primary: MediaCodecSpec;
+  /** Fallback format for broader browser support */
+  fallback: MediaCodecSpec;
+  resolution: { width: number; height: number };
+  framerate: number;
+  maxDurationSeconds: number;
+  maxFileSizeMB: { primary: number; fallback: number };
+  posterFrame: {
+    format: string;
+    resolution: { width: number; height: number };
+    extractionRule: string;
+  };
+  captionSidecar: {
+    format: string;
+    encoding: string;
+    filenameConvention: string;
+  };
+  chapterSidecar: {
+    format: string;
+    encoding: string;
+    filenameConvention: string;
+  };
+  filenameConventions: Record<string, string>;
+  validationChecklist: string[];
+  ffmpegEncodeCommands: {
+    primary: string;
+    fallback: string;
+    posterExtract: string;
+  };
+}
+
+export const heroMediaPackagingSpec: MediaPackagingSpec = {
+  primary: {
+    container: "MP4",
+    videoCodec: "H.264 (libx264)",
+    audioCodec: null,
+    profile: "High",
+    maxBitrateKbps: 2500,
+    crf: 23,
+  },
+  fallback: {
+    container: "WebM",
+    videoCodec: "VP9 (libvpx-vp9)",
+    audioCodec: null,
+    profile: "Profile 0",
+    maxBitrateKbps: 2000,
+    crf: 30,
+  },
+  resolution: { width: 1920, height: 1080 },
+  framerate: 30,
+  maxDurationSeconds: 120,
+  maxFileSizeMB: { primary: 15, fallback: 12 },
+  posterFrame: {
+    format: "PNG",
+    resolution: { width: 1920, height: 1080 },
+    extractionRule: "Extract at the moment the TUI dashboard fully renders in Scene 1 (approx 00:08), or use the steady-hold frame from Scene 7 (approx 01:22).",
+  },
+  captionSidecar: {
+    format: "WebVTT (.vtt)",
+    encoding: "UTF-8",
+    filenameConvention: "agent-mail-dashboard.vtt",
+  },
+  chapterSidecar: {
+    format: "WebVTT (.vtt)",
+    encoding: "UTF-8",
+    filenameConvention: "agent-mail-dashboard-chapters.vtt",
+  },
+  filenameConventions: {
+    primaryVideo: "public/media/agent-mail-dashboard-placeholder.mp4",
+    fallbackVideo: "public/media/agent-mail-dashboard-placeholder.webm",
+    poster: "public/images/agent-mail-dashboard-poster-placeholder.png",
+    captions: "public/media/agent-mail-dashboard.vtt",
+    chapters: "public/media/agent-mail-dashboard-chapters.vtt",
+  },
+  validationChecklist: [
+    "Video resolution is exactly 1920x1080 (ffprobe -v error -select_streams v:0 -show_entries stream=width,height).",
+    "Framerate is 30fps (ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate).",
+    "Duration is under 120 seconds.",
+    "MP4 file size is under 15MB; WebM is under 12MB.",
+    "No audio track present (screen recording only, no narration).",
+    "MP4 uses H.264 High profile (ffprobe -v error -select_streams v:0 -show_entries stream=profile).",
+    "WebM uses VP9 (ffprobe -v error -select_streams v:0 -show_entries stream=codec_name).",
+    "Poster PNG exists at the expected path and matches 1920x1080.",
+    "Caption .vtt file is valid WebVTT (starts with 'WEBVTT' header, valid timestamps).",
+    "Chapter .vtt file has one entry per storyboard scene (7 chapters).",
+    "All files use the exact filenames defined in filenameConventions.",
+    "`bun run build` completes without warnings referencing missing media assets.",
+    "Video loads at / with poster, controls, captions track, and aria-label.",
+    "Reduced-motion fallback shows poster instead of autoplay (test with prefers-reduced-motion: reduce).",
+  ],
+  ffmpegEncodeCommands: {
+    primary: "ffmpeg -i raw-recording.mov -c:v libx264 -preset slow -crf 23 -profile:v high -an -movflags +faststart -r 30 -s 1920x1080 public/media/agent-mail-dashboard-placeholder.mp4",
+    fallback: "ffmpeg -i raw-recording.mov -c:v libvpx-vp9 -crf 30 -b:v 0 -an -r 30 -s 1920x1080 public/media/agent-mail-dashboard-placeholder.webm",
+    posterExtract: "ffmpeg -i public/media/agent-mail-dashboard-placeholder.mp4 -ss 00:00:08 -frames:v 1 public/images/agent-mail-dashboard-poster-placeholder.png",
+  },
+};
+
+// ─── Hero Demo Transcript, Captions & Chapters ──────────────────────────────
+// Aligned 1:1 with dashboardDemoStoryboard scenes. Provides:
+// - Full transcript text for SEO / screen readers / no-video fallback
+// - WebVTT-compatible caption cues for the <track> element
+// - Chapter markers for the chapters track
+// All timestamps use MM:SS.mmm format matching WebVTT spec.
+
+export interface CaptionCue {
+  startTime: string;
+  endTime: string;
+  text: string;
+}
+
+export interface ChapterMarker {
+  startTime: string;
+  endTime: string;
+  title: string;
+}
+
+export interface HeroDemoTranscript {
+  /** Plain-text transcript for SEO and no-video fallback contexts */
+  fullTranscript: string;
+  /** Individual caption cues aligned to video timecodes */
+  captions: CaptionCue[];
+  /** Chapter markers for video navigation */
+  chapters: ChapterMarker[];
+  /** Accessible summary for screen readers when video cannot play */
+  accessibleSummary: string;
+}
+
+export const heroDemoTranscript: HeroDemoTranscript = {
+  fullTranscript: [
+    "MCP Agent Mail: Multi-Agent Coordination in 90 Seconds.",
+    "",
+    "Scene 1 — Cold Start.",
+    "A single command — 'am' — boots the Agent Mail server. The TUI dashboard appears within seconds, ready to coordinate.",
+    "",
+    "Scene 2 — Agents Register.",
+    "Watch as agents join the workspace. Each receives a memorable adjective-noun identity: GreenCastle, BlueLake, RedHarbor. No manual configuration required — identities are auto-generated and semi-persistent across sessions.",
+    "",
+    "Scene 3 — File Reservations.",
+    "An agent reserves src/auth/**/*.ts with a TTL-based advisory lock. When a second agent attempts the same files, it receives a conflict signal and waits. No deadlocks — reservations expire automatically.",
+    "",
+    "Scene 4 — Targeted Messaging.",
+    "Agents exchange targeted messages through named inboxes. Thread views show full conversation history with acknowledgment status. Messages are addressed to specific agents, not broadcast to all.",
+    "",
+    "Scene 5 — Hybrid Search.",
+    "Type a query and results appear instantly. Toggle between lexical, semantic, and hybrid search modes. Every message, reservation, and agent action is searchable — a complete audit trail.",
+    "",
+    "Scene 6 — Scale Dashboard.",
+    "The health dashboard shows real-time metrics: active agents, messages per second, reservation counts, and connection pool status. Dozens of agents coordinate smoothly with zero contention.",
+    "",
+    "Scene 7 — Get Started.",
+    "MCP Agent Mail. Local-first multi-agent coordination that works. Visit mcpagentmail.com.",
+  ].join("\n"),
+
+  captions: [
+    { startTime: "00:00.000", endTime: "00:03.000", text: "MCP Agent Mail — multi-agent coordination in 90 seconds." },
+    { startTime: "00:03.000", endTime: "00:06.000", text: "One command to start. Type 'am' and press Enter." },
+    { startTime: "00:06.000", endTime: "00:10.000", text: "The server boots and the TUI dashboard appears." },
+    { startTime: "00:10.000", endTime: "00:14.000", text: "Agents register with auto-generated identities." },
+    { startTime: "00:14.000", endTime: "00:18.000", text: "GreenCastle, BlueLake, RedHarbor join the workspace." },
+    { startTime: "00:18.000", endTime: "00:22.000", text: "Semi-persistent names. No manual configuration." },
+    { startTime: "00:22.000", endTime: "00:25.000", text: "Now: advisory file reservations in action." },
+    { startTime: "00:25.000", endTime: "00:30.000", text: "An agent reserves src/auth files with a TTL-based lock." },
+    { startTime: "00:30.000", endTime: "00:35.000", text: "A second agent detects the conflict and waits gracefully." },
+    { startTime: "00:35.000", endTime: "00:38.000", text: "No deadlocks — reservations expire automatically." },
+    { startTime: "00:38.000", endTime: "00:42.000", text: "Targeted messaging through named agent inboxes." },
+    { startTime: "00:42.000", endTime: "00:47.000", text: "Thread views with full conversation history and ACK status." },
+    { startTime: "00:47.000", endTime: "00:52.000", text: "Messages are addressed, not broadcast. No noise." },
+    { startTime: "00:52.000", endTime: "00:55.000", text: "Hybrid search across all agent communication." },
+    { startTime: "00:55.000", endTime: "00:60.000", text: "Lexical, semantic, and hybrid modes. Sub-millisecond results." },
+    { startTime: "01:00.000", endTime: "01:03.000", text: "Every action is searchable — a complete audit trail." },
+    { startTime: "01:03.000", endTime: "01:08.000", text: "Scale dashboard: real-time metrics across all agents." },
+    { startTime: "01:08.000", endTime: "01:13.000", text: "Dozens of agents. Zero contention. Production-grade reliability." },
+    { startTime: "01:13.000", endTime: "01:18.000", text: "Messages per second, connection pools, reservation counts." },
+    { startTime: "01:18.000", endTime: "01:22.000", text: "MCP Agent Mail. Local-first coordination that works." },
+    { startTime: "01:22.000", endTime: "01:28.000", text: "Visit mcpagentmail.com to get started." },
+  ],
+
+  chapters: [
+    { startTime: "00:00.000", endTime: "00:10.000", title: "Cold Start" },
+    { startTime: "00:10.000", endTime: "00:25.000", title: "Agents Register" },
+    { startTime: "00:25.000", endTime: "00:40.000", title: "File Reservations" },
+    { startTime: "00:40.000", endTime: "00:55.000", title: "Targeted Messaging" },
+    { startTime: "00:55.000", endTime: "01:05.000", title: "Hybrid Search" },
+    { startTime: "01:05.000", endTime: "01:20.000", title: "Scale Dashboard" },
+    { startTime: "01:20.000", endTime: "01:30.000", title: "Get Started" },
+  ],
+
+  accessibleSummary:
+    "A 90-second walkthrough of MCP Agent Mail showing: server boot with a single command, " +
+    "auto-generated agent identities, TTL-based advisory file reservations with conflict detection, " +
+    "targeted inter-agent messaging with thread views and acknowledgment tracking, " +
+    "hybrid search across all agent communication, and a real-time scale dashboard " +
+    "demonstrating dozens of agents coordinating with zero contention.",
+};
+
+// ─── Community Testimonials (X/Twitter) ───────────────────────────────────────
+// Real tweets from the community about MCP Agent Mail, sourced from X.
+// These are liked/bookmarked posts and DMs expressing genuine enthusiasm.
+
+export interface CommunityTestimonial {
+  id: string;
+  author: string;
+  handle: string;
+  content: string;
+  date: string;
+  tweetUrl?: string;
+  tweetId?: string;
+  category: "endorsement" | "workflow" | "reaction" | "recommendation" | "technical";
+  likes?: number;
+}
+
+export const communityTestimonials: CommunityTestimonial[] = [
+  {
+    id: "ct-1",
+    author: "Community Member",
+    handle: "@rfgarcia",
+    content: "Agent Mail and Beads feel like the first \"agent-native\" tooling.",
+    date: "2025-12-08",
+    tweetUrl: "https://x.com/i/web/status/1998100767698506047",
+    tweetId: "1998100767698506047",
+    category: "endorsement",
+  },
+  {
+    id: "ct-2",
+    author: "Community Member",
+    handle: "@user",
+    content: "This MCP Agent Mail tool is a game-changer! Finally, a unified, open-source way for multiple coding agents to collaborate without conflicts.",
+    date: "2025-10-29",
+    tweetUrl: "https://x.com/i/web/status/1983135049844146430",
+    tweetId: "1983135049844146430",
+    category: "endorsement",
+  },
+  {
+    id: "ct-3",
+    author: "Community Member",
+    handle: "@user",
+    content: "Agent mail is a truly brain-melting experience the first time. Thanks for building it.",
+    date: "2025-12-16",
+    tweetUrl: "https://x.com/i/web/status/2001130619481502160",
+    tweetId: "2001130619481502160",
+    category: "endorsement",
+  },
+  {
+    id: "ct-4",
+    author: "Community Member",
+    handle: "@user",
+    content: "AGENT MAIL?! omfg i have so much to learn and so much token budget left to earn…",
+    date: "2025-10-25",
+    tweetUrl: "https://x.com/i/web/status/1984476067198046535",
+    tweetId: "1984476067198046535",
+    category: "reaction",
+  },
+  {
+    id: "ct-5",
+    author: "Community Member",
+    handle: "@joelhooks",
+    content: "use it with agent mail == holy grail",
+    date: "2025-12-01",
+    tweetUrl: "https://x.com/i/web/status/1995323125790089251",
+    tweetId: "1995323125790089251",
+    category: "endorsement",
+  },
+  {
+    id: "ct-6",
+    author: "Community Member",
+    handle: "@user",
+    content: "Built a mini-distributed system with your agents. That agent mail setup is clever - real microservices architecture for AI workflows.",
+    date: "2025-11-03",
+    tweetUrl: "https://x.com/i/web/status/1985021857423397168",
+    tweetId: "1985021857423397168",
+    category: "technical",
+  },
+  {
+    id: "ct-7",
+    author: "Community Member",
+    handle: "@user",
+    content: "thanks for agent mail. Here's a PR born out of my desire to get my agents to read their mail faster.",
+    date: "2026-01-06",
+    tweetUrl: "https://x.com/i/web/status/2008287705000722537",
+    tweetId: "2008287705000722537",
+    category: "technical",
+  },
+  {
+    id: "ct-8",
+    author: "Community Member",
+    handle: "@user",
+    content: "I put off installing agent mail for weeks as it felt daunting. Once I did, I wished I had done it sooner. It was easy and accelerated my agent productivity.",
+    date: "2025-12-14",
+    tweetUrl: "https://x.com/i/web/status/2000294625312129323",
+    tweetId: "2000294625312129323",
+    category: "endorsement",
+  },
+  {
+    id: "ct-9",
+    author: "Community Member",
+    handle: "@user",
+    content: "Thanks for sharing all of this Jeffrey. I used your agent mail mcp and described workflows on a project yesterday and 🤯",
+    date: "2025-11-08",
+    tweetUrl: "https://x.com/i/web/status/1987266230680510707",
+    tweetId: "1987266230680510707",
+    category: "endorsement",
+  },
+  {
+    id: "ct-10",
+    author: "Community Member",
+    handle: "@user",
+    content: "Mcp agent mail is great! You can use this to loop your agents in headless mode. They can just read messages, do work, keep going.",
+    date: "2025-11-08",
+    tweetUrl: "https://x.com/i/web/status/1987097578291535987",
+    tweetId: "1987097578291535987",
+    category: "workflow",
+  },
+  {
+    id: "ct-11",
+    author: "Community Member",
+    handle: "@user",
+    content: "I'll second Agent Mail from @doodlestein, there is something oddly satisfying seeing 30-40 emails going back and forth over a few hours of working.",
+    date: "2026-01-07",
+    tweetUrl: "https://x.com/i/web/status/2008767605650456841",
+    tweetId: "2008767605650456841",
+    category: "endorsement",
+  },
+  {
+    id: "ct-12",
+    author: "Community Member",
+    handle: "@user",
+    content: "heh, gpt 5.2 suggesting beads + agent mail for agent co-ordination (of course, i am already using them)",
+    date: "2025-12-13",
+    tweetUrl: "https://x.com/i/web/status/1999778297488826542",
+    tweetId: "1999778297488826542",
+    category: "recommendation",
+  },
+  {
+    id: "ct-13",
+    author: "Community Member",
+    handle: "@user",
+    content: "I appreciate you sharing your journey. I found Agent-Mail awhile back but had to learn for myself that I needed it :)",
+    date: "2025-12-15",
+    tweetUrl: "https://x.com/i/web/status/2000980487888683516",
+    tweetId: "2000980487888683516",
+    category: "endorsement",
+  },
+  {
+    id: "ct-14",
+    author: "Community Member",
+    handle: "@user",
+    content: "agent mail is fantastic, working well except I'm finding I have to do this quite often. Expected?",
+    date: "2025-12-04",
+    tweetUrl: "https://x.com/i/web/status/1996576822503379297",
+    tweetId: "1996576822503379297",
+    category: "endorsement",
+  },
+  {
+    id: "ct-15",
+    author: "Community Member",
+    handle: "@user",
+    content: "That's quite a helpful video, Jeffrey! Your MCP Agent Mail project seems really interesting; must check it out properly.",
+    date: "2025-11-08",
+    tweetUrl: "https://x.com/i/web/status/1987210127322284086",
+    tweetId: "1987210127322284086",
+    category: "endorsement",
+  },
+  {
+    id: "ct-16",
+    author: "Community Member",
+    handle: "@user",
+    content: "i like this pattern of \"swarming\" with coding agents using beads and agent mail to coordinate so packaged the pattern into an @opencode plugin",
+    date: "2025-12-07",
+    tweetUrl: "https://x.com/i/web/status/1997887597474148412",
+    tweetId: "1997887597474148412",
+    category: "workflow",
+  },
+  {
+    id: "ct-17",
+    author: "Community Member",
+    handle: "@user",
+    content: "Currently testing out beads combined with mcp_agent_mail and also bv. My head is spinning, exciting times. So much power in all of this tooling.",
+    date: "2025-12-16",
+    tweetUrl: "https://x.com/i/web/status/2001289224838893776",
+    tweetId: "2001289224838893776",
+    category: "endorsement",
+  },
+  {
+    id: "ct-18",
+    author: "Community Member",
+    handle: "@user",
+    content: "Wow! This MCP Agent Mail is a brilliant idea. Will try it! We need more tools like that to ease the orchestration of several agents.",
+    date: "2025-11-25",
+    tweetUrl: "https://x.com/i/web/status/1994693648806465937",
+    tweetId: "1994693648806465937",
+    category: "endorsement",
+  },
+  {
+    id: "ct-19",
+    author: "Community Member",
+    handle: "@user",
+    content: "alright that's it jeff, this is getting out of hand. i'm setting agent mail and beads up today. will report back",
+    date: "2025-11-25",
+    tweetUrl: "https://x.com/i/web/status/1994768684276224184",
+    tweetId: "1994768684276224184",
+    category: "reaction",
+  },
+  {
+    id: "ct-20",
+    author: "Community Member",
+    handle: "@user",
+    content: "The only correct answer to this is mcp agent mail by @doodlestein",
+    date: "2025-12-31",
+    tweetUrl: "https://x.com/i/web/status/2006099437144199479",
+    tweetId: "2006099437144199479",
+    category: "recommendation",
+  },
+  {
+    id: "ct-21",
+    author: "Community Member",
+    handle: "@user",
+    content: "Check out @doodlestein's workflow with Agent MCP Mail + beads + bv + cass.",
+    date: "2025-12-19",
+    tweetUrl: "https://x.com/i/web/status/2002049476983406962",
+    tweetId: "2002049476983406962",
+    category: "recommendation",
+  },
+  {
+    id: "ct-22",
+    author: "Community Member",
+    handle: "@user",
+    content: "Mail + beads works; Cass is probably like what you're looking for, for memory. There are multiple 'agent mail' projects out there, but this one is what I tried too, it works and agents don't forget it.",
+    date: "2025-12-20",
+    tweetUrl: "https://x.com/i/web/status/2002231776148967709",
+    tweetId: "2002231776148967709",
+    category: "recommendation",
+  },
+  {
+    id: "ct-23",
+    author: "Community Member",
+    handle: "@user",
+    content: "OK. Fine. I'll give agent mail another try. 😂",
+    date: "2026-01-08",
+    tweetUrl: "https://x.com/i/web/status/2009279032400007330",
+    tweetId: "2009279032400007330",
+    category: "reaction",
+  },
+  {
+    id: "ct-24",
+    author: "Community Member",
+    handle: "@user",
+    content: "yep, this is the way. have been trying out agent mail this week. will share thoughts! but so far so good",
+    date: "2026-01-09",
+    tweetUrl: "https://x.com/i/web/status/2009830753941573812",
+    tweetId: "2009830753941573812",
+    category: "endorsement",
+  },
+  {
+    id: "ct-25",
+    author: "Community Member",
+    handle: "@user",
+    content: "lmao exactly what I was doing with it last night. I watched your agent mail youtube and then I was like this guy is on to something. ACFS is really well done, you should be proud.",
+    date: "2026-01-08",
+    tweetUrl: "https://x.com/i/web/status/2009128713292759127",
+    tweetId: "2009128713292759127",
+    category: "endorsement",
+  },
+  {
+    id: "ct-26",
+    author: "Community Member",
+    handle: "@user",
+    content: "One of my buddies linked agent flywheel to me in discord... I stayed up until 3am playing with it. Honestly the bead viewer and agent mail is what peaked my interest.",
+    date: "2026-01-08",
+    tweetUrl: "https://x.com/i/web/status/2009127301737574645",
+    tweetId: "2009127301737574645",
+    category: "endorsement",
+  },
+  {
+    id: "ct-27",
+    author: "Community Member",
+    handle: "@user",
+    content: "Average Agent Mail processing time: 12 milliseconds, consistently.",
+    date: "2025-12-31",
+    tweetUrl: "https://x.com/i/web/status/2006507893336756354",
+    tweetId: "2006507893336756354",
+    category: "technical",
+  },
+  {
+    id: "ct-28",
+    author: "Community Member",
+    handle: "@user",
+    content: "Prototyping File Reservation Visualization for @doodlestein's agent mail",
+    date: "2026-01-03",
+    tweetUrl: "https://x.com/i/web/status/2007213943169921276",
+    tweetId: "2007213943169921276",
+    category: "technical",
+  },
+  {
+    id: "ct-29",
+    author: "Community Member",
+    handle: "@kevinrose",
+    content: "@doodlestein's agent mail seems like a promising first step",
+    date: "2025-11-03",
+    tweetUrl: "https://x.com/i/web/status/1985035076191527322",
+    tweetId: "1985035076191527322",
+    category: "recommendation",
+  },
+  {
+    id: "ct-30",
+    author: "Community Member",
+    handle: "@user",
+    content: "This is a very interesting take using agent mail between coding agents",
+    date: "2025-10-25",
+    tweetUrl: "https://x.com/i/web/status/1984454057373655389",
+    tweetId: "1984454057373655389",
+    category: "endorsement",
+  },
+  {
+    id: "ct-31",
+    author: "Community Member",
+    handle: "@user",
+    content: "The pattern I have settled on for the moment is I launch a quad code CLI and tell it to register in agent mail as black cat and tell it it's in charge of the project and code reviews as well as running tests.",
+    date: "2025-12-15",
+    tweetUrl: "https://x.com/i/web/status/2000987977212649539",
+    tweetId: "2000987977212649539",
+    category: "workflow",
+  },
+  {
+    id: "ct-32",
+    author: "Community Member",
+    handle: "@user",
+    content: "fun prompt: 'Before doing anything else, read ALL of AGENTS dot md and register with agent mail…' Very cute idea to send letters to each other.",
+    date: "2025-10-25",
+    tweetUrl: "https://x.com/i/web/status/1984505082482929749",
+    tweetId: "1984505082482929749",
+    category: "reaction",
+  },
+  {
+    id: "ct-33",
+    author: "Community Member",
+    handle: "@user",
+    content: "I think @doodlestein's 'Agent mail' project is pull-based.",
+    date: "2026-01-07",
+    tweetUrl: "https://x.com/i/web/status/2008910148308218335",
+    tweetId: "2008910148308218335",
+    category: "technical",
+  },
+  {
+    id: "ct-34",
+    author: "Community Member",
+    handle: "@user",
+    content: "beads is legit. also check out @doodlestein's mcp_agent_mail repo which can integrate with beads",
+    date: "2025-12-10",
+    tweetUrl: "https://x.com/i/web/status/1999149420873740780",
+    tweetId: "1999149420873740780",
+    category: "recommendation",
+  },
+  {
+    id: "ct-35",
+    author: "Community Member",
+    handle: "@user",
+    content: "I do. Fan of agent mail. Would love something tailored to your current workflows.",
+    date: "2026-01-15",
+    tweetUrl: "https://x.com/i/web/status/2011382899287982293",
+    tweetId: "2011382899287982293",
+    category: "endorsement",
+  },
+  {
+    id: "ct-36",
+    author: "Community Member",
+    handle: "@user",
+    content: "Agent-to-agent communication (vs. sub-agents) is extremely powerful. @doodlestein's agent mail system provides this via MCP.",
+    date: "2025-12-08",
+    tweetUrl: "https://x.com/i/web/status/1998094500015886668",
+    tweetId: "1998094500015886668",
+    category: "technical",
+  },
+  {
+    id: "ct-37",
+    author: "DM User",
+    handle: "@user",
+    content: "Agent mail is awesome! Thanks for making it.",
+    date: "2025-11-06",
+    category: "endorsement",
+  },
+  {
+    id: "ct-38",
+    author: "DM User",
+    handle: "@user",
+    content: "love agent mail",
+    date: "2025-12-22",
+    category: "endorsement",
+  },
+  {
+    id: "ct-39",
+    author: "Community Member",
+    handle: "@user",
+    content: "I highly recommend setting up an Agent Flywheel on a VPS/VM/available machine, adapting one of @doodlestein's agents dot md files, and trying a multi-agent workflow.",
+    date: "2026-01-12",
+    tweetUrl: "https://x.com/i/web/status/2010567596807188783",
+    tweetId: "2010567596807188783",
+    category: "recommendation",
+  },
+  {
+    id: "ct-40",
+    author: "Community Member",
+    handle: "@user",
+    content: "Look at @doodlestein's MCP Agent Mail project that's implemented this.",
+    date: "2026-01-17",
+    tweetUrl: "https://x.com/i/web/status/2012247030291464488",
+    tweetId: "2012247030291464488",
+    category: "recommendation",
+  },
+  {
+    id: "ct-41",
+    author: "Community Member",
+    handle: "@user",
+    content: "There is even an MCP server for agent mail between each other to do just this.",
+    date: "2025-11-03",
+    tweetUrl: "https://x.com/i/web/status/1985011699305377921",
+    tweetId: "1985011699305377921",
+    category: "recommendation",
+  },
+  {
+    id: "ct-42",
+    author: "Community Member",
+    handle: "@user",
+    content: "here goes nothing, going to give @doodlestein's agent mail a try and see how far i get with the docs",
+    date: "2025-12-15",
+    tweetUrl: "https://x.com/i/web/status/2000949729308647486",
+    tweetId: "2000949729308647486",
+    category: "reaction",
+  },
+  {
+    id: "ct-43",
+    author: "Community Member",
+    handle: "@user",
+    content: "scripts/automatically_detect_all_installed_coding_agents_and_install_mcp_agent_mail_in_all.sh — huuuuge",
+    date: "2025-10-27",
+    tweetUrl: "https://x.com/i/web/status/1982804307771588865",
+    tweetId: "1982804307771588865",
+    category: "technical",
+  },
+  {
+    id: "ct-44",
+    author: "Community Member",
+    handle: "@user",
+    content: "That's the setup I use often with agent mail.",
+    date: "2025-12-28",
+    tweetUrl: "https://x.com/i/web/status/2005387585628356682",
+    tweetId: "2005387585628356682",
+    category: "workflow",
+  },
+  {
+    id: "ct-45",
+    author: "Community Member",
+    handle: "@user",
+    content: "you can do this with a cheap vps. ssh, git, & beads, maybe agent mail",
+    date: "2025-12-22",
+    tweetUrl: "https://x.com/i/web/status/2003302392167850197",
+    tweetId: "2003302392167850197",
+    category: "workflow",
+  },
+];
+
+// ─── Structured Data (JSON-LD) ──────────────────────────────────────────────
+// Schema.org structured data generators for SEO rich results.
+// Used by page components to emit <script type="application/ld+json"> tags.
+
+export function getSoftwareApplicationJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: siteConfig.name,
+    description: siteConfig.description,
+    url: siteConfig.url,
+    applicationCategory: "DeveloperApplication",
+    operatingSystem: "Linux, macOS, Windows",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
+    },
+    author: {
+      "@type": "Person",
+      name: "Jeffrey Emanuel",
+      url: siteConfig.social.authorGithub,
+    },
+    codeRepository: siteConfig.github,
+    programmingLanguage: "Rust",
+    runtimePlatform: "MCP (Model Context Protocol)",
+  };
+}
+
+export function getVideoObjectJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "VideoObject",
+    name: "MCP Agent Mail Dashboard Demo",
+    description: heroDemoTranscript.accessibleSummary,
+    thumbnailUrl: `${siteConfig.url}/images/agent-mail-dashboard-poster-placeholder.svg`,
+    uploadDate: "2026-01-01",
+    duration: `PT${dashboardDemoStoryboard.totalDurationSeconds}S`,
+    contentUrl: `${siteConfig.url}/media/agent-mail-dashboard-placeholder.mp4`,
+    transcript: heroDemoTranscript.fullTranscript,
+    inLanguage: "en",
+    publisher: {
+      "@type": "Person",
+      name: "Jeffrey Emanuel",
+      url: siteConfig.social.authorGithub,
+    },
+  };
+}
+
+export function getFaqPageJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faq.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.answer,
+      },
+    })),
+  };
+}
+
+export function getWebSiteJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: siteConfig.name,
+    url: siteConfig.url,
+    description: siteConfig.description,
+    publisher: {
+      "@type": "Person",
+      name: "Jeffrey Emanuel",
+      url: siteConfig.social.authorGithub,
+    },
+  };
+}
+
+export function getHowToJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: "Get Started with MCP Agent Mail",
+    description: "Set up multi-agent coordination for AI coding agents in under 5 minutes.",
+    step: [
+      {
+        "@type": "HowToStep",
+        position: 1,
+        name: "Install",
+        text: "Install via cargo: cargo install mcp_agent_mail_rust, or use the pre-built binary from GitHub Releases.",
+      },
+      {
+        "@type": "HowToStep",
+        position: 2,
+        name: "Start the server",
+        text: "Run 'am' to start the Agent Mail server. The TUI dashboard appears automatically.",
+      },
+      {
+        "@type": "HowToStep",
+        position: 3,
+        name: "Configure your AI agent",
+        text: "Add the MCP Agent Mail server to your AI coding agent's MCP configuration (Claude Code, Cursor, etc).",
+      },
+      {
+        "@type": "HowToStep",
+        position: 4,
+        name: "Bootstrap a session",
+        text: "Call macro_start_session to register your agent, create the project, and fetch the inbox in one step.",
+      },
+      {
+        "@type": "HowToStep",
+        position: 5,
+        name: "Coordinate",
+        text: "Use file reservations to prevent conflicts, send targeted messages between agents, and search the full audit trail.",
+      },
+    ],
+  };
+}

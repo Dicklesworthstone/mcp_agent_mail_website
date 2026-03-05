@@ -17,6 +17,7 @@ const EProcessMonitorViz = dynamic(() => import("@/components/viz/eprocess-monit
 const MacaroonCapabilityViz = dynamic(() => import("@/components/viz/macaroon-capability-viz"), { ssr: false });
 const SagaCompensationViz = dynamic(() => import("@/components/viz/saga-compensation-viz"), { ssr: false });
 const SystemTopologyViz = dynamic(() => import("@/components/viz/system-topology-viz"), { ssr: false });
+const SearchV3PipelineViz = dynamic(() => import("@/components/viz/search-v3-pipeline-viz"), { ssr: false });
 
 const CAPABILITY_TIERS = [
   { tier: "FiberCap", color: "#64748B", desc: "Compute-only. No spawning, no I/O, no timers.", width: 100 },
@@ -517,6 +518,37 @@ Region::open(cx, "server", async |cx| {
               Consecutive <Tooltip term="Monotone Operation">monotone operations</Tooltip> are batched without
               any <Tooltip term="Coordination Barrier">coordination barriers</Tooltip> — synchronization is inserted
               only where the math demands it.
+            </p>
+          </div>
+        </div>
+      </SectionShell>
+
+      {/* ================================================================
+          SEARCH V3 HYBRID PIPELINE
+          ================================================================ */}
+      <SectionShell
+        id="search-pipeline"
+        icon="sparkles"
+        eyebrow="Search Infrastructure"
+        title="Hybrid Search V3"
+        kicker="Two-tier retrieval combining SQLite FTS5 lexical search with semantic embeddings, fused via Reciprocal Rank Fusion and budget-constrained reranking."
+      >
+        <div className="space-y-6">
+          <SyncContainer withPulse={true} accentColor="#6366F1" className="p-1 md:p-2 bg-black/40 shadow-2xl shadow-indigo-900/20">
+            <SearchV3PipelineViz />
+          </SyncContainer>
+
+          <div className="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              Agent Mail&apos;s search pipeline parses incoming queries, splits retrieval budget across lexical
+              and semantic tiers, then fuses candidates via <strong className="text-indigo-300">Reciprocal Rank Fusion</strong> (RRF).
+              Field-based filters (subject:, body:, from:) narrow scope before scoring. Cross-project queries
+              reach through the <Tooltip term="Product Bus">product bus</Tooltip> to search linked repositories.
+            </p>
+            <p>
+              When embedding infrastructure is unavailable, the pipeline gracefully degrades to lexical-only mode.
+              If FTS5 also fails, a chronological fallback scan ensures agents always get results — with
+              clear diagnostics about which tier was skipped and why.
             </p>
           </div>
         </div>

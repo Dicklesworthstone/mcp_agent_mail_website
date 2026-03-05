@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
-import { siteConfig } from "@/lib/content";
+import { siteConfig, getWebSiteJsonLd, getSoftwareApplicationJsonLd } from "@/lib/content";
+import { JsonLd } from "@/components/json-ld";
 import ClientShell from "@/components/client-shell";
 import "./globals.css";
 
@@ -78,6 +79,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
+      <head>
+        <JsonLd data={getWebSiteJsonLd()} />
+        <JsonLd data={getSoftwareApplicationJsonLd()} />
+      </head>
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >

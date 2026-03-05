@@ -15,7 +15,10 @@ import {
   gettingStartedMcpConfigSnippet,
   gettingStartedFaq,
   gettingStartedPillars,
+  getFaqPageJsonLd,
+  getHowToJsonLd,
 } from "@/lib/content";
+import { JsonLd } from "@/components/json-ld";
 
 export default function GettingStartedPage() {
   const [copied, setCopied] = useState(false);
@@ -48,6 +51,8 @@ export default function GettingStartedPage() {
 
   return (
     <main id="main-content">
+      <JsonLd data={getFaqPageJsonLd()} />
+      <JsonLd data={getHowToJsonLd()} />
       {/* Cinematic Header */}
       <section
         id="getting-started-hero"
