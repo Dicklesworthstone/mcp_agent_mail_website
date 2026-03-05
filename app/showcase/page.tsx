@@ -36,6 +36,12 @@ const TraceReplayStabilityViz = dynamic(() => import("@/components/viz/trace-rep
 const SagaCompensationViz = dynamic(() => import("@/components/viz/saga-compensation-viz"), { ssr: false });
 const SmallStepSemanticsViz = dynamic(() => import("@/components/viz/small-step-semantics-viz"), { ssr: false });
 
+const FileReservationViz = dynamic(() => import("@/components/viz/file-reservation-viz"), { ssr: false });
+const AgentHandshakeViz = dynamic(() => import("@/components/viz/agent-handshake-viz"), { ssr: false });
+const McpArchitectureViz = dynamic(() => import("@/components/viz/mcp-architecture-viz"), { ssr: false });
+const McpBeadsIntegrationViz = dynamic(() => import("@/components/viz/mcp-beads-integration-viz"), { ssr: false });
+const SearchV3PipelineViz = dynamic(() => import("@/components/viz/search-v3-pipeline-viz"), { ssr: false });
+
 function VizLoader() {
   return (
     <div className="flex items-center justify-center h-64 text-slate-600 text-sm font-mono">
@@ -69,7 +75,7 @@ export default function ShowcasePage() {
             </h1>
           </GlitchText>
           <p className="text-xl text-slate-400 font-medium max-w-2xl mx-auto">
-            Explore Asupersync&apos;s key concepts through interactive visualizations.
+            Explore Agent Mail&apos;s key concepts through interactive visualizations.
           </p>
         </div>
       </section>
@@ -101,6 +107,126 @@ export default function ShowcasePage() {
               Toggle <code className="text-blue-400 font-mono">ack_required</code> to compare explicit
               acknowledgement workflows against standard read-only delivery. Both paths remain searchable and
               replayable through thread and search surfaces.
+            </p>
+          </div>
+        </div>
+      </SectionShell>
+
+      {/* ================================================================
+          0.1 Agent Handshake Protocol
+          ================================================================ */}
+      <SectionShell
+        id="agent-handshake"
+        icon="shield"
+        eyebrow="Trust & Consent"
+        title="Agent Handshake Protocol"
+        kicker="Agents must explicitly request and approve contact before messaging each other."
+      >
+        <div className="space-y-6">
+          <SyncContainer withPulse={true} className="p-4 md:p-8">
+            <Suspense fallback={<VizLoader />}>
+              <AgentHandshakeViz />
+            </Suspense>
+          </SyncContainer>
+          <div className="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              To prevent an adversarial or uncoordinated swarm from spamming each other, Agent Mail enforces a strict handshake.
+            </p>
+          </div>
+        </div>
+      </SectionShell>
+
+      {/* ================================================================
+          0.2 File Reservations
+          ================================================================ */}
+      <SectionShell
+        id="file-reservations"
+        icon="lock"
+        eyebrow="Conflict Prevention"
+        title="Advisory File Reservations"
+        kicker="Agents use TTL-based locks to signal intent and avoid stepping on each other's edits."
+      >
+        <div className="space-y-6">
+          <SyncContainer withPulse={true} className="p-4 md:p-8">
+            <Suspense fallback={<VizLoader />}>
+              <FileReservationViz />
+            </Suspense>
+          </SyncContainer>
+          <div className="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              Before editing a file, an agent requests a lock via MCP. If another agent holds it, they get an advisory conflict warning.
+            </p>
+          </div>
+        </div>
+      </SectionShell>
+
+      {/* ================================================================
+          0.3 Beads Integration
+          ================================================================ */}
+      <SectionShell
+        id="beads-integration"
+        icon="gitMerge"
+        eyebrow="Task Tracking"
+        title="Beads Integration"
+        kicker="Reservations and messages are inextricably linked to 'br' issue tracking."
+      >
+        <div className="space-y-6">
+          <SyncContainer withPulse={true} className="p-4 md:p-8">
+            <Suspense fallback={<VizLoader />}>
+              <McpBeadsIntegrationViz />
+            </Suspense>
+          </SyncContainer>
+          <div className="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              By passing the issue ID to reservation requests, the entire swarm knows exactly why a file is locked.
+            </p>
+          </div>
+        </div>
+      </SectionShell>
+
+      {/* ================================================================
+          0.4 MCP Architecture
+          ================================================================ */}
+      <SectionShell
+        id="mcp-architecture"
+        icon="network"
+        eyebrow="System Design"
+        title="MCP Architecture"
+        kicker="The Model Context Protocol connects LLM clients directly to the Rust-backed mail server."
+      >
+        <div className="space-y-6">
+          <SyncContainer withPulse={true} className="p-4 md:p-8">
+            <Suspense fallback={<VizLoader />}>
+              <McpArchitectureViz />
+            </Suspense>
+          </SyncContainer>
+          <div className="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              Under the hood, Agent Mail acts as an MCP server providing tools over stdio/HTTP. It persists everything locally to SQLite.
+            </p>
+          </div>
+        </div>
+      </SectionShell>
+
+      {/* ================================================================
+          0.5 Search V3 Hybrid Pipeline
+          ================================================================ */}
+      <SectionShell
+        id="search-v3-pipeline"
+        icon="sparkles"
+        eyebrow="Search Infrastructure"
+        title="Hybrid Search V3 Pipeline"
+        kicker="Two-tier fusion combining lexical FTS5 and semantic embedding retrieval with reciprocal rank fusion."
+      >
+        <div className="space-y-6">
+          <SyncContainer withPulse={true} className="p-4 md:p-8">
+            <Suspense fallback={<VizLoader />}>
+              <SearchV3PipelineViz />
+            </Suspense>
+          </SyncContainer>
+          <div className="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              Search V3 parses queries, routes them through lexical and semantic tiers with budget-derived candidate caps, fuses results via RRF, and applies field-match and recency reranking. When tiers fail, the pipeline gracefully degrades to a chronological fallback scan.
             </p>
           </div>
         </div>
