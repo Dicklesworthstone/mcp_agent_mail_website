@@ -45,6 +45,9 @@ const TuiScreensViz = dynamic(() => import("@/components/viz/tui-screens-viz"), 
 const RobotModeViz = dynamic(() => import("@/components/viz/robot-mode-viz"), { ssr: false });
 const ProductBusViz = dynamic(() => import("@/components/viz/product-bus-viz"), { ssr: false });
 const ReliabilityInternalsViz = dynamic(() => import("@/components/viz/reliability-internals-viz"), { ssr: false });
+const BuildSlotCoordinatorViz = dynamic(() => import("@/components/viz/build-slot-coordinator-viz"), { ssr: false });
+const HumanOverseerViz = dynamic(() => import("@/components/viz/human-overseer-viz"), { ssr: false });
+const DualModeInterfaceViz = dynamic(() => import("@/components/viz/dual-mode-interface-viz"), { ssr: false });
 
 function VizLoader() {
   return (
@@ -135,6 +138,11 @@ export default function ShowcasePage() {
           <div className="space-y-4 text-slate-400 leading-relaxed">
             <p>
               To prevent an adversarial or uncoordinated swarm from spamming each other, Agent Mail enforces a strict handshake.
+              The visualization now includes both approval and rejection branches so you can compare downstream behavior.
+            </p>
+            <p>
+              Watch for the state boundary where permission flips from blocked to trusted. That transition is
+              explicit, logged, and queryable, which is critical for post-incident reasoning.
             </p>
           </div>
         </div>
@@ -160,6 +168,10 @@ export default function ShowcasePage() {
             <p>
               Before editing a file, an agent requests a lock via MCP. If another agent holds it, they get an advisory conflict warning.
             </p>
+            <p>
+              Step through enforce, warn, and bypass guard modes to see how policy changes commit/push outcomes
+              without hiding ownership intent or stale-lock recovery mechanics.
+            </p>
           </div>
         </div>
       </SectionShell>
@@ -183,6 +195,10 @@ export default function ShowcasePage() {
           <div className="space-y-4 text-slate-400 leading-relaxed">
             <p>
               By passing the issue ID to reservation requests, the entire swarm knows exactly why a file is locked.
+            </p>
+            <p>
+              In discovered-work mode, the demo shows how newly uncovered tasks link back to the parent bead
+              instead of becoming disconnected TODO noise.
             </p>
           </div>
         </div>
@@ -208,6 +224,9 @@ export default function ShowcasePage() {
             <p>
               Under the hood, Agent Mail acts as an MCP server providing tools over stdio/HTTP. It persists everything locally to SQLite.
             </p>
+            <p>
+              Use the mode toggles to compare message, reservation, and search request paths on the same architecture diagram.
+            </p>
           </div>
         </div>
       </SectionShell>
@@ -231,6 +250,9 @@ export default function ShowcasePage() {
           <div className="space-y-4 text-slate-400 leading-relaxed">
             <p>
               Search V3 parses queries, routes them through lexical and semantic tiers with budget-derived candidate caps, fuses results via RRF, and applies field-match and recency reranking. When tiers fail, the pipeline gracefully degrades to a chronological fallback scan.
+            </p>
+            <p>
+              Keep the same query preset while switching modes to see exactly how recall, relevance, and latency shift.
             </p>
           </div>
         </div>
@@ -258,6 +280,10 @@ export default function ShowcasePage() {
               and surfaces the primary signals needed for operators to make fast decisions. Jump keys provide
               O(1) navigation to any screen.
             </p>
+            <p>
+              Filter by category, then inspect the selected screen&apos;s core question to understand the information
+              architecture logic behind every jump key.
+            </p>
           </div>
         </div>
       </SectionShell>
@@ -284,6 +310,9 @@ export default function ShowcasePage() {
               The toon format minimizes token usage, JSON provides full data fidelity for programmatic use,
               and Markdown renders threads and messages for human-readable contexts.
             </p>
+            <p>
+              The command recipe panel demonstrates a practical sequence agents can run to triage, decide, and report.
+            </p>
           </div>
         </div>
       </SectionShell>
@@ -309,6 +338,9 @@ export default function ShowcasePage() {
               The product bus groups multiple repositories under a shared product umbrella. Once linked,
               agents can search across all repos, send messages to agents in other projects using
               name@project addressing, and coordinate via contact governance policies.
+            </p>
+            <p>
+              The stepper now makes the governance order explicit: contact policy resolution precedes cross-project messaging.
             </p>
           </div>
         </div>
@@ -343,6 +375,87 @@ export default function ShowcasePage() {
               submissions. Four independent worker loops — ACK processing, retention enforcement, metrics
               collection, and integrity checking — each recover gracefully from stalls without blocking
               the others.
+            </p>
+            <p>
+              Toggle between normal and stress profiles to see how queue pressure and commit latency move under load.
+            </p>
+          </div>
+        </div>
+      </SectionShell>
+
+      {/* ================================================================
+          0.10 Dual-Mode Interface Safety
+          ================================================================ */}
+      <SectionShell
+        id="dual-mode-interface"
+        icon="terminal"
+        eyebrow="Mode Security"
+        title="Dual-Mode Surface Isolation"
+        kicker="Strict entrypoint separation prevents agents from hallucinating infinite TUI interactions."
+      >
+        <div className="space-y-6">
+          <SyncContainer withPulse={true} className="p-4 md:p-8">
+            <Suspense fallback={<VizLoader />}>
+              <DualModeInterfaceViz />
+            </Suspense>
+          </SyncContainer>
+          <div className="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              If a coding agent accidentally executes the human operator CLI (<code className="text-blue-400 font-mono">am</code>), 
+              the system immediately exits with code 2. This prevents the LLM from burning thousands of tokens trying to parse and interact with 
+              ANSI escape sequences in an interactive terminal application.
+            </p>
+          </div>
+        </div>
+      </SectionShell>
+
+      {/* ================================================================
+          0.11 Build Slot Coordination
+          ================================================================ */}
+      <SectionShell
+        id="build-slot-coordination"
+        icon="cpu"
+        eyebrow="Resource Management"
+        title="Advisory Build Slots"
+        kicker="Prevent heavy concurrent compilations from thrashing CPU or corrupting the Cargo target directory lock."
+      >
+        <div className="space-y-6">
+          <SyncContainer withPulse={true} className="p-4 md:p-8">
+            <Suspense fallback={<VizLoader />}>
+              <BuildSlotCoordinatorViz />
+            </Suspense>
+          </SyncContainer>
+          <div className="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              When multiple agents attempt to compile the same codebase concurrently, it leads to massive performance degradation and lock conflicts. 
+              The <code className="text-blue-400 font-mono">acquire_build_slot</code> tool allows agents to request mutually exclusive runtime 
+              leases on critical computational resources.
+            </p>
+          </div>
+        </div>
+      </SectionShell>
+
+      {/* ================================================================
+          0.12 Human Overseer Injection
+          ================================================================ */}
+      <SectionShell
+        id="human-overseer"
+        icon="shield"
+        eyebrow="Agent Steering"
+        title="Human Overseer Control"
+        kicker="Send absolute-priority override messages directly into any agent's inbox via the Web UI."
+      >
+        <div className="space-y-6">
+          <SyncContainer withPulse={true} className="p-4 md:p-8">
+            <Suspense fallback={<VizLoader />}>
+              <HumanOverseerViz />
+            </Suspense>
+          </SyncContainer>
+          <div className="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              Traditional prompt engineering requires killing the agent session to provide feedback. 
+              The Human Overseer mechanism injects messages with <code className="text-blue-400 font-mono">importance: urgent</code> 
+              that bypass all standard contact policies. This allows operators to seamlessly pause, pivot, or unblock autonomous swarms mid-execution.
             </p>
           </div>
         </div>
