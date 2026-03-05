@@ -4,9 +4,12 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "@/components/motion";
 import {
   VizControlButton,
-  VizSurface
+  VizHeader,
+  VizLearningBlock,
+  VizMetricCard,
+  VizSurface,
 } from "@/components/viz/viz-framework";
-import { Cpu, Terminal, ShieldAlert, CheckCircle2, Lock, LockOpen, Server, Hammer } from "lucide-react";
+import { Cpu, ShieldAlert, CheckCircle2, Lock, LockOpen, Cog, Terminal } from "lucide-react";
 
 type BuildState = "idle" | "agent1_req" | "agent1_building" | "agent2_req" | "agent2_blocked" | "agent1_done" | "agent2_building" | "agent2_done";
 
@@ -43,118 +46,135 @@ export default function BuildSlotCoordinatorViz() {
   const isBuilding2 = ["agent2_building"].includes(state);
   const cpuLoad = isBuilding1 || isBuilding2 ? "High (98%)" : "Low (2%)";
   const cpuColor = isBuilding1 || isBuilding2 ? "text-orange-500" : "text-emerald-500";
+  const cpuBg = isBuilding1 || isBuilding2 ? "bg-orange-500/10 border-orange-500/30" : "bg-emerald-500/10 border-emerald-500/30";
 
   return (
     <VizSurface aria-label="Build Slot Coordinator Mechanism">
-      <div className="mb-6">
-        <h3 className="text-xl font-black text-white">Build Slot Coordination</h3>
-        <p className="mt-2 text-sm text-slate-400">
-          Agents use advisory build slots to prevent CPU thrashing and dependency lock contention during heavy compilations.
-        </p>
+      <VizHeader
+        accent="amber"
+        eyebrow="Resource Management"
+        title="Advisory Build Slots"
+        subtitle="Prevent heavy concurrent compilations from thrashing CPU or corrupting the Cargo target directory lock."
+        controls={
+          <VizControlButton tone="blue" onClick={advance}>
+            {state === "agent2_done" ? "Reset Scenario" : "Next Step"}
+          </VizControlButton>
+        }
+      />
+
+      <div className="mb-4 grid gap-3 sm:grid-cols-3">
+        <VizMetricCard label="CPU Load" value={cpuLoad} tone={isBuilding1 || isBuilding2 ? "amber" : "green"} />
+        <VizMetricCard label="Target Dir Lock" value={(isBuilding1 || isBuilding2) ? "Locked" : "Free"} tone={(isBuilding1 || isBuilding2) ? "amber" : "green"} />
+        <VizMetricCard label="Active Builds" value={(isBuilding1 || isBuilding2) ? "1" : "0"} tone="blue" />
       </div>
 
-      <div className="relative p-6 rounded-xl border border-slate-700/50 bg-black/40 flex flex-col items-center justify-center mb-6 overflow-hidden">
-        {/* System Resource Monitor */}
-        <div className="flex items-center justify-between w-full max-w-md bg-slate-900 border border-slate-800 rounded-lg p-4 mb-8 z-10">
-          <div className="flex items-center gap-3">
-            <Cpu className={`w-8 h-8 ${cpuColor} transition-colors duration-500`} />
-            <div>
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">CPU Load</div>
-              <div className={`text-lg font-mono font-bold ${cpuColor} transition-colors duration-500`}>{cpuLoad}</div>
-            </div>
+      <div className="relative p-6 rounded-xl border border-slate-700/50 bg-[#0B1120] flex flex-col items-center justify-center mb-6 overflow-hidden min-h-[380px]">
+        
+        {/* Central Resource Node */}
+        <div className={`relative z-20 flex flex-col items-center justify-center w-40 h-40 rounded-full border-4 transition-all duration-500 ${cpuBg}`}>
+          <div className="absolute inset-0 rounded-full overflow-hidden">
+             <div className={`w-full h-full opacity-20 ${isBuilding1 || isBuilding2 ? "bg-[repeating-radial-gradient(circle_at_center,transparent_0,transparent_10px,#f97316_10px,#f97316_20px)] animate-[spin_4s_linear_infinite]" : "bg-transparent"}`} />
           </div>
-          <div className="w-px h-10 bg-slate-800"></div>
-          <div className="flex items-center gap-3">
-            <Server className="w-8 h-8 text-blue-400" />
-            <div>
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Target Dir</div>
-              <div className="text-sm font-bold text-slate-200 flex items-center gap-1">
-                {(isBuilding1 || isBuilding2) ? <Lock className="w-4 h-4 text-amber-500" /> : <LockOpen className="w-4 h-4 text-emerald-500" />}
-                {(isBuilding1 || isBuilding2) ? "Locked" : "Unlocked"}
-              </div>
-            </div>
+          <Cpu className={`w-12 h-12 mb-2 transition-colors duration-500 relative z-10 ${cpuColor}`} />
+          <div className={`font-black text-lg relative z-10 ${cpuColor}`}>{cpuLoad}</div>
+          
+          <div className="absolute -bottom-6 bg-slate-900 border border-slate-700 rounded-full px-3 py-1 flex items-center gap-2 shadow-lg">
+             {(isBuilding1 || isBuilding2) ? <Lock className="w-4 h-4 text-amber-500" /> : <LockOpen className="w-4 h-4 text-emerald-500" />}
+             <span className="text-xs font-bold text-slate-300">target/</span>
           </div>
         </div>
 
         {/* Agents */}
-        <div className="flex justify-between w-full max-w-lg z-10 relative">
+        <div className="absolute inset-0 flex justify-between items-center px-8 md:px-16 pointer-events-none">
           
-          {/* GreenCastle */}
-          <div className={`relative flex flex-col items-center p-4 rounded-xl border transition-all duration-300 w-40 ${isBuilding1 ? "bg-emerald-500/10 border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.2)]" : "bg-slate-900/80 border-slate-800"}`}>
-            <Terminal className={`w-8 h-8 mb-2 ${isBuilding1 ? "text-emerald-400" : "text-slate-500"}`} />
-            <span className="font-bold text-slate-200">GreenCastle</span>
+          {/* GreenCastle (Left) */}
+          <div className={`z-10 relative flex flex-col items-center p-5 rounded-2xl border-2 transition-all duration-500 w-48 ${isBuilding1 ? "bg-emerald-500/10 border-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.3)]" : "bg-slate-900/80 border-slate-700"}`}>
+            <Terminal className={`w-10 h-10 mb-3 ${isBuilding1 ? "text-emerald-400" : "text-slate-500"}`} />
+            <span className="font-black tracking-widest uppercase text-sm text-slate-200">GreenCastle</span>
             
-            <div className="mt-3 h-6 flex items-center justify-center">
+            <div className="mt-4 h-8 flex items-center justify-center w-full">
               <AnimatePresence mode="wait">
                 {state === "agent1_req" && (
-                  <motion.span key="req1" initial={{opacity:0, y:5}} animate={{opacity:1, y:0}} exit={{opacity:0, y:-5}} className="text-[10px] uppercase tracking-widest font-bold text-blue-400 bg-blue-500/20 px-2 py-1 rounded">Acquiring...</motion.span>
+                  <motion.span key="req1" initial={{opacity:0, y:5}} animate={{opacity:1, y:0}} exit={{opacity:0, y:-5}} className="text-[10px] uppercase tracking-widest font-bold text-blue-400 bg-blue-500/20 px-3 py-1.5 rounded-full border border-blue-500/30">Acquiring...</motion.span>
                 )}
                 {isBuilding1 && (
-                  <motion.span key="build1" initial={{opacity:0, scale:0.8}} animate={{opacity:1, scale:1}} className="text-xs font-bold text-emerald-400 flex items-center gap-1">
-                    <Hammer className="w-3 h-3" /> cargo build
-                  </motion.span>
+                  <motion.div key="build1" initial={{opacity:0, scale:0.8}} animate={{opacity:1, scale:1}} className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-500/20 px-3 py-1.5 rounded-full border border-emerald-500/30 w-full justify-center">
+                    <Cog className="w-4 h-4 animate-spin" /> cargo build
+                  </motion.div>
                 )}
                 {state === "agent1_done" && (
-                  <motion.span key="done1" initial={{opacity:0, scale:0.8}} animate={{opacity:1, scale:1}} exit={{opacity:0}} className="text-[10px] uppercase tracking-widest font-bold text-slate-400 bg-slate-800 px-2 py-1 rounded flex items-center gap-1">
+                  <motion.span key="done1" initial={{opacity:0, scale:0.8}} animate={{opacity:1, scale:1}} exit={{opacity:0}} className="text-[10px] uppercase tracking-widest font-bold text-slate-400 bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 flex items-center gap-1">
                     <CheckCircle2 className="w-3 h-3" /> Released
                   </motion.span>
                 )}
               </AnimatePresence>
             </div>
+
+            {/* Connection Line Left */}
+            <div className={`absolute top-1/2 left-full w-[calc(50vw-8rem-5rem)] h-1 -translate-y-1/2 transition-colors duration-500 ${isBuilding1 ? "bg-emerald-500" : "bg-slate-800 border-dashed border-t border-slate-600"}`}>
+               {isBuilding1 && (
+                 <motion.div className="h-full w-full bg-white opacity-50" animate={{ x: ["-100%", "100%"] }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} />
+               )}
+            </div>
           </div>
 
-          {/* Connection paths */}
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full flex justify-center opacity-30 pointer-events-none -z-10">
-            <svg width="300" height="100" viewBox="0 0 300 100" fill="none">
-              <path d="M 50 50 Q 150 -20 250 50" stroke="url(#gradient)" strokeWidth="2" strokeDasharray="4 4" />
-              <defs>
-                <linearGradient id="gradient" x1="0" y1="0" x2="300" y2="0" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="#10B981" />
-                  <stop offset="50%" stopColor="#3B82F6" />
-                  <stop offset="100%" stopColor="#F43F5E" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
-
-          {/* BlueLake */}
-          <div className={`relative flex flex-col items-center p-4 rounded-xl border transition-all duration-300 w-40 ${isBuilding2 ? "bg-blue-500/10 border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.2)]" : state === "agent2_blocked" ? "bg-amber-500/10 border-amber-500/50" : "bg-slate-900/80 border-slate-800"}`}>
-            <Terminal className={`w-8 h-8 mb-2 ${isBuilding2 ? "text-blue-400" : state === "agent2_blocked" ? "text-amber-400" : "text-slate-500"}`} />
-            <span className="font-bold text-slate-200">BlueLake</span>
+          {/* BlueLake (Right) */}
+          <div className={`z-10 relative flex flex-col items-center p-5 rounded-2xl border-2 transition-all duration-500 w-48 ${isBuilding2 ? "bg-blue-500/10 border-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.3)]" : state === "agent2_blocked" ? "bg-amber-500/10 border-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.2)]" : "bg-slate-900/80 border-slate-700"}`}>
+            <Terminal className={`w-10 h-10 mb-3 ${isBuilding2 ? "text-blue-400" : state === "agent2_blocked" ? "text-amber-400" : "text-slate-500"}`} />
+            <span className="font-black tracking-widest uppercase text-sm text-slate-200">BlueLake</span>
             
-            <div className="mt-3 h-6 flex items-center justify-center">
+            <div className="mt-4 h-8 flex items-center justify-center w-full">
               <AnimatePresence mode="wait">
                 {state === "agent2_req" && (
-                  <motion.span key="req2" initial={{opacity:0, y:5}} animate={{opacity:1, y:0}} exit={{opacity:0, y:-5}} className="text-[10px] uppercase tracking-widest font-bold text-blue-400 bg-blue-500/20 px-2 py-1 rounded">Acquiring...</motion.span>
+                  <motion.span key="req2" initial={{opacity:0, y:5}} animate={{opacity:1, y:0}} exit={{opacity:0, y:-5}} className="text-[10px] uppercase tracking-widest font-bold text-blue-400 bg-blue-500/20 px-3 py-1.5 rounded-full border border-blue-500/30">Acquiring...</motion.span>
                 )}
                 {state === "agent2_blocked" && (
-                  <motion.span key="block2" initial={{opacity:0, scale:0.8}} animate={{opacity:1, scale:1}} exit={{opacity:0}} className="text-[10px] uppercase tracking-widest font-bold text-amber-400 bg-amber-500/20 px-2 py-1 rounded flex items-center gap-1">
+                  <motion.span key="block2" initial={{opacity:0, scale:0.8}} animate={{opacity:1, scale:1}} exit={{opacity:0}} className="text-[10px] uppercase tracking-widest font-bold text-amber-400 bg-amber-500/20 px-3 py-1.5 rounded-full border border-amber-500/30 flex items-center gap-1 w-full justify-center">
                     <ShieldAlert className="w-3 h-3" /> Blocked
                   </motion.span>
                 )}
                 {isBuilding2 && (
-                  <motion.span key="build2" initial={{opacity:0, scale:0.8}} animate={{opacity:1, scale:1}} className="text-xs font-bold text-blue-400 flex items-center gap-1">
-                    <Hammer className="w-3 h-3" /> cargo build
-                  </motion.span>
+                  <motion.div key="build2" initial={{opacity:0, scale:0.8}} animate={{opacity:1, scale:1}} className="flex items-center gap-2 text-xs font-bold text-blue-400 bg-blue-500/20 px-3 py-1.5 rounded-full border border-blue-500/30 w-full justify-center">
+                    <Cog className="w-4 h-4 animate-spin" /> cargo build
+                  </motion.div>
                 )}
                 {state === "agent2_done" && (
-                  <motion.span key="done2" initial={{opacity:0, scale:0.8}} animate={{opacity:1, scale:1}} exit={{opacity:0}} className="text-[10px] uppercase tracking-widest font-bold text-slate-400 bg-slate-800 px-2 py-1 rounded flex items-center gap-1">
+                  <motion.span key="done2" initial={{opacity:0, scale:0.8}} animate={{opacity:1, scale:1}} exit={{opacity:0}} className="text-[10px] uppercase tracking-widest font-bold text-slate-400 bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 flex items-center gap-1">
                     <CheckCircle2 className="w-3 h-3" /> Released
                   </motion.span>
                 )}
               </AnimatePresence>
             </div>
-          </div>
 
+            {/* Connection Line Right */}
+            <div className={`absolute top-1/2 right-full w-[calc(50vw-8rem-5rem)] h-1 -translate-y-1/2 transition-colors duration-500 ${isBuilding2 ? "bg-blue-500" : state === "agent2_blocked" ? "bg-amber-500" : "bg-slate-800 border-dashed border-t border-slate-600"}`}>
+               {isBuilding2 && (
+                 <motion.div className="h-full w-full bg-white opacity-50" animate={{ x: ["100%", "-100%"] }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} />
+               )}
+               {state === "agent2_blocked" && (
+                 <div className="absolute top-1/2 left-4 -translate-y-1/2 w-4 h-8 bg-amber-500 rounded flex items-center justify-center">
+                   <Lock className="w-3 h-3 text-black" />
+                 </div>
+               )}
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="flex items-center justify-between p-4 bg-black/40 rounded-lg border border-white/5">
         <p className="text-sm font-medium text-slate-300">{getStepText()}</p>
-        <VizControlButton tone="blue" onClick={advance}>
-          {state === "agent2_done" ? "Reset" : "Next Step"}
-        </VizControlButton>
       </div>
+
+      <VizLearningBlock
+        className="mt-4"
+        accent="amber"
+        title="Why Advisory Build Slots?"
+        items={[
+          "Concurrent cargo builds corrupt the target directory lock and cause opaque compilation failures.",
+          "Even if isolated, concurrent heavy compilations thrash the CPU, grinding the entire system to a halt.",
+          "Build slots are advisory leases with a TTL. Agents check them before starting heavy operations.",
+        ]}
+      />
     </VizSurface>
   );
 }

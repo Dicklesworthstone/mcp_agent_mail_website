@@ -4,16 +4,19 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "@/components/motion";
 import {
   VizControlButton,
+  VizHeader,
+  VizLearningBlock,
+  VizMetricCard,
   VizSurface,
   useVizReducedMotion
 } from "@/components/viz/viz-framework";
-import { UserCog, Bot, PauseCircle, PlayCircle, AlertOctagon } from "lucide-react";
+import { UserCog, Bot, PauseCircle, PlayCircle, AlertOctagon, ShieldAlert } from "lucide-react";
 
 type OverseerState = "working" | "injecting" | "received" | "paused" | "resumed";
 
 export default function HumanOverseerViz() {
-  const [state, setState] = useState<OverseerState>("working");
   const reducedMotion = useVizReducedMotion();
+  const [state, setState] = useState<OverseerState>("working");
 
   const advance = () => {
     switch(state) {
@@ -25,49 +28,73 @@ export default function HumanOverseerViz() {
     }
   };
 
-  const getStepText = () => {
-    switch(state) {
-      case "working": return "Agent RedBear is autonomously refactoring a module.";
-      case "injecting": return "The Human Overseer uses the Web UI to inject an 'Urgent' message directly to RedBear.";
-      case "received": return "The message drops into the agent's inbox, bypassing normal contact policies.";
-      case "paused": return "RedBear detects the urgent override, pauses its current task, and handles the human's request.";
-      case "resumed": return "After completing the human's request, RedBear resumes the original task.";
-    }
-  };
+  const isUrgentActive = state === "injecting" || state === "received" || state === "paused";
 
   return (
     <VizSurface aria-label="Human Overseer Control Mechanism">
-      <div className="mb-6">
-        <h3 className="text-xl font-black text-white">Human Overseer Injection</h3>
-        <p className="mt-2 text-sm text-slate-400">
-          Operators can inject high-priority messages into an active agent&apos;s inbox via the Web UI to gracefully redirect work mid-session.
-        </p>
+      <VizHeader
+        accent="red"
+        eyebrow="Agent Steering"
+        title="Human Overseer Control"
+        subtitle="Operators can safely halt and redirect autonomous agents mid-execution by injecting absolute-priority messages that bypass standard contact policies."
+        controls={
+          <VizControlButton tone={state === "paused" ? "red" : "blue"} onClick={advance}>
+            {state === "resumed" ? "Reset Scenario" : "Next Step"}
+          </VizControlButton>
+        }
+      />
+
+      <div className="mb-4 grid gap-3 sm:grid-cols-3">
+        <VizMetricCard label="Agent State" value={state === "paused" ? "Suspended" : "Autonomous"} tone={state === "paused" ? "red" : "green"} />
+        <VizMetricCard label="Active Task" value={state === "paused" ? "Human Override" : "bd-12 (Refactor)"} tone={state === "paused" ? "red" : "blue"} />
+        <VizMetricCard label="Queue Depth" value={state === "paused" ? "0 (Blocked)" : "3 (Polling)"} tone={state === "paused" ? "amber" : "neutral"} />
       </div>
 
-      <div className="relative p-8 rounded-xl border border-slate-700/50 bg-[#0B1120] flex flex-col items-center justify-between min-h-[320px] mb-6">
+      <div className="relative p-6 rounded-xl border border-slate-700/50 bg-[#0B1120] flex flex-col md:flex-row items-center justify-between min-h-[360px] mb-4 overflow-hidden">
         
+        {/* Background Grid */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)", backgroundSize: "20px 20px" }}></div>
+
         {/* Human Overseer */}
-        <div className="flex flex-col items-center z-10">
-          <div className="w-14 h-14 rounded-full bg-indigo-500/20 border-2 border-indigo-500 flex items-center justify-center shadow-[0_0_15px_rgba(99,102,241,0.3)]">
-            <UserCog className="w-7 h-7 text-indigo-400" />
+        <div className="flex flex-col items-center z-10 w-full md:w-1/3 mb-10 md:mb-0">
+          <div className={`w-16 h-16 rounded-full border-2 flex items-center justify-center transition-all duration-500 ${isUrgentActive ? "bg-red-500/20 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.4)]" : "bg-indigo-500/20 border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.2)]"}`}>
+            <UserCog className={`w-8 h-8 ${isUrgentActive ? "text-red-400" : "text-indigo-400"}`} />
           </div>
-          <span className="mt-2 font-bold text-sm text-slate-200">Human Operator</span>
-          <span className="text-[10px] text-slate-500 font-mono">Web UI (/mail)</span>
+          <span className="mt-3 font-black tracking-widest uppercase text-xs text-slate-200">Human Operator</span>
+          <span className="text-[10px] text-slate-500 font-mono mt-1 px-2 py-1 bg-slate-900 rounded border border-slate-800">Web UI (/mail)</span>
+          
+          <AnimatePresence>
+            {state === "injecting" && (
+               <motion.div
+                 initial={{ opacity: 0, y: -10 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 exit={{ opacity: 0 }}
+                 className="mt-4 bg-red-950/50 border border-red-900 p-2 rounded-lg text-center"
+               >
+                 <div className="text-[10px] text-red-400 font-mono mb-1">priority: urgent</div>
+                 <div className="text-xs text-slate-300">&quot;Stop refactoring and fix the auth bug immediately.&quot;</div>
+               </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* The message payload animation */}
-        <div className="absolute top-[100px] bottom-[100px] w-0.5 bg-slate-800/50 z-0">
+        <div className="relative w-full md:w-1/3 h-32 md:h-full flex items-center justify-center z-0">
+          {/* Default polling paths */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-20">
+             <div className="w-full border-t border-dashed border-slate-500" />
+          </div>
+
           <AnimatePresence>
             {state === "injecting" && (
               <motion.div 
-                initial={{ top: 0, opacity: 0 }}
-                animate={{ top: "100%", opacity: [0, 1, 1, 0] }}
+                initial={reducedMotion ? { opacity: 1, scale: 1 } : { x: -100, opacity: 0, scale: 0.8 }}
+                animate={reducedMotion ? { opacity: 1, scale: 1 } : { x: 100, opacity: [0, 1, 1, 0], scale: 1 }}
                 transition={{ duration: reducedMotion ? 0 : 1.5, ease: "easeInOut" }}
-                className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center"
+                className="absolute flex flex-col items-center bg-red-500/10 px-4 py-2 rounded-full border border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.4)] backdrop-blur-md"
               >
-                <div className="w-1.5 h-12 bg-gradient-to-b from-transparent via-rose-500 to-rose-400 rounded-full" />
-                <div className="bg-rose-500/20 text-rose-300 text-[10px] font-bold px-2 py-0.5 rounded border border-rose-500/30 whitespace-nowrap mt-1 flex items-center gap-1 shadow-[0_0_10px_rgba(244,63,94,0.3)]">
-                  <AlertOctagon className="w-3 h-3" /> URGENT OVERRIDE
+                <div className="flex items-center gap-2 text-red-400 font-black text-xs uppercase tracking-widest">
+                  <ShieldAlert className="w-4 h-4" /> Override Payload
                 </div>
               </motion.div>
             )}
@@ -75,34 +102,56 @@ export default function HumanOverseerViz() {
         </div>
 
         {/* Agent */}
-        <div className="flex flex-col items-center z-10 mt-16">
-          <div className={`w-16 h-16 rounded-xl border-2 flex items-center justify-center transition-all duration-500 relative ${state === "paused" ? "bg-rose-500/10 border-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.2)]" : "bg-slate-800/50 border-slate-600"}`}>
-            <Bot className={`w-8 h-8 ${state === "paused" ? "text-rose-400" : "text-slate-400"}`} />
-            
-            {/* Status indicator badge */}
-            <div className="absolute -bottom-3 bg-black border border-slate-700 rounded-full px-2 py-0.5 text-[10px] font-bold whitespace-nowrap flex items-center gap-1">
-              {(state === "working" || state === "injecting" || state === "received") && (
-                <><PlayCircle className="w-3 h-3 text-emerald-500" /> <span className="text-emerald-400">Refactoring (bd-12)</span></>
-              )}
-              {state === "paused" && (
-                <><PauseCircle className="w-3 h-3 text-rose-500" /> <span className="text-rose-400">Handling Override</span></>
-              )}
-              {state === "resumed" && (
-                <><PlayCircle className="w-3 h-3 text-emerald-500" /> <span className="text-emerald-400">Resumed (bd-12)</span></>
-              )}
+        <div className="flex flex-col items-center z-10 w-full md:w-1/3">
+          <div className="relative mb-6">
+            {/* Agent Inbox Queue */}
+            <div className="absolute -top-12 left-1/2 -translate-x-1/2 flex flex-col-reverse gap-1">
+               <div className="w-8 h-2 bg-slate-800 rounded-full border border-slate-700" />
+               <div className="w-8 h-2 bg-slate-800 rounded-full border border-slate-700" />
+               {(state === "received" || state === "paused") && (
+                 <motion.div initial={{opacity: 0, y: -10}} animate={{opacity: 1, y: 0}} className="w-10 h-3 bg-red-500 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.5)] border border-red-400 flex items-center justify-center">
+                   <AlertOctagon className="w-2 h-2 text-white" />
+                 </motion.div>
+               )}
+            </div>
+
+            <div className={`w-20 h-20 rounded-2xl border-2 flex items-center justify-center transition-all duration-500 relative ${state === "paused" ? "bg-red-500/10 border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.3)]" : "bg-slate-800/50 border-slate-600 shadow-xl"}`}>
+              <Bot className={`w-10 h-10 transition-colors duration-500 ${state === "paused" ? "text-red-400" : "text-slate-400"}`} />
+              
+              {/* Internal processing indicator */}
+              <div className="absolute inset-2 border border-white/5 rounded-xl overflow-hidden">
+                 <div className={`w-full h-full opacity-20 ${state === "paused" ? "bg-[repeating-linear-gradient(45deg,transparent,transparent_5px,#ef4444_5px,#ef4444_10px)]" : "bg-[repeating-linear-gradient(45deg,transparent,transparent_5px,#3b82f6_5px,#3b82f6_10px)] animate-[pan_20s_linear_infinite]"}`} />
+              </div>
+
+              {/* Status indicator badge */}
+              <div className="absolute -bottom-4 bg-black border border-slate-700 rounded-full px-3 py-1 text-xs font-bold whitespace-nowrap flex items-center gap-1.5 shadow-lg">
+                {(state === "working" || state === "injecting" || state === "received") && (
+                  <><PlayCircle className="w-3.5 h-3.5 text-emerald-500" /> <span className="text-emerald-400">Refactoring (bd-12)</span></>
+                )}
+                {state === "paused" && (
+                  <><PauseCircle className="w-3.5 h-3.5 text-red-500 animate-pulse" /> <span className="text-red-400">Handling Override</span></>
+                )}
+                {state === "resumed" && (
+                  <><PlayCircle className="w-3.5 h-3.5 text-emerald-500" /> <span className="text-emerald-400">Resumed (bd-12)</span></>
+                )}
+              </div>
             </div>
           </div>
-          <span className="mt-5 font-bold text-sm text-slate-300">RedBear</span>
+          <span className="mt-2 font-black tracking-widest uppercase text-xs text-slate-300">RedBear</span>
+          <span className="text-[10px] text-slate-500 font-mono mt-1 px-2 py-1 bg-slate-900 rounded border border-slate-800">Agent Mail Client</span>
         </div>
 
       </div>
 
-      <div className="flex items-center justify-between p-4 bg-black/40 rounded-lg border border-white/5">
-        <p className="text-sm font-medium text-slate-300">{getStepText()}</p>
-        <VizControlButton tone={state === "paused" ? "red" : "blue"} onClick={advance}>
-          {state === "resumed" ? "Reset" : "Next Step"}
-        </VizControlButton>
-      </div>
+      <VizLearningBlock
+        accent="red"
+        title="Why This Matters"
+        items={[
+          "Without an overseer mechanism, you must SIGKILL an agent to change its objective, losing its context and state.",
+          "Urgent messages bypass all automated contact policies (like 'block_all' or 'contacts_only'), guaranteeing delivery.",
+          "The agent's run loop natively intercepts urgent inbox items before popping the next standard task.",
+        ]}
+      />
     </VizSurface>
   );
 }
