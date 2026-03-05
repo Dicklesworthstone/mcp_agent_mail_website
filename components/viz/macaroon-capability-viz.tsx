@@ -28,6 +28,8 @@ const AVAILABLE_CAVEATS: Caveat[] = [
   { id: "no-io", label: "ResourceScope(!net/*)", description: "Block all network access", color: "#EF4444" },
 ];
 
+const CAVEAT_MAP = new Map(AVAILABLE_CAVEATS.map(c => [c.id, c]));
+
 // Which capabilities each caveat removes
 const CAVEAT_RESTRICTIONS: Record<string, string[]> = {
   "time-before": [],
@@ -61,7 +63,7 @@ export default function MacaroonCapabilityViz() {
   return (
     <div className="w-full rounded-2xl border border-white/10 p-6 md:p-8 bg-slate-950">
       <h3 className="mb-1 text-lg font-semibold text-white">Macaroon Capability Attenuation</h3>
-      <p className="mb-5 text-sm text-teal-400">Add caveats to restrict — never widen — a capability token</p>
+      <p className="mb-5 text-sm text-teal-400">Add caveats to restrict (never widen) a capability token</p>
 
       {/* Token visualization */}
       <div className="mb-6 rounded-xl border border-white/5 bg-white/[0.02] p-5">
@@ -111,7 +113,7 @@ export default function MacaroonCapabilityViz() {
             >
               <span className="text-[10px] text-slate-600 self-center mr-1">CAVEATS:</span>
               {appliedCaveats.map((cid) => {
-                const caveat = AVAILABLE_CAVEATS.find((c) => c.id === cid);
+                const caveat = CAVEAT_MAP.get(cid);
                 if (!caveat) return null;
                 return (
                   <motion.span
@@ -177,7 +179,7 @@ export default function MacaroonCapabilityViz() {
       </div>
 
       <p className="mt-3 text-center text-[10px] text-slate-600">
-        Caveats can only be added, never removed. Delegation is always safe — the token can only become more restricted.
+        Caveats can only be added, never removed. Delegation is always safe; the token can only become more restricted.
       </p>
     </div>
   );

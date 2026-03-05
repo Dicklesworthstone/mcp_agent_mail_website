@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "@/components/motion";
 import {
   VizControlButton,
+  VizHeader,
+  VizLearningBlock,
+  VizMetricCard,
   VizSurface,
   useVizReducedMotion,
 } from "@/components/viz/viz-framework";
@@ -72,6 +75,12 @@ const ICON_MAP: Record<string, React.ElementType> = {
   theme: Palette,
 };
 
+const SCREENS_MAP = new Map(SCREENS.map(s => [s.id, s]));
+
+const CATEGORY_SCREEN_COUNTS: Record<string, number> = Object.fromEntries(
+  ["operations", "coordination", "observability", "system"].map((cat) => [cat, SCREENS.filter((s) => s.category === cat).length]),
+);
+
 const CATEGORY_META: Record<string, { color: string; bg: string; label: string }> = {
   operations: { color: "#3B82F6", bg: "#3B82F61A", label: "Operations" },
   coordination: { color: "#22C55E", bg: "#22C55E1A", label: "Coordination" },
@@ -88,42 +97,58 @@ export default function TuiScreensViz() {
   const [selectedScreen, setSelectedScreen] = useState<string>("dashboard");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
 
-  const filteredScreens = categoryFilter === "all"
-    ? SCREENS
-    : SCREENS.filter((s) => s.category === categoryFilter);
+  const filteredScreens = useMemo(
+    () =>
+      categoryFilter === "all"
+        ? SCREENS
+        : SCREENS.filter((screen) => screen.category === categoryFilter),
+    [categoryFilter]
+  );
 
-  const current = SCREENS.find((s) => s.id === selectedScreen) ?? SCREENS[0];
+  const { current, activeScreenId } = useMemo(() => {
+    const isActive = filteredScreens.some((screen) => screen.id === selectedScreen);
+    const activeId = isActive ? selectedScreen : filteredScreens[0]?.id ?? SCREENS[0].id;
+    const curr = SCREENS_MAP.get(activeId) ?? SCREENS[0];
+    return { activeScreenId: activeId, current: curr };
+  }, [filteredScreens, selectedScreen]);
+
   const currentMeta = CATEGORY_META[current.category];
   const CurrentIcon = ICON_MAP[current.id] ?? LayoutDashboard;
+  const filteredCount = filteredScreens.length;
 
   return (
     <VizSurface aria-label="TUI screens architecture visualization">
-      {/* Header */}
-      <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h3 className="text-lg font-black text-white">15-Screen Operations Console</h3>
-          <p className="text-sm text-slate-400">
-            Navigate the TUI screen architecture via jump keys and category filters.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {(["all", "operations", "coordination", "observability", "system"] as const).map((cat) => (
-            <VizControlButton
-              key={cat}
-              tone={categoryFilter === cat ? "blue" : "neutral"}
-              onClick={() => setCategoryFilter(cat)}
-            >
-              {cat === "all" ? "All" : CATEGORY_META[cat].label}
-            </VizControlButton>
-          ))}
-        </div>
+      <VizHeader
+        accent="blue"
+        eyebrow="Console Information Architecture"
+        title="15-Screen TUI Navigation Model"
+        subtitle="Filter by category, inspect each screen's core question, and learn the jump-key grammar that keeps operator navigation O(1)."
+        controls={
+          <div className="flex flex-wrap gap-2">
+            {(["all", "operations", "coordination", "observability", "system"] as const).map((cat) => (
+              <VizControlButton
+                key={cat}
+                tone={categoryFilter === cat ? "blue" : "neutral"}
+                onClick={() => setCategoryFilter(cat)}
+              >
+                {cat === "all" ? "All" : CATEGORY_META[cat].label}
+              </VizControlButton>
+            ))}
+          </div>
+        }
+      />
+
+      <div className="mb-4 grid gap-3 sm:grid-cols-3">
+        <VizMetricCard label="Total Screens" value={SCREENS.length} tone="blue" />
+        <VizMetricCard label="Visible" value={filteredCount} tone="green" />
+        <VizMetricCard label="Jump Key" value={current.jumpKey} tone="amber" />
       </div>
 
       {/* Screen grid */}
       <div className="rounded-xl border border-white/10 bg-black/30 p-4">
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 md:grid-cols-5 lg:grid-cols-5">
           {filteredScreens.map((screen) => {
-            const isSelected = screen.id === selectedScreen;
+            const isSelected = screen.id === activeScreenId;
             const meta = CATEGORY_META[screen.category];
             const Icon = ICON_MAP[screen.id] ?? LayoutDashboard;
             return (
@@ -225,19 +250,16 @@ export default function TuiScreensViz() {
               Screen Categories
             </p>
             <div className="space-y-2">
-              {Object.entries(CATEGORY_META).map(([key, meta]) => {
-                const count = SCREENS.filter((s) => s.category === key).length;
-                return (
+              {Object.entries(CATEGORY_META).map(([key, meta]) => (
                   <div key={key} className="flex items-center gap-2">
                     <span
                       className="inline-block w-3 h-3 rounded-sm"
                       style={{ backgroundColor: meta.color }}
                     />
                     <span className="text-sm text-slate-300 font-medium">{meta.label}</span>
-                    <span className="text-xs text-slate-500 ml-auto">{count} screens</span>
+                    <span className="text-xs text-slate-500 ml-auto">{CATEGORY_SCREEN_COUNTS[key]} screens</span>
                   </div>
-                );
-              })}
+              ))}
             </div>
           </article>
 
@@ -266,6 +288,17 @@ export default function TuiScreensViz() {
           </article>
         </div>
       </div>
+
+      <VizLearningBlock
+        className="mt-4"
+        accent="blue"
+        title="Pedagogical Takeaways"
+        items={[
+          "Each screen is anchored to a specific operator question, reducing scanning overhead.",
+          "Jump-key access matters most under pressure, where tab-cycling is too slow.",
+          "Category grouping keeps navigation scalable even as screen count grows.",
+        ]}
+      />
     </VizSurface>
   );
 }

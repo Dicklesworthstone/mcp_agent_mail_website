@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { heroDemoTranscript, heroVideoPlaceholder } from "@/lib/content";
+import { heroDemoTranscript, heroTuiDemo } from "@/lib/content";
 
 /**
  * Helper: parse "MM:SS.mmm" timecode strings into total milliseconds
@@ -97,49 +97,39 @@ describe("heroDemoTranscript.captions", () => {
   });
 });
 
-describe("heroVideoPlaceholder", () => {
+describe("heroTuiDemo", () => {
   it("has all required fields", () => {
-    expect(typeof heroVideoPlaceholder.id).toBe("string");
-    expect(heroVideoPlaceholder.id.length).toBeGreaterThan(0);
+    expect(typeof heroTuiDemo.id).toBe("string");
+    expect(heroTuiDemo.id.length).toBeGreaterThan(0);
 
-    expect(typeof heroVideoPlaceholder.poster).toBe("string");
-    expect(heroVideoPlaceholder.poster.length).toBeGreaterThan(0);
+    expect(typeof heroTuiDemo.width).toBe("number");
+    expect(heroTuiDemo.width).toBeGreaterThan(0);
 
-    expect(typeof heroVideoPlaceholder.mediaSrc).toBe("string");
-    expect(heroVideoPlaceholder.mediaSrc.length).toBeGreaterThan(0);
+    expect(typeof heroTuiDemo.height).toBe("number");
+    expect(heroTuiDemo.height).toBeGreaterThan(0);
 
-    expect(typeof heroVideoPlaceholder.mediaType).toBe("string");
-    expect(heroVideoPlaceholder.mediaType.length).toBeGreaterThan(0);
+    expect(typeof heroTuiDemo.ariaLabel).toBe("string");
+    expect(heroTuiDemo.ariaLabel.length).toBeGreaterThan(0);
 
-    expect(typeof heroVideoPlaceholder.width).toBe("number");
-    expect(heroVideoPlaceholder.width).toBeGreaterThan(0);
+    expect(typeof heroTuiDemo.reducedMotionFallback).toBe("string");
+    expect(heroTuiDemo.reducedMotionFallback.length).toBeGreaterThan(0);
 
-    expect(typeof heroVideoPlaceholder.height).toBe("number");
-    expect(heroVideoPlaceholder.height).toBeGreaterThan(0);
+    expect(typeof heroTuiDemo.overlayTitle).toBe("string");
+    expect(typeof heroTuiDemo.overlaySubtitle).toBe("string");
 
-    expect(typeof heroVideoPlaceholder.ariaLabel).toBe("string");
-    expect(heroVideoPlaceholder.ariaLabel.length).toBeGreaterThan(0);
-
-    expect(Array.isArray(heroVideoPlaceholder.captionsTrack)).toBe(true);
-    expect(heroVideoPlaceholder.captionsTrack.length).toBeGreaterThan(0);
-
-    expect(typeof heroVideoPlaceholder.reducedMotionFallback).toBe("string");
-    expect(heroVideoPlaceholder.reducedMotionFallback.length).toBeGreaterThan(0);
-
-    expect(typeof heroVideoPlaceholder.overlayTitle).toBe("string");
-    expect(typeof heroVideoPlaceholder.overlaySubtitle).toBe("string");
-
-    expect(Array.isArray(heroVideoPlaceholder.replacementSteps)).toBe(true);
-    expect(heroVideoPlaceholder.replacementSteps.length).toBeGreaterThan(0);
+    expect(Array.isArray(heroTuiDemo.feedEvents)).toBe(true);
+    expect(heroTuiDemo.feedEvents.length).toBeGreaterThan(0);
+    expect(Array.isArray(heroTuiDemo.activeAgentPreview)).toBe(true);
+    expect(heroTuiDemo.activeAgentPreview.length).toBeGreaterThan(0);
   });
 
-  it("captionsTrack entries have valid kind values", () => {
-    const validKinds = ["captions", "subtitles", "chapters"];
-    for (const track of heroVideoPlaceholder.captionsTrack) {
-      expect(validKinds).toContain(track.kind);
-      expect(track.src.length).toBeGreaterThan(0);
-      expect(track.srcLang.length).toBeGreaterThan(0);
-      expect(track.label.length).toBeGreaterThan(0);
+  it("feed events have valid severity and timing shape", () => {
+    const validImportance = ["low", "normal", "high", "urgent"];
+    for (const event of heroTuiDemo.feedEvents) {
+      expect(validImportance).toContain(event.importance);
+      expect(event.sender.length).toBeGreaterThan(0);
+      expect(event.subject.length).toBeGreaterThan(0);
+      expect(event.createdTs).toBeGreaterThan(1_000_000_000_000);
     }
   });
 });

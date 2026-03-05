@@ -32,6 +32,8 @@ export default function TraceReplayStabilityViz() {
     { id: 2, name: "Node B", color: "#eab308" },
     { id: 3, name: "Node C", color: "#ec4899" },
   ];
+  
+  const NODE_MAP = new Map(nodes.map(n => [n.id, n]));
 
   const triggerCrash = () => {
     if (runState === "running") return;
@@ -44,7 +46,7 @@ export default function TraceReplayStabilityViz() {
        // The difference is how they are inserted into the supervisor's inbox
 
        if (isDeterministic) {
-          // Asupersync Spork: Always sorted by (vt, tid)
+          // Agent Mail Spork: Always sorted by (vt, tid)
           // Since VT is identical, it sorts strictly by Task ID (1, 2, 3)
           setInbox([1]);
           const t2 = setTimeout(() => setInbox([1, 2]), 300);
@@ -137,7 +139,7 @@ export default function TraceReplayStabilityViz() {
            </div>
            <div className="h-14 w-full bg-slate-950 border border-slate-700 rounded-lg flex items-center px-4 gap-3 shadow-inner">
               {inbox.map((nodeId, idx) => {
-                 const node = nodes.find(n => n.id === nodeId)!;
+                 const node = NODE_MAP.get(nodeId)!;
                  return (
                     <motion.div
                        key={`${nodeId}-${idx}`}

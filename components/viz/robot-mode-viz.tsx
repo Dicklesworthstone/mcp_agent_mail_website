@@ -130,6 +130,9 @@ const FORMAT_INFO: Record<OutputFormat, { label: string; description: string; ex
   },
 };
 
+const TRACK_MAP = new Map(TRACKS.map(t => [t.id, t]));
+const TOTAL_COMMAND_COUNT = TRACKS.reduce((sum, t) => sum + t.commands.length, 0);
+
 /* ---------- component ---------- */
 
 export default function RobotModeViz() {
@@ -137,10 +140,9 @@ export default function RobotModeViz() {
   const [selectedTrack, setSelectedTrack] = useState("awareness");
   const [selectedFormat, setSelectedFormat] = useState<OutputFormat>("toon");
 
-  const track = TRACKS.find((t) => t.id === selectedTrack) ?? TRACKS[0];
+  const track = TRACK_MAP.get(selectedTrack) ?? TRACKS[0];
   const TrackIcon = TRACK_ICONS[track.id] ?? Terminal;
   const format = FORMAT_INFO[selectedFormat];
-  const commandCount = TRACKS.reduce((sum, t) => sum + t.commands.length, 0);
 
   return (
     <VizSurface aria-label="Robot mode command-track visualization">
@@ -152,7 +154,7 @@ export default function RobotModeViz() {
       />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <VizMetricCard label="Commands" value={commandCount} tone="blue" />
+        <VizMetricCard label="Commands" value={TOTAL_COMMAND_COUNT} tone="blue" />
         <VizMetricCard label="Tracks" value={TRACKS.length} tone="green" />
         <VizMetricCard label="Format" value={selectedFormat} tone={selectedFormat === "toon" ? "amber" : selectedFormat === "json" ? "blue" : "green"} />
       </div>
