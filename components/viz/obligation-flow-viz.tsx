@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "@/components/motion";
+import { motion, AnimatePresence } from "@/components/motion";
+import { useVizReducedMotion } from "@/components/viz/viz-framework";
 
 /* ------------------------------------------------------------------ */
 /*  Types & constants                                                  */
@@ -131,7 +132,7 @@ function EdgeArrow({ from, to, color, active, reduced }: {
 /* ------------------------------------------------------------------ */
 
 export default function ObligationFlowViz() {
-  const reduced = useReducedMotion() ?? false;
+  const reduced = useVizReducedMotion();
   const [path, setPath] = useState<PathKind>("happy");
   const [step, setStep] = useState(0);
   const [showError, setShowError] = useState(false);

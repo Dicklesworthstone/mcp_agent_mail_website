@@ -371,7 +371,7 @@ export const features: Feature[] = [
   {
     id: "rust-workspace-architecture",
     title: "12-Crate Rust Architecture",
-    description: "Modular workspace: core, db, storage, search-core, guard, share, tools, server, CLI, conformance, and WASM. Built on asupersync (structured concurrency), frankensearch, frankentui, and fastmcp_rust.",
+    description: "Modular workspace: core, db, storage, search-core, guard, share, tools, server, CLI, conformance, and WASM. Built on Tokio, frankensearch, frankentui, and fastmcp_rust.",
     icon: "cpu",
     category: "Architecture",
   },
@@ -789,6 +789,395 @@ export const technicalSurfaceCopy: TechnicalSurfaceCopy = {
   robotTracks: robotCommandTrackCopy,
 };
 
+export type VisualizationTier = "must" | "should" | "stretch";
+export type VisualizationPagePlacement =
+  | "home"
+  | "showcase"
+  | "architecture"
+  | "getting-started";
+export type VisualizationImplementationWave =
+  | "wave-1-core-loop"
+  | "wave-2-guardrails"
+  | "wave-3-scale-observability"
+  | "wave-4-advanced-internals";
+
+export interface VisualizationBacklogItem {
+  id: string;
+  title: string;
+  objective: string;
+  tier: VisualizationTier;
+  pedagogicalOrder: number;
+  implementationWave: VisualizationImplementationWave;
+  explanatoryValue: 1 | 2 | 3 | 4 | 5;
+  implementationComplexity: 1 | 2 | 3 | 4 | 5;
+  testingRisk: 1 | 2 | 3 | 4 | 5;
+  recommendedPlacement: VisualizationPagePlacement[];
+  reuseCandidates: string[];
+  dataNeeds: string[];
+  interactionNeeds: string[];
+  riskNotes: string[];
+}
+
+// Priority-ranked execution backlog for visualization implementation beads.
+export const visualizationBacklog: VisualizationBacklogItem[] = [
+  {
+    id: "viz-macro-orchestration",
+    title: "Macro Orchestration Flow (Start Session / Prepare Thread / Reservation Cycle)",
+    objective: "Teach the happy path first: one operator action expands into deterministic coordination steps.",
+    tier: "must",
+    pedagogicalOrder: 1,
+    implementationWave: "wave-1-core-loop",
+    explanatoryValue: 5,
+    implementationComplexity: 2,
+    testingRisk: 2,
+    recommendedPlacement: ["home", "getting-started", "showcase"],
+    reuseCandidates: ["obligation-flow-viz", "two-phase-effects-viz"],
+    dataNeeds: [
+      "macro input/output contracts",
+      "ordered underlying tool steps with expected artifacts",
+      "common failure/retry branches",
+    ],
+    interactionNeeds: [
+      "macro selector",
+      "expand/collapse underlying steps",
+      "success/failure branch toggles",
+    ],
+    riskNotes: [
+      "Macro behavior can evolve; visualization should version assumptions in copy.",
+      "Too much expansion detail can overwhelm onboarding if defaults are not curated.",
+    ],
+  },
+  {
+    id: "viz-message-lifecycle",
+    title: "Message Lifecycle + Thread State",
+    objective: "Show message flow: send → inbox delivery → read/ack transitions → thread continuity.",
+    tier: "must",
+    pedagogicalOrder: 2,
+    implementationWave: "wave-1-core-loop",
+    explanatoryValue: 5,
+    implementationComplexity: 3,
+    testingRisk: 3,
+    recommendedPlacement: ["home", "showcase"],
+    reuseCandidates: ["obligation-flow-viz", "cancel-state-machine-viz"],
+    dataNeeds: [
+      "message payload shape (importance/ack/thread_id)",
+      "status states: unread/read/acknowledged",
+      "thread grouping model",
+    ],
+    interactionNeeds: [
+      "step-through lifecycle controls",
+      "toggle ack_required path",
+      "hover details for status transition reasons",
+    ],
+    riskNotes: [
+      "State explosion if per-recipient lifecycle is over-modeled.",
+      "Must avoid implying hard-delivery guarantees that are not specified.",
+    ],
+  },
+  {
+    id: "viz-reservation-guardrail",
+    title: "File Reservation + Guardrail Conflict Resolution",
+    objective: "Explain exclusive/shared leases, overlap detection, TTL expiry, and pre-commit guard behavior.",
+    tier: "must",
+    pedagogicalOrder: 3,
+    implementationWave: "wave-2-guardrails",
+    explanatoryValue: 5,
+    implementationComplexity: 3,
+    testingRisk: 3,
+    recommendedPlacement: ["home", "showcase", "architecture"],
+    reuseCandidates: ["two-phase-effects-viz", "cancel-protocol-viz", "region-tree-viz"],
+    dataNeeds: [
+      "path pattern overlap examples",
+      "reservation state timeline (granted/conflict/expired/released)",
+      "guard modes (enforce/warn/bypass)",
+    ],
+    interactionNeeds: [
+      "path overlap simulation controls",
+      "TTL slider",
+      "toggle exclusive/shared + guard mode",
+    ],
+    riskNotes: [
+      "Glob conflict logic can be misleading if simplified incorrectly.",
+      "Need clear copy that reservations are advisory, not absolute locks.",
+    ],
+  },
+  {
+    id: "viz-workload-lanes-triage",
+    title: "Inbox Workload Lanes + Urgent Triage",
+    objective: "Show how urgent/overdue messages are routed for deterministic operator attention.",
+    tier: "must",
+    pedagogicalOrder: 4,
+    implementationWave: "wave-2-guardrails",
+    explanatoryValue: 4,
+    implementationComplexity: 3,
+    testingRisk: 3,
+    recommendedPlacement: ["home", "showcase"],
+    reuseCandidates: ["scheduler-lanes-viz"],
+    dataNeeds: [
+      "inbox item schema with importance and ack_required state",
+      "lane assignment rules",
+      "processed event log shape",
+    ],
+    interactionNeeds: [
+      "inject urgent/deadline scenarios",
+      "single-step dequeue controls",
+      "reset and replay controls",
+    ],
+    riskNotes: [
+      "Lane labels must match Agent Mail semantics, not inherited asupersync naming.",
+      "Visual complexity rises quickly when too many concurrent items are shown.",
+    ],
+  },
+  {
+    id: "viz-search-v3-pipeline",
+    title: "Search V3 Hybrid Pipeline",
+    objective: "Visualize lexical + semantic fusion, ranking, and project/product scope filtering.",
+    tier: "must",
+    pedagogicalOrder: 5,
+    implementationWave: "wave-3-scale-observability",
+    explanatoryValue: 5,
+    implementationComplexity: 4,
+    testingRisk: 4,
+    recommendedPlacement: ["showcase", "architecture"],
+    reuseCandidates: ["trace-replay-stability-viz", "oracle-dashboard-viz"],
+    dataNeeds: [
+      "query parsing stages",
+      "lexical and semantic score inputs",
+      "rerank and final score breakdown",
+    ],
+    interactionNeeds: [
+      "query input with filter chips",
+      "stage-by-stage reveal",
+      "compare relevance vs recency ranking",
+    ],
+    riskNotes: [
+      "Ranking internals may drift as search tuning evolves.",
+      "Avoid overpromising semantic behavior not guaranteed in all modes.",
+    ],
+  },
+  {
+    id: "viz-product-bus-topology",
+    title: "Product Bus Cross-Project Topology",
+    objective: "Show how projects link under a product and how inbox/search/contact operations span repos.",
+    tier: "must",
+    pedagogicalOrder: 6,
+    implementationWave: "wave-3-scale-observability",
+    explanatoryValue: 4,
+    implementationComplexity: 3,
+    testingRisk: 3,
+    recommendedPlacement: ["home", "architecture"],
+    reuseCandidates: ["region-tree-viz"],
+    dataNeeds: [
+      "project-product link model",
+      "cross-project message path examples",
+      "product-scoped search behavior",
+    ],
+    interactionNeeds: [
+      "select source/target project",
+      "toggle product-linked vs isolated mode",
+      "highlight route of message/search request",
+    ],
+    riskNotes: [
+      "Cross-project permissions can be misunderstood without contact policy context.",
+      "Need explicit distinction between project and product scope.",
+    ],
+  },
+  {
+    id: "viz-contact-policy-graph",
+    title: "Contact Policy + Handshake Graph",
+    objective: "Explain contacts-only/auto/open/block_all policy impact on inter-agent messaging.",
+    tier: "should",
+    pedagogicalOrder: 7,
+    implementationWave: "wave-2-guardrails",
+    explanatoryValue: 4,
+    implementationComplexity: 3,
+    testingRisk: 3,
+    recommendedPlacement: ["architecture", "showcase"],
+    reuseCandidates: ["capability-security-viz", "macaroon-capability-viz"],
+    dataNeeds: [
+      "policy matrix",
+      "request/approve/deny path states",
+      "cross-project contact edges",
+    ],
+    interactionNeeds: [
+      "policy toggles",
+      "graph edge animation by decision",
+      "handshake timeline scrubber",
+    ],
+    riskNotes: [
+      "Graph readability drops quickly with large agent sets.",
+      "Need clear legend to separate contact edges from message thread lines.",
+    ],
+  },
+  {
+    id: "viz-ack-overdue-risk",
+    title: "Acknowledgment Overdue Risk Monitor",
+    objective: "Explain ack-required workflows and stale-ack escalation views.",
+    tier: "should",
+    pedagogicalOrder: 8,
+    implementationWave: "wave-2-guardrails",
+    explanatoryValue: 4,
+    implementationComplexity: 2,
+    testingRisk: 2,
+    recommendedPlacement: ["showcase", "architecture"],
+    reuseCandidates: ["scheduler-lanes-viz", "oracle-dashboard-viz"],
+    dataNeeds: [
+      "ack_required message subset",
+      "staleness thresholds",
+      "urgent/high importance overlays",
+    ],
+    interactionNeeds: [
+      "TTL threshold control",
+      "filter by importance",
+      "highlight overdue messages",
+    ],
+    riskNotes: [
+      "Escalation semantics vary by policy and operator workflow.",
+    ],
+  },
+  {
+    id: "viz-build-slot-contention",
+    title: "Build Slot Contention + Lease Renewal",
+    objective: "Show how build leases cap expensive concurrency and prevent resource thrash.",
+    tier: "should",
+    pedagogicalOrder: 9,
+    implementationWave: "wave-3-scale-observability",
+    explanatoryValue: 3,
+    implementationComplexity: 2,
+    testingRisk: 2,
+    recommendedPlacement: ["architecture", "showcase"],
+    reuseCandidates: ["scheduler-lanes-viz"],
+    dataNeeds: [
+      "slot holder list with expiry",
+      "renew/release actions",
+      "exclusive vs shared slot semantics",
+    ],
+    interactionNeeds: [
+      "simulate competing agents",
+      "renew/release controls",
+      "timeline of slot occupancy",
+    ],
+    riskNotes: [
+      "Lease timing visuals can become noisy if too many agents are shown.",
+    ],
+  },
+  {
+    id: "viz-resource-uri-map",
+    title: "MCP Resource URI Map",
+    objective: "Map resource:// surfaces to common read-only coordination tasks.",
+    tier: "should",
+    pedagogicalOrder: 10,
+    implementationWave: "wave-3-scale-observability",
+    explanatoryValue: 3,
+    implementationComplexity: 1,
+    testingRisk: 1,
+    recommendedPlacement: ["architecture", "showcase"],
+    reuseCandidates: ["small-step-semantics-viz"],
+    dataNeeds: [
+      "resource URI catalog",
+      "query parameters by resource",
+      "example payload summaries",
+    ],
+    interactionNeeds: [
+      "URI navigator",
+      "sample response preview",
+      "resource-to-use-case cross-highlighting",
+    ],
+    riskNotes: [
+      "Resource inventory can drift; needs easy maintenance hooks.",
+    ],
+  },
+  {
+    id: "viz-tui-screen-atlas",
+    title: "15-Screen TUI Atlas",
+    objective: "Provide a map of TUI screens, core questions, and operational signals.",
+    tier: "should",
+    pedagogicalOrder: 11,
+    implementationWave: "wave-3-scale-observability",
+    explanatoryValue: 3,
+    implementationComplexity: 2,
+    testingRisk: 2,
+    recommendedPlacement: ["showcase", "architecture"],
+    reuseCandidates: ["lab-runtime-viz"],
+    dataNeeds: [
+      "screen metadata",
+      "primary signals per screen",
+      "common navigation paths",
+    ],
+    interactionNeeds: [
+      "screen selector with mini-preview",
+      "next-screen recommendations",
+      "signal legend overlays",
+    ],
+    riskNotes: [
+      "Screenshots/video assets may lag behind current TUI behavior.",
+    ],
+  },
+  {
+    id: "viz-archive-dual-write",
+    title: "SQLite + Git Dual-Write Audit Path",
+    objective: "Show runtime write path from API/tool call through DB persistence and Git archive sync.",
+    tier: "stretch",
+    pedagogicalOrder: 12,
+    implementationWave: "wave-4-advanced-internals",
+    explanatoryValue: 4,
+    implementationComplexity: 4,
+    testingRisk: 4,
+    recommendedPlacement: ["architecture"],
+    reuseCandidates: ["two-phase-effects-viz", "trace-replay-stability-viz"],
+    dataNeeds: [
+      "storage layer write stages",
+      "coalescer behavior",
+      "failure and retry paths",
+    ],
+    interactionNeeds: [
+      "pipeline stage stepping",
+      "toggle normal vs degraded path",
+      "inspect artifacts produced at each stage",
+    ],
+    riskNotes: [
+      "Storage internals are highly implementation-specific and may change.",
+      "Too much backend detail can distract non-operator audiences.",
+    ],
+  },
+  {
+    id: "viz-stress-gauntlet-outcomes",
+    title: "Stress Gauntlet Scenario Outcomes",
+    objective: "Summarize representative stress scenarios and what each validates operationally.",
+    tier: "stretch",
+    pedagogicalOrder: 13,
+    implementationWave: "wave-4-advanced-internals",
+    explanatoryValue: 3,
+    implementationComplexity: 2,
+    testingRisk: 3,
+    recommendedPlacement: ["home", "showcase"],
+    reuseCandidates: ["oracle-dashboard-viz", "test-oracles-viz", "eprocess-monitor-viz"],
+    dataNeeds: [
+      "scenario catalog",
+      "pass/fail criteria",
+      "headline throughput/reliability metrics",
+    ],
+    interactionNeeds: [
+      "scenario selector",
+      "metrics comparison view",
+      "failure mode annotations",
+    ],
+    riskNotes: [
+      "Benchmark numbers can be misread as universal guarantees.",
+    ],
+  },
+];
+
+export const visualizationBacklogByTier: Record<VisualizationTier, VisualizationBacklogItem[]> = {
+  must: visualizationBacklog.filter((item) => item.tier === "must"),
+  should: visualizationBacklog.filter((item) => item.tier === "should"),
+  stretch: visualizationBacklog.filter((item) => item.tier === "stretch"),
+};
+
+export const visualizationExecutionOrder = [...visualizationBacklog].sort(
+  (a, b) => a.pedagogicalOrder - b.pedagogicalOrder
+);
+
 // Changelog
 export const changelog: ChangelogEntry[] = [
   {
@@ -808,7 +1197,7 @@ export const changelog: ChangelogEntry[] = [
     title: "Rust Ground-Up Rewrite",
     items: [
       "12-crate modular workspace architecture with zero unsafe code",
-      "Built on asupersync for structured async concurrency",
+      "Built on Tokio for high-performance async concurrency",
       "SQLite WAL mode with connection pooling and PRAGMA tuning",
       "Git-backed archive with commit coalescing (9x reduction)",
     ],
@@ -1641,3 +2030,320 @@ export const faq: FaqItem[] = [
     answer: "A 10-scenario test suite that validates production readiness: 30-agent message pipelines, 10-project concurrent operations, commit coalescer efficiency, stale Git lock recovery, mixed reservation + messaging loads, connection pool exhaustion recovery, sustained 30-second throughput, thundering herd handling, and inbox reads during message storms. All scenarios pass with zero errors.",
   },
 ];
+
+// ─── Video Placeholder Spec ──────────────────────────────────────
+
+export interface VideoPlaceholderSpec {
+  id: string;
+  poster: string;
+  mediaSrc: string;
+  mediaType: string;
+  width: number;
+  height: number;
+  ariaLabel: string;
+  captionsTrack: {
+    src: string;
+    srcLang: string;
+    label: string;
+    kind: "captions" | "subtitles" | "chapters";
+  }[];
+  reducedMotionFallback: string;
+  overlayTitle: string;
+  overlaySubtitle: string;
+  replacementSteps: string[];
+}
+
+export const heroVideoPlaceholder: VideoPlaceholderSpec = {
+  id: "hero-dashboard-video",
+  poster: "/images/agent-mail-dashboard-poster-placeholder.svg",
+  mediaSrc: "/media/agent-mail-dashboard-placeholder.mp4",
+  mediaType: "video/mp4",
+  width: 1920,
+  height: 1080,
+  ariaLabel: "MCP Agent Mail dashboard demo — shows multi-agent coordination in real time",
+  captionsTrack: [
+    {
+      src: "/media/agent-mail-dashboard.vtt",
+      srcLang: "en",
+      label: "English",
+      kind: "captions",
+    },
+    {
+      src: "/media/agent-mail-dashboard-chapters.vtt",
+      srcLang: "en",
+      label: "Chapters",
+      kind: "chapters",
+    },
+  ],
+  reducedMotionFallback: "/images/agent-mail-dashboard-poster-placeholder.svg",
+  overlayTitle: "Placeholder: replace with your Agent Mail dashboard recording",
+  overlaySubtitle: "expected path: `public/media/agent-mail-dashboard-placeholder.mp4`",
+  replacementSteps: [
+    "1. Record a screen capture of the Agent Mail TUI or web dashboard showing live multi-agent coordination (recommended: 1920x1080, 30fps, ≤2 min).",
+    "2. Export as H.264 MP4 and place at `public/media/agent-mail-dashboard-placeholder.mp4`.",
+    "3. Generate a poster frame (first frame or key moment) as PNG/SVG and place at `public/images/agent-mail-dashboard-poster-placeholder.svg`.",
+    "4. Optional: author a WebVTT captions file at `public/media/agent-mail-dashboard.vtt` and chapter markers at `public/media/agent-mail-dashboard-chapters.vtt`.",
+    "5. The `<video>` element in `app/page.tsx` (hero section) auto-picks up these files. No code changes needed.",
+    "6. For reduced-motion users, the poster image is shown instead of autoplaying video (handled by the `prefers-reduced-motion` media query in the component).",
+    "7. Verify: `bun run build` and check that the video loads at `/` with poster, controls, captions track, and accessible label.",
+  ],
+};
+
+// ─── Social Proof & Credibility ──────────────────────────────────
+
+export interface EvidenceBackedClaim {
+  id: string;
+  claim: string;
+  evidence: string;
+  source: string;
+  category: "scale" | "reliability" | "performance" | "architecture" | "adoption";
+}
+
+export const evidenceBackedClaims: EvidenceBackedClaim[] = [
+  {
+    id: "ebc-concurrent-agents",
+    claim: "Runs 40-50 concurrent agents from multiple providers with zero coordination failures",
+    evidence: "Stress gauntlet scenario 7 validates sustained 30-second mixed workloads at ~49 RPS with 30+ agent pipelines. Production use confirmed across Claude Code, Codex CLI, and Gemini CLI simultaneously.",
+    source: "tests/stress_gauntlet.rs, creator tweet thread (650+ likes)",
+    category: "scale",
+  },
+  {
+    id: "ebc-zero-unsafe",
+    claim: "12-crate Rust workspace with zero unsafe code blocks",
+    evidence: "grep -r 'unsafe' across all .rs files returns zero matches. All FFI boundaries use safe wrappers.",
+    source: "Cargo.toml workspace members, codebase grep",
+    category: "architecture",
+  },
+  {
+    id: "ebc-commit-coalescing",
+    claim: "9x reduction in Git commits through intelligent coalescing",
+    evidence: "Commit coalescer batches rapid-fire agent commits into logical groups, measured at 9:1 reduction ratio in stress gauntlet scenario 3.",
+    source: "tests/stress_gauntlet.rs scenario 3",
+    category: "performance",
+  },
+  {
+    id: "ebc-pool-recovery",
+    claim: "Automatic recovery from SQLite connection pool exhaustion",
+    evidence: "Stress gauntlet scenario 6 intentionally exhausts the connection pool and validates automatic recovery with zero data loss.",
+    source: "tests/stress_gauntlet.rs scenario 6",
+    category: "reliability",
+  },
+  {
+    id: "ebc-thundering-herd",
+    claim: "Handles thundering herd scenarios with zero errors",
+    evidence: "Stress gauntlet scenario 8 simulates 30 agents hitting the same endpoint simultaneously. All requests succeed with bounded latency.",
+    source: "tests/stress_gauntlet.rs scenario 8",
+    category: "reliability",
+  },
+  {
+    id: "ebc-stale-lock-recovery",
+    claim: "Automatic detection and cleanup of stale Git locks from crashed agents",
+    evidence: "Stress gauntlet scenario 4 creates stale .git/index.lock files and validates they are detected and cleaned up within the TTL window.",
+    source: "tests/stress_gauntlet.rs scenario 4",
+    category: "reliability",
+  },
+  {
+    id: "ebc-cross-provider",
+    claim: "First open-source system for cross-provider multi-agent coordination",
+    evidence: "Uses MCP standard for transport. Any MCP-capable agent (Claude, Codex, Gemini, Copilot) can participate. No vendor lock-in.",
+    source: "README.md, MCP tool definitions",
+    category: "adoption",
+  },
+  {
+    id: "ebc-34-mcp-tools",
+    claim: "34 MCP tools covering the full coordination lifecycle",
+    evidence: "Tools span identity (register_agent), messaging (send_message, reply_message, fetch_inbox), reservations (file_reservation_paths), search (search_messages), and macros (macro_start_session).",
+    source: "src/tools/ module definitions",
+    category: "architecture",
+  },
+];
+
+export interface CredibilityHighlight {
+  id: string;
+  metric: string;
+  value: string;
+  context: string;
+  icon: string;
+}
+
+export const credibilityHighlights: CredibilityHighlight[] = [
+  {
+    id: "ch-stress-scenarios",
+    metric: "Stress Test Scenarios",
+    value: "10/10",
+    context: "All 10 stress gauntlet scenarios pass with zero errors",
+    icon: "shieldCheck",
+  },
+  {
+    id: "ch-crate-count",
+    metric: "Rust Crates",
+    value: "12",
+    context: "Modular workspace: core, db, storage, search-core, guard, share, tools, server, CLI, conformance, WASM",
+    icon: "package",
+  },
+  {
+    id: "ch-tui-screens",
+    metric: "TUI Screens",
+    value: "15",
+    context: "Full operational dashboard: inbox, threads, reservations, agents, system health, and more",
+    icon: "monitor",
+  },
+  {
+    id: "ch-search-modes",
+    metric: "Search Modes",
+    value: "3",
+    context: "Lexical (BM25), semantic (embedding), and hybrid search across all message history",
+    icon: "search",
+  },
+  {
+    id: "ch-rps",
+    metric: "Sustained RPS",
+    value: "~49",
+    context: "Mixed workload throughput maintained over 30-second stress test windows",
+    icon: "zap",
+  },
+];
+
+export interface AdoptionMessage {
+  id: string;
+  headline: string;
+  subline: string;
+  targetAudience: string;
+  ctaLabel: string;
+  ctaHref: string;
+}
+
+export const adoptionMessages: AdoptionMessage[] = [
+  {
+    id: "am-solo-dev",
+    headline: "Stop watching agents fight over files",
+    subline: "Advisory reservations and TTL expiration mean your agents coordinate instead of collide — even when they crash.",
+    targetAudience: "Solo developers running multiple AI agents",
+    ctaLabel: "Get Started Free",
+    ctaHref: "/getting-started",
+  },
+  {
+    id: "am-team-lead",
+    headline: "See what every agent is doing, in real time",
+    subline: "15-screen TUI, web dashboard, and robot mode CLI give you full visibility. Human Overseer lets you intervene when needed.",
+    targetAudience: "Team leads managing AI-assisted development",
+    ctaLabel: "View Dashboard Demo",
+    ctaHref: "/showcase",
+  },
+  {
+    id: "am-platform",
+    headline: "The coordination layer your agent platform is missing",
+    subline: "34 MCP tools, cross-provider compatibility, and a stress gauntlet proving 40+ concurrent agents. MIT licensed.",
+    targetAudience: "Platform engineers building agent infrastructure",
+    ctaLabel: "Explore Architecture",
+    ctaHref: "/architecture",
+  },
+];
+
+// ─── Dashboard Demo Storyboard ──────────────────────────────────
+
+export interface StoryboardScene {
+  id: string;
+  sceneNumber: number;
+  title: string;
+  durationSeconds: number;
+  description: string;
+  keyAction: string;
+  overlayText: string | null;
+  narrativeBeat: string;
+}
+
+export interface RecordingBrief {
+  totalDurationSeconds: number;
+  resolution: string;
+  framerate: number;
+  format: string;
+  recordingSettings: string[];
+  scenes: StoryboardScene[];
+}
+
+export const dashboardDemoStoryboard: RecordingBrief = {
+  totalDurationSeconds: 90,
+  resolution: "1920x1080",
+  framerate: 30,
+  format: "H.264 MP4",
+  recordingSettings: [
+    "Use the Agent Mail TUI (am) or web UI (localhost:8765/mail) as the recording target.",
+    "Set terminal font size to 14-16pt for readability at 1080p.",
+    "Use a dark terminal theme that matches the website aesthetic.",
+    "Disable notifications and status bar indicators that could leak personal info.",
+    "Keep mouse movements smooth and deliberate — avoid fast cursor jitter.",
+  ],
+  scenes: [
+    {
+      id: "scene-1-boot",
+      sceneNumber: 1,
+      title: "Cold Start",
+      durationSeconds: 10,
+      description: "Run 'am' to start the Agent Mail server. Show the boot sequence, health check output, and the TUI dashboard appearing.",
+      keyAction: "Type 'am' and press Enter. The server initializes and the TUI launches.",
+      overlayText: "One command to start",
+      narrativeBeat: "Establish simplicity — a single command boots the entire coordination system.",
+    },
+    {
+      id: "scene-2-agents-register",
+      sceneNumber: 2,
+      title: "Agents Register",
+      durationSeconds: 15,
+      description: "Show 3-5 agents registering via macro_start_session. The agent list populates in real time with names like GreenCastle, BlueLake, RedHarbor.",
+      keyAction: "Navigate to the Agents screen. Watch agent entries appear as they register.",
+      overlayText: "Semi-persistent identity",
+      narrativeBeat: "Demonstrate the identity system — agents get memorable names automatically.",
+    },
+    {
+      id: "scene-3-reservations",
+      sceneNumber: 3,
+      title: "File Reservations in Action",
+      durationSeconds: 15,
+      description: "Show an agent reserving files. Navigate to the Reservations screen. Show the TTL countdown, the glob pattern match, and a second agent detecting the reservation.",
+      keyAction: "Show reservation creation, the TTL timer, and a conflict detection.",
+      overlayText: "Advisory, not rigid",
+      narrativeBeat: "Show that reservations prevent conflicts without creating deadlocks.",
+    },
+    {
+      id: "scene-4-messaging",
+      sceneNumber: 4,
+      title: "Targeted Messaging",
+      durationSeconds: 15,
+      description: "Show agents exchanging targeted messages. Navigate to the Inbox screen, then drill into a thread. Show the thread view with subject, body, and acknowledgment status.",
+      keyAction: "Open inbox, click into a thread, show the full conversation.",
+      overlayText: "Targeted, not broadcast",
+      narrativeBeat: "Demonstrate that messages are addressed to specific agents, not broadcast-to-all.",
+    },
+    {
+      id: "scene-5-search",
+      sceneNumber: 5,
+      title: "Hybrid Search",
+      durationSeconds: 10,
+      description: "Type a search query in the Search screen. Show results from lexical, semantic, and hybrid modes with relevance scores.",
+      keyAction: "Type a query, toggle between search modes, show ranked results.",
+      overlayText: "Find anything, instantly",
+      narrativeBeat: "Show the power of searchable audit trails across all agent communication.",
+    },
+    {
+      id: "scene-6-scale",
+      sceneNumber: 6,
+      title: "Scale Dashboard",
+      durationSeconds: 15,
+      description: "Navigate to the System Health screen. Show metrics: active agents, messages/sec, reservation count, connection pool status. Ideally with 10+ agents active.",
+      keyAction: "Show the health dashboard with live metrics updating in real time.",
+      overlayText: "40-50 agents, zero issues",
+      narrativeBeat: "Prove the scale claim — show many agents coordinating smoothly.",
+    },
+    {
+      id: "scene-7-cta",
+      sceneNumber: 7,
+      title: "Closing CTA",
+      durationSeconds: 10,
+      description: "Return to the main dashboard view. Pause for 2 seconds on the full TUI showing all active coordination. Fade to the website URL.",
+      keyAction: "Navigate back to the main dashboard. Hold the shot.",
+      overlayText: "mcpagentmail.com",
+      narrativeBeat: "End with the full picture — a coordinated multi-agent workspace in action.",
+    },
+  ],
+};

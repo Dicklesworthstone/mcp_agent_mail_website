@@ -9,20 +9,8 @@ import {
   Package,
   Activity,
   Sparkles,
-  Key,
   Network,
-  Droplets,
-  Layers,
-  GitMerge,
   Zap,
-  Bomb,
-  Search,
-  Calculator,
-  GitCompare,
-  LineChart,
-  Flame,
-  GitCommit,
-  Braces,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -37,38 +25,16 @@ import RobotMascot from "@/components/robot-mascot";
 import GlitchText from "@/components/glitch-text";
 import { SyncContainer } from "@/components/sync-elements";
 import { Magnetic, BorderBeam } from "@/components/motion-wrapper";
-import { Tooltip } from "@/components/tooltip";
 import {
   siteConfig,
   heroStats,
   features,
   codeExample,
   changelog,
+  heroVideoPlaceholder,
 } from "@/lib/content";
 
 const AgentFlywheel = dynamic(() => import("@/components/agent-flywheel"), { ssr: false });
-const RegionTreeViz = dynamic(() => import("@/components/viz/region-tree-viz"), { ssr: false });
-const CancelProtocolViz = dynamic(() => import("@/components/viz/cancel-protocol-viz"), { ssr: false });
-const LabRuntimeViz = dynamic(() => import("@/components/viz/lab-runtime-viz"), { ssr: false });
-const ObligationFlowViz = dynamic(() => import("@/components/viz/obligation-flow-viz"), { ssr: false });
-const CapabilitySecurityViz = dynamic(() => import("@/components/viz/capability-security-viz"), { ssr: false });
-const TwoPhaseEffectsViz = dynamic(() => import("@/components/viz/two-phase-effects-viz"), { ssr: false });
-const FountainCodeViz = dynamic(() => import("@/components/viz/fountain-code-viz"), { ssr: false });
-const SpectralDeadlockViz = dynamic(() => import("@/components/viz/spectral-deadlock-viz"), { ssr: false });
-const SporkOtpViz = dynamic(() => import("@/components/viz/spork-otp-viz"), { ssr: false });
-const CalmViz = dynamic(() => import("@/components/viz/calm-theorem-viz"), { ssr: false });
-const LyapunovPotentialViz = dynamic(() => import("@/components/viz/lyapunov-potential-viz"), { ssr: false });
-const Exp3SchedulerViz = dynamic(() => import("@/components/viz/exp3-scheduler-viz"), { ssr: false });
-const CancellationInjectionViz = dynamic(() => import("@/components/viz/cancellation-injection-viz"), { ssr: false });
-const TestOraclesViz = dynamic(() => import("@/components/viz/test-oracles-viz"), { ssr: false });
-const MacaroonCaveatViz = dynamic(() => import("@/components/viz/macaroon-caveat-viz"), { ssr: false });
-const BudgetAlgebraViz = dynamic(() => import("@/components/viz/budget-algebra-viz"), { ssr: false });
-const FoataFingerprintViz = dynamic(() => import("@/components/viz/foata-fingerprint-viz"), { ssr: false });
-const ConformalCalibrationViz = dynamic(() => import("@/components/viz/conformal-calibration-viz"), { ssr: false });
-const CancelFuelViz = dynamic(() => import("@/components/viz/cancel-fuel-viz"), { ssr: false });
-const TraceReplayStabilityViz = dynamic(() => import("@/components/viz/trace-replay-stability-viz"), { ssr: false });
-const SagaCompensationViz = dynamic(() => import("@/components/viz/saga-compensation-viz"), { ssr: false });
-const SmallStepSemanticsViz = dynamic(() => import("@/components/viz/small-step-semantics-viz"), { ssr: false });
 
 export default function HomePage() {
   return (
@@ -176,15 +142,28 @@ export default function HomePage() {
                     playsInline
                     muted
                     preload="metadata"
-                    poster="/images/agent-mail-dashboard-poster-placeholder.svg"
-                    aria-label="MCP Agent Mail dashboard demo placeholder video"
-                  />
+                    poster={heroVideoPlaceholder.poster}
+                    aria-label={heroVideoPlaceholder.ariaLabel}
+                    width={heroVideoPlaceholder.width}
+                    height={heroVideoPlaceholder.height}
+                  >
+                    <source src={heroVideoPlaceholder.mediaSrc} type={heroVideoPlaceholder.mediaType} />
+                    {heroVideoPlaceholder.captionsTrack.map((track) => (
+                      <track
+                        key={track.src}
+                        src={track.src}
+                        srcLang={track.srcLang}
+                        label={track.label}
+                        kind={track.kind}
+                      />
+                    ))}
+                  </video>
                   <div className="absolute inset-x-0 bottom-0 p-4 md:p-5 bg-gradient-to-t from-black/85 to-transparent">
                     <p className="text-xs md:text-sm font-bold text-white tracking-wide uppercase">
-                      Placeholder: replace with your Agent Mail dashboard recording
+                      {heroVideoPlaceholder.overlayTitle}
                     </p>
                     <p className="text-[10px] md:text-xs text-slate-300 mt-1 font-mono">
-                      expected path: `public/media/agent-mail-dashboard-placeholder.mp4`
+                      {heroVideoPlaceholder.overlaySubtitle}
                     </p>
                   </div>
                 </div>
@@ -229,518 +208,161 @@ export default function HomePage() {
           <div className="text-center mb-24">
             <GlitchText trigger="hover" intensity="medium">
               <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter mb-6">
-                Radically Innovative <br className="hidden md:block" /> <span className="text-blue-500">Concurrency</span>
+                Why Purpose-Built <br className="hidden md:block" /> <span className="text-blue-500">Coordination</span>
               </h2>
             </GlitchText>
             <p className="text-lg md:text-xl text-slate-400 font-medium max-w-3xl mx-auto leading-relaxed">
-              Asupersync replaces manual &quot;developer discipline&quot; with strict runtime guarantees. It forces you to write, reason about, and test async code differently, embedding safety directly into the <Tooltip term="Cancel-Correct">runtime itself</Tooltip>.
+              Agent Mail sidesteps the many footguns of naive multi-agent coordination. Every design decision is battle-tested across 40-50 concurrent agents from different providers working in a single shared codebase.
             </p>
           </div>
 
           <div className="space-y-32">
-            {/* Concept 1: Cancel Protocol */}
+            {/* Concept 1: Advisory File Reservations */}
             <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
               <div className="flex-1 space-y-6 text-left">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-orange-500/30 bg-orange-500/10 text-[10px] font-black uppercase tracking-[0.3em] text-orange-400">
-                  <Activity className="h-3 w-3" /> Core Protocol
+                  <Activity className="h-3 w-3" /> Core Design
                 </div>
                 <h3 className="text-3xl md:text-4xl font-black text-white leading-tight">
-                  The <Tooltip term="Three-Phase Cancel Protocol">Three-Phase Cancel Protocol</Tooltip>
+                  Advisory File Reservations
                 </h3>
                 <p className="text-lg text-slate-400 leading-relaxed">
-                  In standard async Rust, dropping a future instantly stops its execution. The resulting &quot;silent drop&quot; leaves database connections open and files half-written.
+                  Agents call dibs on files temporarily while they work, but reservations are not rigidly enforced and they expire via TTL. This prevents deadlocks while making ownership visible.
                 </p>
                 <p className="text-lg text-slate-400 leading-relaxed">
-                  Asupersync requires a mandatory 3-phase shutdown. Tasks receive a <Tooltip term="Budget">time budget</Tooltip> to gracefully <Tooltip term="Drain Phase">drain</Tooltip> their connections and flush buffers before the runtime enforces <Tooltip term="Finalize Phase">finalization</Tooltip>.
+                  If an agent crashes or gets its memory wiped, stale reservations expire automatically. Other agents can detect untouched files and reclaim them. The optional pre-commit guard adds enforcement at commit time when you want it.
                 </p>
               </div>
               <div className="flex-1 w-full max-w-2xl">
                 <SyncContainer withPulse={true} accentColor="#F97316" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-orange-900/20">
-                   <CancelProtocolViz />
+                  <div className="text-center py-12 text-slate-500 text-sm font-medium">
+                    Reservation flow visualization placeholder
+                  </div>
                 </SyncContainer>
               </div>
             </div>
 
-            {/* Concept 2: Linear Obligations */}
+            {/* Concept 2: Worktrees vs Shared Space */}
             <div className="flex flex-col lg:flex-row-reverse items-center gap-12 lg:gap-20">
               <div className="flex-1 space-y-6 text-left">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-green-500/30 bg-green-500/10 text-[10px] font-black uppercase tracking-[0.3em] text-green-400">
-                  <Package className="h-3 w-3" /> Type System
+                  <Package className="h-3 w-3" /> Key Insight
                 </div>
                 <h3 className="text-3xl md:text-4xl font-black text-white leading-tight">
-                  <Tooltip term="Linear Obligations">Linear Obligations</Tooltip>
+                  Why Not Git Worktrees?
                 </h3>
                 <p className="text-lg text-slate-400 leading-relaxed">
-                  Every time you spawn a task or borrow a resource, you get a <Tooltip term="Permit">Permit</Tooltip> or a <Tooltip term="Lease">Lease</Tooltip>. The Rust compiler strictly enforces their usage.
+                  Git worktrees demolish development velocity and create merge debt you pay later when agents diverge. Working in one shared space surfaces conflicts immediately.
                 </p>
                 <p className="text-lg text-slate-400 leading-relaxed">
-                  You must explicitly await, detach, or cancel these tokens. Dropping one by mistake triggers a compilation error, preventing resource leaks entirely.
+                  With advisory reservations and threaded messaging, agents coordinate in real time instead of accumulating silent divergence. The result: zero merge debt, zero lost work, and immediate conflict resolution.
                 </p>
               </div>
               <div className="flex-1 w-full max-w-2xl">
                 <SyncContainer withPulse={true} accentColor="#22C55E" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-green-900/20">
-                   <ObligationFlowViz />
+                  <div className="text-center py-12 text-slate-500 text-sm font-medium">
+                    Worktree vs shared-space comparison visualization placeholder
+                  </div>
                 </SyncContainer>
               </div>
             </div>
 
-            {/* Concept 3: Region Tree */}
+            {/* Concept 3: Semi-Persistent Identity */}
             <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
               <div className="flex-1 space-y-6 text-left">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 text-[10px] font-black uppercase tracking-[0.3em] text-blue-400">
-                  <Rocket className="h-3 w-3" /> Concurrency
+                  <Sparkles className="h-3 w-3" /> Identity
                 </div>
                 <h3 className="text-3xl md:text-4xl font-black text-white leading-tight">
-                  The <Tooltip term="Region Tree">Region Tree</Tooltip>
+                  Semi-Persistent Identity
                 </h3>
                 <p className="text-lg text-slate-400 leading-relaxed">
-                  Asupersync enforces structural integrity. Every task is born into a <Tooltip term="Region">Region</Tooltip>, and regions form a strict parent-child hierarchy.
+                  Each agent gets a memorable identity (GreenCastle, BlueLake, RedHarbor) that persists for the duration of a task. But these identities can also vanish without a trace and not break things.
                 </p>
                 <p className="text-lg text-slate-400 leading-relaxed">
-                  When a parent Region finishes or gets cancelled, the cancellation cleanly cascades down the entire tree. This cascade guarantees no &quot;zombie&quot; tasks keep running after their parent terminates.
+                  This is critical because agents crash, get context-wiped, and disappear constantly. The identity system is designed for this reality, not the fantasy of perfectly reliable agents.
                 </p>
               </div>
               <div className="flex-1 w-full max-w-2xl">
                 <SyncContainer withPulse={true} accentColor="#3B82F6" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-blue-900/20">
-                   <RegionTreeViz />
+                  <div className="text-center py-12 text-slate-500 text-sm font-medium">
+                    Agent identity lifecycle visualization placeholder
+                  </div>
                 </SyncContainer>
               </div>
             </div>
 
-            {/* Concept 4: Lab Runtime */}
+            {/* Concept 4: Targeted Messaging */}
             <div className="flex flex-col lg:flex-row-reverse items-center gap-12 lg:gap-20">
               <div className="flex-1 space-y-6 text-left">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-purple-500/30 bg-purple-500/10 text-[10px] font-black uppercase tracking-[0.3em] text-purple-400">
-                  <Sparkles className="h-3 w-3" /> Testing
+                  <Network className="h-3 w-3" /> Communication
                 </div>
                 <h3 className="text-3xl md:text-4xl font-black text-white leading-tight">
-                  Deterministic <Tooltip term="Lab Runtime">Lab Runtime</Tooltip>
+                  Targeted, Not Broadcast
                 </h3>
                 <p className="text-lg text-slate-400 leading-relaxed">
-                  Race conditions are notoriously hard to test because standard runtimes behave chaotically. Asupersync provides a deterministic testing environment to solve this.
+                  A naive implementation defaults to broadcast-to-all. Agents are lazy and will only use that, spamming every agent with irrelevant information. It would be like if your email at work defaulted to reply-all every time.
                 </p>
                 <p className="text-lg text-slate-400 leading-relaxed">
-                  By providing a <Tooltip term="Seed">Seed</Tooltip>, the Lab Runtime systematically explores different thread interleavings using <Tooltip term="DPOR">DPOR</Tooltip> to find the exact combination that triggers a bug. You can then reproduce the exact bug reliably, every single time.
+                  Agent Mail uses targeted messaging with subjects, threads, and explicit recipients. Agents only receive messages addressed to them. Acknowledgment tracking ensures critical messages are never missed.
                 </p>
               </div>
               <div className="flex-1 w-full max-w-2xl">
                 <SyncContainer withPulse={true} accentColor="#A855F7" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-purple-900/20">
-                   <LabRuntimeViz />
+                  <div className="text-center py-12 text-slate-500 text-sm font-medium">
+                    Message routing visualization placeholder
+                  </div>
                 </SyncContainer>
               </div>
             </div>
 
-            {/* Concept 5: Capability Security */}
+            {/* Concept 5: Graph-Aware Prioritization */}
             <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
               <div className="flex-1 space-y-6 text-left">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-teal-500/30 bg-teal-500/10 text-[10px] font-black uppercase tracking-[0.3em] text-teal-400">
-                  <Key className="h-3 w-3" /> Zero Trust Concurrency
+                  <Zap className="h-3 w-3" /> Task Intelligence
                 </div>
                 <h3 className="text-3xl md:text-4xl font-black text-white leading-tight">
-                  <Tooltip term="Capability Security">Capability Security</Tooltip>
+                  Graph-Aware Task Prioritization
                 </h3>
                 <p className="text-lg text-slate-400 leading-relaxed">
-                  In most runtimes, any task can perform any action at any time. A background worker can unexpectedly open a network connection or read the file system. Asupersync restricts this by default.
+                  With hundreds of tasks, you do not want agents randomly choosing or wasting context negotiating. There is usually a &quot;right answer&quot; for what each agent should do next.
                 </p>
                 <p className="text-lg text-slate-400 leading-relaxed">
-                  Every task receives a <Tooltip term="Cx">Cx token</Tooltip> that explicitly grants it permissions. If a buggy or hijacked task attempts an operation without the right key on its ring, the runtime instantly blocks it. You maintain absolute control over what each component of your system can actually do.
+                  That right answer comes from the dependency graph. The bv tool uses basic graph theory (PageRank, betweenness centrality, critical path analysis) as a compass that tells each agent which direction will unlock the most work overall.
                 </p>
               </div>
               <div className="flex-1 w-full max-w-2xl">
                 <SyncContainer withPulse={true} accentColor="#14B8A6" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-teal-900/20">
-                   <CapabilitySecurityViz />
+                  <div className="text-center py-12 text-slate-500 text-sm font-medium">
+                    Dependency graph prioritization visualization placeholder
+                  </div>
                 </SyncContainer>
               </div>
             </div>
 
-            {/* Concept 6: Two-Phase Effects */}
+            {/* Concept 6: Stress-Tested at Scale */}
             <div className="flex flex-col lg:flex-row-reverse items-center gap-12 lg:gap-20">
               <div className="flex-1 space-y-6 text-left">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-yellow-500/30 bg-yellow-500/10 text-[10px] font-black uppercase tracking-[0.3em] text-yellow-400">
-                  <Package className="h-3 w-3" /> State Consistency
+                  <Activity className="h-3 w-3" /> Proven at Scale
                 </div>
                 <h3 className="text-3xl md:text-4xl font-black text-white leading-tight">
-                  <Tooltip term="Two-Phase Effect">Two-Phase Effects</Tooltip>
+                  40-50 Agents, Zero Issues
                 </h3>
                 <p className="text-lg text-slate-400 leading-relaxed">
-                  Traditional async code often crashes midway through an operation, leaving the system in an inconsistent state. For instance, money might be deducted from one account but never added to the other.
+                  Not a prototype. Agent Mail runs with 40-50 concurrent agents mixing Claude Code, Codex CLI, and Gemini CLI on the same project with no issues.
                 </p>
                 <p className="text-lg text-slate-400 leading-relaxed">
-                  Asupersync introduces a Reserve/Commit pattern. Side-effects are first staged as reversible reservations. If cancellation strikes during this window, the runtime seamlessly rolls back the hold. Only when it is entirely safe do the effects permanently commit.
+                  The 10-scenario stress gauntlet validates 30-agent message pipelines, pool exhaustion recovery, thundering herd handling, stale lock cleanup, and sustained ~49 RPS mixed workloads. Every scenario passes with zero errors.
                 </p>
               </div>
               <div className="flex-1 w-full max-w-2xl">
                 <SyncContainer withPulse={true} accentColor="#EAB308" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-yellow-900/20">
-                   <TwoPhaseEffectsViz />
-                </SyncContainer>
-              </div>
-            </div>
-            
-            {/* Concept 7: Spectral Deadlock Detection */}
-            <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
-              <div className="flex-1 space-y-6 text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-rose-500/30 bg-rose-500/10 text-[10px] font-black uppercase tracking-[0.3em] text-rose-400">
-                  <Network className="h-3 w-3" /> System Lifeline
-                </div>
-                <h3 className="text-3xl md:text-4xl font-black text-white leading-tight">
-                  <Tooltip term="Spectral Wait-Graph Analysis">Spectral Deadlock Detection</Tooltip>
-                </h3>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  Deadlocks usually freeze systems silently. Asupersync treats deadlock detection as an active telemetry problem, monitoring a real-time <Tooltip term="Wait-Graph">Wait-Graph</Tooltip> of all tasks.
-                </p>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  The scheduler calculates the <Tooltip term="Fiedler Value">Fiedler Value</Tooltip> (the second-smallest eigenvalue of the graph&apos;s Laplacian matrix). When this value plummets, it signals an impending traffic jam. The runtime can then intervene proactively before a catastrophic freeze occurs.
-                </p>
-              </div>
-              <div className="flex-1 w-full max-w-2xl">
-                <SyncContainer withPulse={true} accentColor="#F43F5E" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-rose-900/20">
-                   <SpectralDeadlockViz />
-                </SyncContainer>
-              </div>
-            </div>
-            
-            {/* Concept 8: Fountain Codes */}
-            <div className="flex flex-col lg:flex-row-reverse items-center gap-12 lg:gap-20">
-              <div className="flex-1 space-y-6 text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-sky-500/30 bg-sky-500/10 text-[10px] font-black uppercase tracking-[0.3em] text-sky-400">
-                  <Droplets className="h-3 w-3" /> Resilient Data
-                </div>
-                <h3 className="text-3xl md:text-4xl font-black text-white leading-tight">
-                  <Tooltip term="RaptorQ">RaptorQ Fountain Codes</Tooltip>
-                </h3>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  Moving data across lossy networks usually requires endless back-and-forth acknowledgments (ACKs) and retransmissions. This degrades performance significantly when connections drop.
-                </p>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  Asupersync uses a <Tooltip term="Fountain Code">rateless erasure code</Tooltip> protocol. The sender emits an infinite stream of encoded droplets. The receiver only needs to catch a sufficient number of these droplets to perfectly reconstruct the file, completely eliminating the need for retransmission requests.
-                </p>
-              </div>
-              <div className="flex-1 w-full max-w-2xl">
-                <SyncContainer withPulse={true} accentColor="#0EA5E9" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-sky-900/20">
-                   <FountainCodeViz />
-                </SyncContainer>
-              </div>
-            </div>
-            
-            {/* Concept 9: Spork (OTP in Rust) */}
-            <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
-              <div className="flex-1 space-y-6 text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400">
-                  <Layers className="h-3 w-3" /> Actor System
-                </div>
-                <h3 className="text-3xl md:text-4xl font-black text-white leading-tight">
-                  <Tooltip term="Spork">Spork</Tooltip> (OTP without the flaws)
-                </h3>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  Erlang&apos;s OTP architecture is legendary, but it relies on developer discipline. Actors can silently crash, messages can accumulate boundlessly in mailboxes until OOM, and servers can forget to reply, leaving clients hanging forever.
-                </p>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  Asupersync provides <Tooltip term="Spork">Spork</Tooltip>—a <Tooltip term="GenServer">GenServer</Tooltip> and <Tooltip term="Supervisor">Supervisor</Tooltip> implementation that enforces strict guarantees at compile time. Mailboxes apply explicit backpressure, and every client request generates a linear Reply Obligation. The server mathematically cannot &quot;forget&quot; to reply.
-                </p>
-              </div>
-              <div className="flex-1 w-full max-w-2xl">
-                <SyncContainer withPulse={true} accentColor="#6366F1" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-indigo-900/20">
-                   <SporkOtpViz />
-                </SyncContainer>
-              </div>
-            </div>
-            
-            {/* Concept 10: CALM Theorem */}
-            <div className="flex flex-col lg:flex-row-reverse items-center gap-12 lg:gap-20">
-              <div className="flex-1 space-y-6 text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400">
-                  <GitMerge className="h-3 w-3" /> Mathematical Scalability
-                </div>
-                <h3 className="text-3xl md:text-4xl font-black text-white leading-tight">
-                  <Tooltip term="CALM Analysis">CALM Analysis</Tooltip>
-                </h3>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  Traditional runtimes sprinkle Mutex locks everywhere to prevent data races, destroying concurrent performance as cores contend for the same cache lines.
-                </p>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  Asupersync uses the formal CALM theorem to eliminate locks. Operations are categorized mathematically. <Tooltip term="Monotone Operation">Monotone operations</Tooltip> (like appending data) never require locks because they do not rely on checking absences. The runtime batches these entirely coordination-free, drastically scaling multi-core throughput.
-                </p>
-              </div>
-              <div className="flex-1 w-full max-w-2xl">
-                <SyncContainer withPulse={true} accentColor="#10B981" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-emerald-900/20">
-                   <CalmViz />
-                </SyncContainer>
-              </div>
-            </div>
-
-            {/* Concept 11: Lyapunov Potential */}
-            <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
-              <div className="flex-1 space-y-6 text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-fuchsia-500/30 bg-fuchsia-500/10 text-[10px] font-black uppercase tracking-[0.3em] text-fuchsia-400">
-                  <Activity className="h-3 w-3" /> Formal Progress
-                </div>
-                <h3 className="text-3xl md:text-4xl font-black text-white leading-tight">
-                  <Tooltip term="Lyapunov Potential">Lyapunov Potential</Tooltip>
-                </h3>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  How do you mathematically prove an async program won&apos;t just spin in infinite loops during shutdown?
-                </p>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  Asupersync calculates a 4-component energy function in real-time. This function aggregates live tasks, pending obligation age, draining regions, and deadline pressure. Because the runtime mechanics mathematically guarantee this &quot;potential energy&quot; always decreases over time, the system acts as a supermartingale—proving it makes strictly monotonic progress toward <Tooltip term="Quiescence">quiescence</Tooltip>.
-                </p>
-              </div>
-              <div className="flex-1 w-full max-w-2xl">
-                <SyncContainer withPulse={true} accentColor="#D946EF" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-fuchsia-900/20">
-                   <LyapunovPotentialViz />
-                </SyncContainer>
-              </div>
-            </div>
-
-            {/* Concept 12: EXP3 Adaptive Scheduler */}
-            <div className="flex flex-col lg:flex-row-reverse items-center gap-12 lg:gap-20">
-              <div className="flex-1 space-y-6 text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-pink-500/30 bg-pink-500/10 text-[10px] font-black uppercase tracking-[0.3em] text-pink-400">
-                  <Zap className="h-3 w-3" /> AI Scheduling
-                </div>
-                <h3 className="text-3xl md:text-4xl font-black text-white leading-tight">
-                  <Tooltip term="EXP3 Scheduler">EXP3 Adaptive Scheduler</Tooltip>
-                </h3>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  Hardcoded scheduler heuristics break under adversarial workloads. If a flood of cancellations arrives, a static scheduler might starve normal tasks entirely.
-                </p>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  Asupersync replaces static thresholds with an online machine learning algorithm (EXP3). It maintains five &quot;arms&quot; representing different cancel-streak limits. By continuously measuring regret, the scheduler dynamically shifts its probability weights to adapt to the current workload—converging on the optimal strategy without any human tuning.
-                </p>
-              </div>
-              <div className="flex-1 w-full max-w-2xl">
-                <SyncContainer withPulse={true} accentColor="#EC4899" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-pink-900/20">
-                   <Exp3SchedulerViz />
-                </SyncContainer>
-              </div>
-            </div>
-
-            {/* Concept 13: Cancellation Injection */}
-            <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
-              <div className="flex-1 space-y-6 text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-orange-500/30 bg-orange-500/10 text-[10px] font-black uppercase tracking-[0.3em] text-orange-400">
-                  <Bomb className="h-3 w-3" /> Chaos Engineering
-                </div>
-                <h3 className="text-3xl md:text-4xl font-black text-white leading-tight">
-                  Systematic Cancellation Testing
-                </h3>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  Traditional tests run your code to completion. They cannot catch bugs that only surface when your code is cancelled halfway through execution.
-                </p>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  Asupersync provides a deterministic Cancellation Injector. It systematically re-runs your test suite, dropping a &quot;cancel bomb&quot; at a different await point on every run to mathematically prove your application survives interruption without leaking resources.
-                </p>
-              </div>
-              <div className="flex-1 w-full max-w-2xl">
-                <SyncContainer withPulse={true} accentColor="#F97316" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-orange-900/20">
-                   <CancellationInjectionViz />
-                </SyncContainer>
-              </div>
-            </div>
-
-            {/* Concept 14: E-Process Oracles */}
-            <div className="flex flex-col lg:flex-row-reverse items-center gap-12 lg:gap-20">
-              <div className="flex-1 space-y-6 text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400">
-                  <Search className="h-3 w-3" /> Automated Auditing
-                </div>
-                <h3 className="text-3xl md:text-4xl font-black text-white leading-tight">
-                  <Tooltip term="E-Process">E-Process Test Oracles</Tooltip>
-                </h3>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  Instead of writing manual assertions, the Lab Runtime is continuously monitored by independent <Tooltip term="Test Oracle">Oracles</Tooltip> that act as automated auditors.
-                </p>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  These Oracles use a statistical method called an E-Process (a betting martingale) to continuously evaluate runtime invariants like task leaks and quiescence. Because it is anytime-valid, the Oracle can instantly halt a test the moment evidence of a bug crosses the rejection threshold.
-                </p>
-              </div>
-              <div className="flex-1 w-full max-w-2xl">
-                <SyncContainer withPulse={true} accentColor="#10B981" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-emerald-900/20">
-                   <TestOraclesViz />
-                </SyncContainer>
-              </div>
-            </div>
-
-            {/* Concept 15: Macaroon Caveats */}
-            <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
-              <div className="flex-1 space-y-6 text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 text-[10px] font-black uppercase tracking-[0.3em] text-blue-400">
-                  <Key className="h-3 w-3" /> Delegation Security
-                </div>
-                <h3 className="text-3xl md:text-4xl font-black text-white leading-tight">
-                  <Tooltip term="Macaroon">Attenuating Capabilities</Tooltip>
-                </h3>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  When a parent task spawns an untrusted child, handing over raw capabilities (like full network access) is dangerous.
-                </p>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  Asupersync capabilities behave like Macaroons. A parent can attach cryptographic caveats (like &quot;expires in 50ms&quot; or &quot;read-only&quot;) before delegating the token. The child can use the token or add further restrictions, but the math prevents them from ever stripping the parent&apos;s constraints away.
-                </p>
-              </div>
-              <div className="flex-1 w-full max-w-2xl">
-                <SyncContainer withPulse={true} accentColor="#3B82F6" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-blue-900/20">
-                   <MacaroonCaveatViz />
-                </SyncContainer>
-              </div>
-            </div>
-
-            {/* Concept 16: Budget Algebra */}
-            <div className="flex flex-col lg:flex-row-reverse items-center gap-12 lg:gap-20">
-              <div className="flex-1 space-y-6 text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-orange-500/30 bg-orange-500/10 text-[10px] font-black uppercase tracking-[0.3em] text-orange-400">
-                  <Calculator className="h-3 w-3" /> Algebraic Composition
-                </div>
-                <h3 className="text-3xl md:text-4xl font-black text-white leading-tight">
-                  <Tooltip term="Budget Algebra">Cancel Budget Algebra</Tooltip>
-                </h3>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  In a deep hierarchy of tasks, how do you resolve conflicting timeouts? If a child requests 15 seconds to run, but its parent is shutting down in 5 seconds, chaos ensues.
-                </p>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  Asupersync resolves this using a <Tooltip term="Product Semiring">Product Semiring</Tooltip>. Cancel budgets mathematically compose downwards across nested regions. The runtime clamps child deadlines to the parent&apos;s minimum, while propagating maximum priorities upward. A child mathematically cannot outlive the region it was born in.
-                </p>
-              </div>
-              <div className="flex-1 w-full max-w-2xl">
-                <SyncContainer withPulse={true} accentColor="#F97316" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-orange-900/20">
-                   <BudgetAlgebraViz />
-                </SyncContainer>
-              </div>
-            </div>
-            
-            {/* Concept 17: Foata Fingerprint */}
-            <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
-              <div className="flex-1 space-y-6 text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400">
-                  <GitCompare className="h-3 w-3" /> Trace Theory
-                </div>
-                <h3 className="text-3xl md:text-4xl font-black text-white leading-tight">
-                  <Tooltip term="Foata Fingerprint">Foata Fingerprints</Tooltip>
-                </h3>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  Exhaustively testing concurrency is impossible because thread interleavings explode factorially. However, many of those interleavings are functionally identical because the swapped operations never actually interact.
-                </p>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  Asupersync collapses this search space by converting execution traces into a canonical Foata Normal Form. If the runtime sees that two traces belong to the same <Tooltip term="Mazurkiewicz Trace">Mazurkiewicz equivalence class</Tooltip>, they map to the exact same fingerprint, allowing the DPOR algorithm to safely prune the redundant test run.
-
-                </p>
-              </div>
-              <div className="flex-1 w-full max-w-2xl">
-                <SyncContainer withPulse={true} accentColor="#6366F1" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-indigo-900/20">
-                   <FoataFingerprintViz />
-                </SyncContainer>
-              </div>
-            </div>
-
-            {/* Concept 18: Conformal Calibration */}
-            <div className="flex flex-col lg:flex-row-reverse items-center gap-12 lg:gap-20">
-              <div className="flex-1 space-y-6 text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-sky-500/30 bg-sky-500/10 text-[10px] font-black uppercase tracking-[0.3em] text-sky-400">
-                  <LineChart className="h-3 w-3" /> Statistical Bounds
-                </div>
-                <h3 className="text-3xl md:text-4xl font-black text-white leading-tight">
-                  <Tooltip term="Conformal Calibration">Conformal Calibration</Tooltip>
-                </h3>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  How do you set a timeout for a task if you don&apos;t know what the normal distribution of execution times looks like? Standard deviations fail completely if the underlying data isn&apos;t a perfect bell curve.
-                </p>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  Asupersync&apos;s Lab Runtime uses a formal statistical technique called Conformal Prediction. By analyzing historical traces, it draws a mathematically strict boundary that is guaranteed to contain 99% of future tasks—entirely distribution-free. If a task breaks this bound, the runtime knows with mathematical certainty that it represents a true anomaly, not just statistical noise.
-                </p>
-              </div>
-              <div className="flex-1 w-full max-w-2xl">
-                <SyncContainer withPulse={true} accentColor="#0EA5E9" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-sky-900/20">
-                   <ConformalCalibrationViz />
-                </SyncContainer>
-              </div>
-            </div>
-
-            {/* Concept 19: Cancel Fuel */}
-            <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
-              <div className="flex-1 space-y-6 text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-orange-500/30 bg-orange-500/10 text-[10px] font-black uppercase tracking-[0.3em] text-orange-400">
-                  <Flame className="h-3 w-3" /> Termination Proof
-                </div>
-                <h3 className="text-3xl md:text-4xl font-black text-white leading-tight">
-                  <Tooltip term="Cancel Fuel">Cancel Fuel</Tooltip>
-                </h3>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  When you initiate a shutdown across thousands of nested tasks, how do you mathematically prove that the cancellation cascade will actually finish and not get stuck in an infinite cycle?
-                </p>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  Asupersync injects a finite amount of &quot;Cancel Fuel&quot; into the top of the Region Tree. Every time cancellation propagates to a sub-region or a child task, it consumes exactly one unit of fuel. Because the fuel strictly decreases and cannot drop below zero, the runtime guarantees absolute termination.
-                </p>
-              </div>
-              <div className="flex-1 w-full max-w-2xl">
-                <SyncContainer withPulse={true} accentColor="#F97316" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-orange-900/20">
-                   <CancelFuelViz />
-                </SyncContainer>
-              </div>
-            </div>
-
-            {/* Concept 20: Trace Replay Stability */}
-            <div className="flex flex-col lg:flex-row-reverse items-center gap-12 lg:gap-20">
-              <div className="flex-1 space-y-6 text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400">
-                  <GitCommit className="h-3 w-3" /> Replay Correctness
-                </div>
-                <h3 className="text-3xl md:text-4xl font-black text-white leading-tight">
-                  Trace Replay Stability
-                </h3>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  If five background nodes crash simultaneously during a test, traditional runtimes report those crashes to the supervisor in a random, chaotic order governed by thread races. A bug caused by one specific arrival order might never reproduce locally.
-                </p>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  Asupersync resolves concurrent races mathematically. When simultaneous events occur, the runtime applies a strict deterministic tie-breaker (sorting by virtual timestamp, then by Task ID). Replaying the exact same trace ten thousand times guarantees the exact same arrival order ten thousand times.
-                </p>
-              </div>
-              <div className="flex-1 w-full max-w-2xl">
-                <SyncContainer withPulse={true} accentColor="#6366F1" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-indigo-900/20">
-                   <TraceReplayStabilityViz />
-                </SyncContainer>
-              </div>
-            </div>
-
-            {/* Concept 21: Distributed Sagas */}
-            <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
-              <div className="flex-1 space-y-6 text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400">
-                  <ArrowRight className="h-3 w-3" /> Orchestration
-                </div>
-                <h3 className="text-3xl md:text-4xl font-black text-white leading-tight">
-                  <Tooltip term="Saga">Distributed Sagas</Tooltip>
-                </h3>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  When a transaction spans multiple microservices, you cannot hold a single database lock. If the workflow fails on step 4, how do you undo the side-effects of steps 1, 2, and 3?
-                </p>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  Asupersync provides a first-class Saga engine. You define a forward action and a backward (compensating) action for each step. If any step fails—or if cancellation strikes mid-flight—the runtime automatically walks backward up the tree, executing the compensations in strict LIFO order to restore the system to a clean state.
-                </p>
-              </div>
-              <div className="flex-1 w-full max-w-2xl">
-                <SyncContainer withPulse={true} accentColor="#10B981" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-emerald-900/20">
-                   <SagaCompensationViz />
-                </SyncContainer>
-              </div>
-            </div>
-
-            {/* Concept 22: Small-Step Semantics */}
-            <div className="flex flex-col lg:flex-row-reverse items-center gap-12 lg:gap-20">
-              <div className="flex-1 space-y-6 text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 text-[10px] font-black uppercase tracking-[0.3em] text-blue-400">
-                  <Braces className="h-3 w-3" /> Formal Verification
-                </div>
-                <h3 className="text-3xl md:text-4xl font-black text-white leading-tight">
-                  <Tooltip term="Small-Step Semantics">Small-Step Semantics</Tooltip>
-                </h3>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  Most runtimes are built on an &quot;it compiles, ship it&quot; mentality. Asupersync&apos;s core behavior is strictly defined by a set of formal mathematical rules written in Lean 4.
-                </p>
-                <p className="text-lg text-slate-400 leading-relaxed">
-                  Every evaluation step, cancellation cascade, and obligation transfer corresponds to a specific Transition Rule. These semantics mathematically prove the soundness of the runtime&apos;s guarantees before they are ever translated into Rust code.
-                </p>
-              </div>
-              <div className="flex-1 w-full max-w-2xl">
-                <SyncContainer withPulse={true} accentColor="#3B82F6" className="p-4 md:p-8 bg-black/40 shadow-2xl shadow-blue-900/20">
-                   <SmallStepSemanticsViz />
+                  <div className="text-center py-12 text-slate-500 text-sm font-medium">
+                    Stress gauntlet results visualization placeholder
+                  </div>
                 </SyncContainer>
               </div>
             </div>
@@ -750,14 +372,14 @@ export default function HomePage() {
       </section>
 
       {/* ================================================================
-          3. WHY ASUPERSYNC (Feature Cards)
+          3. WHY AGENT MAIL (Feature Cards)
           ================================================================ */}
       <SectionShell
         id="features"
         icon="sparkles"
-        eyebrow="Why Asupersync"
+        eyebrow="Why Agent Mail"
         title="Built Different"
-        kicker="Asupersync is a ground-up async runtime providing cancel-correctness guarantees, structured concurrency, and algorithms borrowed directly from formal verification."
+        kicker="Agent Mail is purpose-built coordination infrastructure for AI coding agents. Identity, messaging, file reservations, and task prioritization — all backed by SQLite and Git."
       >
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 md:gap-6">
           {features.map((feature) => (
@@ -773,8 +395,8 @@ export default function HomePage() {
         id="comparison"
         icon="gitCompare"
         eyebrow="How It Compares"
-        title="Runtime Comparison"
-        kicker="Asupersync bakes correctness guarantees into the runtime layer. Features that require manual discipline in other runtimes are enforced by the architecture."
+        title="Coordination Comparison"
+        kicker="Agent Mail bakes coordination guarantees into the infrastructure layer. Features that require manual discipline with ad-hoc solutions are enforced by the architecture."
       >
         <ComparisonTable />
       </SectionShell>
@@ -786,8 +408,8 @@ export default function HomePage() {
         id="code"
         icon="terminal"
         eyebrow="The Code"
-        title="Clean API, Cancel-Safe"
-        kicker="A cancel-correct server in under 25 lines. Regions scope task lifetimes, Cx controls capabilities, and Permits enforce resource cleanup."
+        title="Clean API, Battle-Tested"
+        kicker="A fully coordinated multi-agent session in a few lines. Register an identity, reserve files, send targeted messages, and release when done."
       >
         <SyncContainer withPulse={true} accentColor="#3B82F6" className="p-1 md:p-2 bg-black/40">
           <RustCodeBlock code={codeExample} title="examples/server.rs" />
@@ -801,8 +423,8 @@ export default function HomePage() {
         id="architecture-preview"
         icon="clock"
         eyebrow="Development Timeline"
-        title="From Theory to crates.io"
-        kicker="Built on formal foundations. Every phase documented, every guarantee proven."
+        title="From Prototype to Production"
+        kicker="Battle-tested across thousands of agent sessions. Every phase documented, every design decision proven in practice."
       >
         <Timeline items={changelog.slice(0, 3)} />
 
@@ -840,8 +462,8 @@ export default function HomePage() {
           </GlitchText>
 
           <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-slate-400 md:text-xl font-medium">
-            Add Asupersync to your Rust project with a single command. Ship
-            async systems with cancel-correctness guarantees from day one.
+            Add Agent Mail to your project with a single command. Coordinate
+            40+ concurrent AI agents from any provider with zero conflicts.
           </p>
 
           {/* Install command */}
@@ -859,7 +481,7 @@ export default function HomePage() {
               <div className="px-6 py-5">
                 <div className="flex items-center gap-3 font-mono text-sm">
                   <span className="select-none text-blue-500 font-bold">$</span>
-                  <code className="text-slate-200 font-bold tracking-tight">cargo add asupersync</code>
+                  <code className="text-slate-200 font-bold tracking-tight">pip install mcp-agent-mail</code>
                 </div>
               </div>
             </div>

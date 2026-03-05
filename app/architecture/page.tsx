@@ -16,6 +16,7 @@ const CancelStateMachineViz = dynamic(() => import("@/components/viz/cancel-stat
 const EProcessMonitorViz = dynamic(() => import("@/components/viz/eprocess-monitor-viz"), { ssr: false });
 const MacaroonCapabilityViz = dynamic(() => import("@/components/viz/macaroon-capability-viz"), { ssr: false });
 const SagaCompensationViz = dynamic(() => import("@/components/viz/saga-compensation-viz"), { ssr: false });
+const SystemTopologyViz = dynamic(() => import("@/components/viz/system-topology-viz"), { ssr: false });
 
 const CAPABILITY_TIERS = [
   { tier: "FiberCap", color: "#64748B", desc: "Compute-only. No spawning, no I/O, no timers.", width: 100 },
@@ -135,6 +136,30 @@ export default function ArchitecturePage() {
             <text x="525" y="250" textAnchor="middle" fill="#4ade80" fontSize="10" fontFamily="monospace">Ready Lane (lo)</text>
           </svg>
         </SyncContainer>
+      </SectionShell>
+
+      <SectionShell
+        id="agent-mail-topology"
+        icon="network"
+        eyebrow="Agent Mail Topology"
+        title="CLI to Archive Dataflow"
+        kicker="A practical flow map for how MCP requests move through server handlers into SQLite and git-auditable storage."
+      >
+        <div className="space-y-5">
+          <SyncContainer withPulse={true} className="p-4 md:p-6">
+            <SystemTopologyViz />
+          </SyncContainer>
+          <div className="grid gap-4 md:grid-cols-2 text-sm text-slate-400 leading-relaxed">
+            <p>
+              This map is grounded in the MCP Agent Mail Rust architecture: CLI and robot-mode commands invoke MCP
+              tools, handlers persist/query SQLite, and storage workers coalesce archive writes into git history.
+            </p>
+            <p>
+              Use it as the orienting diagram before diving into message lifecycle, reservation guardrails, and
+              Search V3 internals in the rest of this page.
+            </p>
+          </div>
+        </div>
       </SectionShell>
 
       {/* Structured Concurrency */}

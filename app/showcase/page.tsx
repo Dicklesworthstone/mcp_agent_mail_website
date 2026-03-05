@@ -13,6 +13,7 @@ const RegionTreeViz = dynamic(() => import("@/components/viz/region-tree-viz"), 
 const CancelProtocolViz = dynamic(() => import("@/components/viz/cancel-protocol-viz"), { ssr: false });
 const SchedulerLanesViz = dynamic(() => import("@/components/viz/scheduler-lanes-viz"), { ssr: false });
 const ObligationFlowViz = dynamic(() => import("@/components/viz/obligation-flow-viz"), { ssr: false });
+const MessageLifecycleViz = dynamic(() => import("@/components/viz/message-lifecycle-viz"), { ssr: false });
 const LabRuntimeViz = dynamic(() => import("@/components/viz/lab-runtime-viz"), { ssr: false });
 const TokioComparisonViz = dynamic(() => import("@/components/viz/tokio-comparison-viz"), { ssr: false });
 const CapabilitySecurityViz = dynamic(() => import("@/components/viz/capability-security-viz"), { ssr: false });
@@ -74,6 +75,37 @@ export default function ShowcasePage() {
       </section>
 
       <div id="showcase-viz-gallery" data-scaffold-slot="visualizations">
+      {/* ================================================================
+          0. Agent Mail Messaging Lifecycle
+          ================================================================ */}
+      <SectionShell
+        id="message-lifecycle"
+        icon="monitor"
+        eyebrow="Agent Mail Core Loop"
+        title="Message Lifecycle + Thread Continuity"
+        kicker="Send, persist, deliver, read/ack, and thread-index events are all explicit and auditable."
+      >
+        <div className="space-y-6">
+          <SyncContainer withPulse={true} className="p-4 md:p-8">
+            <Suspense fallback={<VizLoader />}>
+              <MessageLifecycleViz />
+            </Suspense>
+          </SyncContainer>
+          <div className="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              This flow models MCP Agent Mail&apos;s operational core, not a toy animation: message tool calls
+              persist canonical rows in SQLite, fan out inbox/outbox artifacts, and keep thread continuity
+              queryable across sessions.
+            </p>
+            <p>
+              Toggle <code className="text-blue-400 font-mono">ack_required</code> to compare explicit
+              acknowledgement workflows against standard read-only delivery. Both paths remain searchable and
+              replayable through thread and search surfaces.
+            </p>
+          </div>
+        </div>
+      </SectionShell>
+
       {/* ================================================================
           1. Region Tree
           ================================================================ */}

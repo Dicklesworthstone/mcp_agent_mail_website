@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "@/components/motion";
+import { VizControlButton, VizSurface } from "@/components/viz/viz-framework";
 import { Key, Globe, FileDigit, Clock, GitFork, ShieldAlert, ShieldCheck } from "lucide-react";
 
 type Capability = "net" | "fs" | "timer" | "spawn";
@@ -62,7 +63,7 @@ export default function CapabilitySecurityViz() {
   };
 
   return (
-    <div className="w-full rounded-2xl border border-white/10 p-6 md:p-8 bg-slate-950">
+    <VizSurface>
       <div className="mb-8 text-center">
         <h3 className="text-lg font-semibold text-white">Capability Gates</h3>
         <p className="text-sm text-slate-400 mt-1">
@@ -127,13 +128,14 @@ export default function CapabilitySecurityViz() {
             {attemptState === "idle" ? (
               <div className="grid grid-cols-2 gap-3">
                 {CAPABILITIES.map((cap) => (
-                  <button
+                  <VizControlButton
                     key={`action-${cap.id}`}
                     onClick={() => attemptAction(cap.id)}
-                    className="py-3 px-4 rounded-lg border border-slate-700/50 bg-slate-800/30 text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-all flex items-center justify-center gap-2"
+                    tone="neutral"
+                    className="flex items-center justify-center gap-2 py-3 px-4 normal-case tracking-normal font-semibold text-slate-300 hover:text-white"
                   >
                     Use {cap.label}
-                  </button>
+                  </VizControlButton>
                 ))}
               </div>
             ) : (
@@ -190,6 +192,6 @@ export default function CapabilitySecurityViz() {
         </div>
 
       </div>
-    </div>
+    </VizSurface>
   );
 }

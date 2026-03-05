@@ -1,14 +1,18 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useReducedMotion } from "@/components/motion";
+import { motion, AnimatePresence } from "@/components/motion";
+import {
+  VizControlButton,
+  VizSurface,
+  useVizReducedMotion,
+} from "@/components/viz/viz-framework";
 import { RotateCcw, CheckCircle2, XCircle } from "lucide-react";
 
 type TxState = "idle" | "reserving" | "reserved" | "committing" | "committed" | "cancelling" | "rolled-back";
 
 export default function TwoPhaseEffectsViz() {
-  const prefersReduced = useReducedMotion();
+  const prefersReduced = useVizReducedMotion();
   const [txState, setTxState] = useState<TxState>("idle");
   const [balanceA, setBalanceA] = useState(1000);
   const [balanceB, setBalanceB] = useState(500);
@@ -65,7 +69,7 @@ export default function TwoPhaseEffectsViz() {
   };
 
   return (
-    <div className="w-full rounded-2xl border border-white/10 p-6 md:p-8 bg-slate-950">
+    <VizSurface>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-8 gap-4">
         <div>
           <h3 className="text-lg font-semibold text-white">Two-Phase Effects</h3>
@@ -181,30 +185,33 @@ export default function TwoPhaseEffectsViz() {
       {/* Controls */}
       <div className="flex justify-center gap-3 mt-6">
         {(txState === "idle" || txState === "committed" || txState === "rolled-back") && (
-          <button
+          <VizControlButton
             onClick={startTransfer}
-            className="px-5 py-2.5 rounded-lg bg-blue-600 text-white font-bold text-sm hover:bg-blue-500 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+            tone="blue"
+            className="px-5 py-2.5 normal-case tracking-normal text-sm"
           >
             Start Transfer
-          </button>
+          </VizControlButton>
         )}
 
         {txState === "reserved" && (
           <>
-            <button
+            <VizControlButton
               onClick={commitTransfer}
-              className="px-5 py-2.5 rounded-lg bg-green-600 text-white font-bold text-sm hover:bg-green-500 transition-colors flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-400"
+              tone="green"
+              className="flex items-center gap-2 px-5 py-2.5 normal-case tracking-normal text-sm"
             >
               <CheckCircle2 className="h-4 w-4" />
               Commit
-            </button>
-            <button
+            </VizControlButton>
+            <VizControlButton
               onClick={cancelTransfer}
-              className="px-5 py-2.5 rounded-lg bg-red-600 text-white font-bold text-sm hover:bg-red-500 transition-colors flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+              tone="red"
+              className="flex items-center gap-2 px-5 py-2.5 normal-case tracking-normal text-sm"
             >
               <RotateCcw className="h-4 w-4" />
               Cancel Execution
-            </button>
+            </VizControlButton>
           </>
         )}
         
@@ -216,6 +223,6 @@ export default function TwoPhaseEffectsViz() {
         )}
       </div>
 
-    </div>
+    </VizSurface>
   );
 }

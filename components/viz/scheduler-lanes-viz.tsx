@@ -4,9 +4,13 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import {
   motion,
   AnimatePresence,
-  useReducedMotion,
   springs,
 } from "@/components/motion";
+import {
+  VizControlButton,
+  VizSurface,
+  useVizReducedMotion,
+} from "@/components/viz/viz-framework";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -164,7 +168,7 @@ function LaneColumn({
 /* ------------------------------------------------------------------ */
 
 export default function SchedulerLanesViz() {
-  const reducedMotion = useReducedMotion() ?? false;
+  const reducedMotion = useVizReducedMotion();
 
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
   const [activeLane, setActiveLane] = useState<Lane | null>(null);
@@ -243,8 +247,8 @@ export default function SchedulerLanesViz() {
   /* ---- render ---- */
 
   return (
-    <section
-      className="w-full rounded-2xl border border-white/10 bg-[#0A1628] p-6"
+    <VizSurface
+      className="bg-[#0A1628]"
       aria-label="Scheduler Lanes Visualization"
     >
       {/* Header row */}
@@ -274,33 +278,33 @@ export default function SchedulerLanesViz() {
 
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-3">
-        <button
+        <VizControlButton
           onClick={injectCancellation}
           disabled={readyCount === 0}
-          className="rounded-lg border border-[#ef4444]/30 bg-[#ef4444]/10 px-4 py-2 text-xs font-bold uppercase tracking-wider text-[#ef4444] transition-colors hover:bg-[#ef4444]/20 disabled:cursor-not-allowed disabled:opacity-40"
+          tone="red"
         >
           Inject Cancellation
-        </button>
-        <button
+        </VizControlButton>
+        <VizControlButton
           onClick={addDeadline}
           disabled={readyCount === 0}
-          className="rounded-lg border border-[#eab308]/30 bg-[#eab308]/10 px-4 py-2 text-xs font-bold uppercase tracking-wider text-[#eab308] transition-colors hover:bg-[#eab308]/20 disabled:cursor-not-allowed disabled:opacity-40"
+          tone="amber"
         >
           Add Deadline
-        </button>
-        <button
+        </VizControlButton>
+        <VizControlButton
           onClick={step}
           disabled={noTasks}
-          className="rounded-lg border border-[#3B82F6]/30 bg-[#3B82F6]/10 px-4 py-2 text-xs font-bold uppercase tracking-wider text-[#3B82F6] transition-colors hover:bg-[#3B82F6]/20 disabled:cursor-not-allowed disabled:opacity-40"
+          tone="blue"
         >
           Step
-        </button>
-        <button
+        </VizControlButton>
+        <VizControlButton
           onClick={reset}
-          className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-400 transition-colors hover:bg-white/10"
+          tone="neutral"
         >
           Reset
-        </button>
+        </VizControlButton>
       </div>
 
       {/* Processed log */}
@@ -321,6 +325,6 @@ export default function SchedulerLanesViz() {
           </div>
         </div>
       )}
-    </section>
+    </VizSurface>
   );
 }

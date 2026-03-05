@@ -1,10 +1,16 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "@/components/motion";
+import {
+  VizControlButton,
+  VizSurface,
+  useVizReducedMotion,
+} from "@/components/viz/viz-framework";
 import { GitCommit, Dice5, CheckCircle2, ServerCrash, FastForward } from "lucide-react";
 
 export default function TraceReplayStabilityViz() {
+  const reducedMotion = useVizReducedMotion();
   const [isDeterministic, setIsDeterministic] = useState(true);
   const [runState, setRunState] = useState<"idle" | "running" | "done">("idle");
   const [inbox, setInbox] = useState<number[]>([]);
@@ -71,7 +77,7 @@ export default function TraceReplayStabilityViz() {
   };
 
   return (
-    <div className="w-full rounded-2xl border border-white/10 p-6 md:p-8 bg-slate-950">
+    <VizSurface>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
           <h3 className="text-lg font-semibold text-white">Trace Replay Stability</h3>
@@ -115,13 +121,14 @@ export default function TraceReplayStabilityViz() {
         </div>
 
         {/* Action Button */}
-        <button 
+        <VizControlButton
            onClick={triggerCrash}
            disabled={runState === "running"}
-           className="relative z-10 px-6 py-2 rounded-full bg-white/10 hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 text-xs font-bold text-white transition-all disabled:opacity-50 flex items-center gap-2 border border-white/10"
+           tone="neutral"
+           className="relative z-10 rounded-full px-6 py-2 normal-case tracking-normal text-xs text-white disabled:opacity-50 flex items-center gap-2"
         >
            <FastForward className="h-3 w-3" /> Replay Simultaneous Crash
-        </button>
+        </VizControlButton>
 
         {/* Supervisor Inbox */}
         <div className="w-full max-w-sm">
@@ -134,8 +141,9 @@ export default function TraceReplayStabilityViz() {
                  return (
                     <motion.div
                        key={`${nodeId}-${idx}`}
-                       initial={{ opacity: 0, x: -20, scale: 0.8 }}
+                       initial={reducedMotion ? false : { opacity: 0, x: -20, scale: 0.8 }}
                        animate={{ opacity: 1, x: 0, scale: 1 }}
+                       transition={reducedMotion ? { duration: 0 } : undefined}
                        className="h-8 px-3 rounded flex items-center justify-center font-mono text-xs font-black shadow-md border"
                        style={{ 
                           backgroundColor: `${node.color}20`,
@@ -162,10 +170,10 @@ export default function TraceReplayStabilityViz() {
            {isDeterministic ? (
               <motion.div
                 key="deterministic"
-                initial={{ opacity: 0, x: -5 }}
+                initial={reducedMotion ? false : { opacity: 0, x: -5 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 5 }}
-                transition={{ duration: 0.2 }}
+                exit={reducedMotion ? { opacity: 0 } : { opacity: 0, x: 5 }}
+                transition={{ duration: reducedMotion ? 0 : 0.2 }}
                 className="flex items-start gap-4"
               >
                  <CheckCircle2 className="h-6 w-6 text-indigo-400 shrink-0 mt-0.5" />
@@ -174,10 +182,10 @@ export default function TraceReplayStabilityViz() {
            ) : (
               <motion.div
                 key="non-deterministic"
-                initial={{ opacity: 0, x: -5 }}
+                initial={reducedMotion ? false : { opacity: 0, x: -5 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 5 }}
-                transition={{ duration: 0.2 }}
+                exit={reducedMotion ? { opacity: 0 } : { opacity: 0, x: 5 }}
+                transition={{ duration: reducedMotion ? 0 : 0.2 }}
                 className="flex items-start gap-4"
               >
                  <Dice5 className="h-6 w-6 text-slate-400 shrink-0 mt-0.5" />
@@ -186,6 +194,6 @@ export default function TraceReplayStabilityViz() {
            )}
          </AnimatePresence>
       </div>
-    </div>
+    </VizSurface>
   );
 }

@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "@/components/motion";
+import { motion, AnimatePresence } from "@/components/motion";
+import {
+  VizControlButton,
+  useVizReducedMotion,
+} from "@/components/viz/viz-framework";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
@@ -139,7 +143,7 @@ function BudgetBar({
 /* ------------------------------------------------------------------ */
 
 export default function RegionTreeViz() {
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useVizReducedMotion();
   const reduced = !!prefersReducedMotion;
 
   const [regions, setRegions] = useState<Region[]>(makeInitialRegions);
@@ -253,13 +257,14 @@ export default function RegionTreeViz() {
             {globalStatus}
           </span>
         </div>
-        <button
+        <VizControlButton
           onClick={handleReset}
-          className="rounded-md border px-3 py-1 font-mono text-xs transition-colors hover:bg-white/5"
-          style={{ borderColor: `${BLUE}44`, color: BLUE_GLOW }}
+          tone="neutral"
+          className="rounded-md px-3 py-1 font-mono text-xs normal-case tracking-normal hover:bg-white/5"
+          style={{ color: BLUE_GLOW }}
         >
           Reset
-        </button>
+        </VizControlButton>
       </div>
 
       {/* SVG canvas */}

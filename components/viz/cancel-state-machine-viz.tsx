@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "@/components/motion";
+import { motion, AnimatePresence } from "@/components/motion";
+import {
+  VizControlButton,
+  VizSurface,
+  useVizReducedMotion,
+} from "@/components/viz/viz-framework";
 
 interface State {
   id: string;
@@ -42,7 +47,7 @@ function boxX(index: number) {
 }
 
 export default function CancelStateMachineViz() {
-  const prefersReduced = useReducedMotion();
+  const prefersReduced = useVizReducedMotion();
   const [currentIndex, setCurrentIndex] = useState(0);
   const dur = prefersReduced ? 0 : 0.3;
 
@@ -61,7 +66,7 @@ export default function CancelStateMachineViz() {
   const fuelPercent = Math.max(0, 100 - (currentIndex / (STATES.length - 1)) * 100);
 
   return (
-    <div className="w-full rounded-2xl border border-white/10 p-6 md:p-8 bg-slate-950">
+    <VizSurface>
       <h3 className="mb-1 text-lg font-semibold text-white">Cancel State Machine</h3>
       <p className="mb-5 text-sm text-orange-400">5-state cancellation lifecycle</p>
 
@@ -234,22 +239,22 @@ export default function CancelStateMachineViz() {
 
       {/* Controls */}
       <div className="mt-5 flex justify-center gap-3">
-        <button
+        <VizControlButton
           onClick={advance}
           disabled={currentIndex >= STATES.length - 1}
-          className="rounded-lg px-6 py-2.5 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-40"
-          style={{ background: "#F97316" }}
+          tone="amber"
+          className="px-6 py-2.5 normal-case tracking-normal text-sm font-bold text-white"
         >
           Advance
-        </button>
-        <button
+        </VizControlButton>
+        <VizControlButton
           onClick={reset}
-          className="rounded-lg border px-6 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5"
-          style={{ borderColor: "#1e293b" }}
+          tone="neutral"
+          className="px-6 py-2.5 normal-case tracking-normal text-sm font-medium text-slate-300"
         >
           Reset
-        </button>
+        </VizControlButton>
       </div>
-    </div>
+    </VizSurface>
   );
 }
