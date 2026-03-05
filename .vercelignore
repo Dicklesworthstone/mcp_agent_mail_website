@@ -1,8 +1,11 @@
 .next
+.next_backup
 node_modules
 .beads
 .git
 .bv
+test-results
+e2e
 core.*
 storage.sqlite3*
 *.tsbuildinfo

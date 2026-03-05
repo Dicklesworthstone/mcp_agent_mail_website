@@ -18,6 +18,7 @@ export default function Error({
         An unexpected error occurred. Try refreshing the page.
       </p>
       <button
+        type="button"
         onClick={reset}
         className="mt-4 inline-flex items-center gap-2 rounded-full bg-blue-500 px-6 py-3 text-sm font-bold text-white transition-all hover:bg-blue-400 active:scale-95"
       >

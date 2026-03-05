@@ -51,6 +51,14 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
 
       osc.connect(gain);
       gain.connect(ctx.destination);
+      osc.onended = () => {
+        try {
+          osc.disconnect();
+          gain.disconnect();
+        } catch {
+          // Ignore disconnect race during rapid toggles.
+        }
+      };
 
       const now = ctx.currentTime;
 
@@ -106,17 +114,23 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
     const nextState = !audioEnabledRef.current;
     audioEnabledRef.current = nextState;
     setIsAudioEnabled(nextState);
+    if (audioTimerRef.current) {
+      clearTimeout(audioTimerRef.current);
+      audioTimerRef.current = null;
+    }
     if (nextState) {
-      if (audioTimerRef.current) clearTimeout(audioTimerRef.current);
       audioTimerRef.current = setTimeout(() => {
         audioTimerRef.current = null;
         if (audioEnabledRef.current) playSfx("hum");
       }, 150);
+    } else if (audioContextRef.current?.state === "running") {
+      audioContextRef.current.suspend().catch(console.error);
     }
   }, [playSfx]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.repeat) return;
       const typing = isTextInputLike(document.activeElement);
       if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "x") {
         if (typing) return;
@@ -187,6 +201,15 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
           pointer-events: none;
           z-index: 41;
           animation: scanline 12s linear infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .lab-mode img, .lab-mode video {
+            transition: none;
+          }
+          .lab-mode::after {
+            animation: none;
+            opacity: 0.2;
+          }
         }
       `}</style>
     </SiteContext.Provider>

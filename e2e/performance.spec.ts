@@ -19,15 +19,30 @@ test.describe("Performance budget checks", () => {
       diagnostics.setRoute(route);
 
       let totalBytes = 0;
+      const responseSizeTasks: Promise<void>[] = [];
       page.on("response", (response) => {
-        const headers = response.headers();
-        const contentLength = headers["content-length"];
-        if (contentLength) {
-          totalBytes += parseInt(contentLength, 10);
-        }
+        responseSizeTasks.push((async () => {
+          const headers = response.headers();
+          const contentLength = headers["content-length"];
+          if (contentLength) {
+            const parsed = Number.parseInt(contentLength, 10);
+            if (Number.isFinite(parsed) && parsed > 0) {
+              totalBytes += parsed;
+            }
+            return;
+          }
+
+          try {
+            const body = await response.body();
+            totalBytes += body.byteLength;
+          } catch {
+            // Responses like 304 or opaque dev-server streams may not expose a body.
+          }
+        })());
       });
 
       await page.goto(route, { waitUntil: "networkidle" });
+      await Promise.allSettled(responseSizeTasks);
 
       // Budget: under 5MB total transfer per page
       const totalMB = totalBytes / (1024 * 1024);

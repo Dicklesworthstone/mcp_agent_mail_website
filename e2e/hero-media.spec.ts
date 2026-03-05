@@ -1,69 +1,74 @@
 import { test, expect } from "./fixtures";
 
 test.describe("Hero media module", () => {
-  test("video placeholder is rendered", async ({ page, diagnostics }) => {
-    diagnostics.setRoute("/");
-    await page.goto("/");
-
-    const video = page.locator("video");
-    await expect(video.first()).toBeAttached();
-    diagnostics.breadcrumb("Video element found");
+  test.beforeEach(async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
   });
 
-  test("video has poster attribute", async ({ page, diagnostics }) => {
+  test("simulated TUI surface is rendered", async ({ page, diagnostics }) => {
     diagnostics.setRoute("/");
     await page.goto("/");
 
-    const video = page.locator("video").first();
-    const poster = await video.getAttribute("poster");
-    expect(poster).toBeTruthy();
-    diagnostics.breadcrumb(`poster="${poster}"`);
+    const tuiDemo = page.getByTestId("hero-tui-demo");
+    await expect(tuiDemo).toBeVisible();
+    diagnostics.breadcrumb("Simulated TUI element found");
   });
 
-  test("video has accessible label", async ({ page, diagnostics }) => {
+  test("event feed has rows", async ({ page, diagnostics }) => {
     diagnostics.setRoute("/");
     await page.goto("/");
 
-    const video = page.locator("video").first();
-    const ariaLabel = await video.getAttribute("aria-label");
-    expect(ariaLabel).toBeTruthy();
-    expect(ariaLabel!.length).toBeGreaterThan(10);
+    const feed = page.getByTestId("hero-tui-feed");
+    const rows = feed.locator(":scope > div");
+    await expect.poll(async () => rows.count()).toBeGreaterThan(0);
+    const count = await rows.count();
+    expect(count).toBeGreaterThan(0);
+    await expect(rows.first()).toBeAttached();
+    diagnostics.breadcrumb(`Feed rows found: ${count}`);
   });
 
-  test("video has caption track", async ({ page, diagnostics }) => {
+  test("playback toggle is present and interactive", async ({ page, diagnostics }) => {
     diagnostics.setRoute("/");
     await page.goto("/");
 
-    const tracks = page.locator("video track");
-    const count = await tracks.count();
-    expect(count).toBeGreaterThanOrEqual(1);
-
-    diagnostics.breadcrumb(`${count} track elements found`);
+    const toggleButton = page.getByRole("button", { name: /pause simulation|play simulation/i });
+    await expect(toggleButton).toBeVisible();
+    await toggleButton.click();
+    await expect(page.getByRole("button", { name: /pause simulation|play simulation/i })).toBeVisible();
+    diagnostics.breadcrumb("Play/pause toggle clicked");
   });
 
   test("chapter navigation buttons exist", async ({ page, diagnostics }) => {
     diagnostics.setRoute("/");
     await page.goto("/");
 
-    // Chapter buttons should be rendered
-    const chapterButtons = page.locator('button:has-text("Cold Start")');
-    // If chapter navigation is present
-    const count = await chapterButtons.count();
-    diagnostics.breadcrumb(`Chapter buttons found: ${count}`);
-    // Just verify the hero section loaded
-    const hero = page.locator("#home-hero");
-    await expect(hero).toBeVisible();
+    await page.getByRole("button", { name: "Toggle chapter list" }).click();
+    const chapterButtons = page.getByRole("button", { name: /Cold Start/i });
+    await expect(chapterButtons.first()).toBeVisible();
+    diagnostics.breadcrumb("Chapter list opened");
   });
 
   test("transcript toggle exists", async ({ page, diagnostics }) => {
     diagnostics.setRoute("/");
     await page.goto("/");
 
-    const transcriptBtn = page.locator('button:has-text("Transcript")');
-    const count = await transcriptBtn.count();
-    diagnostics.breadcrumb(`Transcript buttons: ${count}`);
-    // Just verify hero loaded
-    await expect(page.locator("#home-hero")).toBeVisible();
+    const transcriptBtn = page.getByRole("button", { name: "Toggle transcript" });
+    await transcriptBtn.click();
+    await expect(page.getByText(/cold start/i)).toBeVisible();
+    diagnostics.breadcrumb("Transcript panel opened");
+  });
+
+  test("real web app button points to a public route", async ({ page, diagnostics }) => {
+    diagnostics.setRoute("/");
+    await page.goto("/");
+
+    const link = page.getByTestId("hero-real-webapp-link");
+    const href = await link.getAttribute("href");
+    expect(href).toBeTruthy();
+    const parsed = new URL(href!, page.url());
+    expect(["http:", "https:"]).toContain(parsed.protocol);
+    expect(parsed.pathname.startsWith("/")).toBeTruthy();
+    diagnostics.breadcrumb(`Real web app href=${href}`);
   });
 });
 

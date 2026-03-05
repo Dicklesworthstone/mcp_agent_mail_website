@@ -7,16 +7,15 @@ import {
   getSoftwareApplicationJsonLd,
   getFaqPageJsonLd,
   getHowToJsonLd,
-  getVideoObjectJsonLd,
   heroDemoTranscript,
   dashboardDemoStoryboard,
-  heroVideoPlaceholder,
-  heroMediaPackagingSpec,
+  heroTuiDemo,
   comparisonData,
   generalFaq,
   gettingStartedPillars,
   gettingStartedFaq,
 } from "@/lib/content";
+import { specCategories, specDocs } from "@/lib/spec-docs";
 
 // Note: Basic navItems, siteConfig, heroStats, faq, glossaryTerms, changelog
 // tests are in navigation.test.ts.
@@ -140,30 +139,57 @@ describe("heroDemoTranscript", () => {
 
 // ─── Media Specs ─────────────────────────────────────────────────
 
-describe("heroVideoPlaceholder", () => {
+describe("heroTuiDemo", () => {
   it("has required dimensions", () => {
-    expect(heroVideoPlaceholder.width).toBeGreaterThan(0);
-    expect(heroVideoPlaceholder.height).toBeGreaterThan(0);
+    expect(heroTuiDemo.width).toBeGreaterThan(0);
+    expect(heroTuiDemo.height).toBeGreaterThan(0);
   });
 
-  it("has poster path", () => {
-    expect(heroVideoPlaceholder.poster).toBeTruthy();
+  it("contains real-data snapshot fields", () => {
+    expect(heroTuiDemo.snapshot.totalMessages).toBeGreaterThan(1000);
+    expect(heroTuiDemo.snapshot.totalAgents).toBeGreaterThan(100);
+    expect(heroTuiDemo.snapshot.activeThreads).toBeGreaterThan(100);
+    expect(heroTuiDemo.feedEvents.length).toBeGreaterThan(5);
+  });
+
+  it("includes a valid real-webapp target", () => {
+    const parsed = new URL(heroTuiDemo.realWebAppUrl);
+    expect(["http:", "https:"]).toContain(parsed.protocol);
+    expect(parsed.pathname.startsWith("/")).toBe(true);
   });
 });
 
-describe("heroMediaPackagingSpec", () => {
-  it("has primary codec spec", () => {
-    expect(heroMediaPackagingSpec.primary.container).toBeTruthy();
-    expect(heroMediaPackagingSpec.primary.videoCodec).toBeTruthy();
+// ─── Spec Explorer Data Contracts ───────────────────────────────
+
+describe("specDocs", () => {
+  it("contains only known categories", () => {
+    const categorySet = new Set(specCategories);
+    for (const doc of specDocs) {
+      expect(categorySet.has(doc.category as (typeof specCategories)[number])).toBe(true);
+    }
   });
 
-  it("has fallback codec spec", () => {
-    expect(heroMediaPackagingSpec.fallback.container).toBeTruthy();
-    expect(heroMediaPackagingSpec.fallback.videoCodec).toBeTruthy();
+  it("has unique slug, filename, and order values", () => {
+    const slugs = specDocs.map((doc) => doc.slug);
+    const filenames = specDocs.map((doc) => doc.filename);
+    const orders = specDocs.map((doc) => doc.order);
+
+    expect(new Set(slugs).size).toBe(slugs.length);
+    expect(new Set(filenames).size).toBe(filenames.length);
+    expect(new Set(orders).size).toBe(orders.length);
   });
 
-  it("has validation checklist", () => {
-    expect(heroMediaPackagingSpec.validationChecklist.length).toBeGreaterThan(0);
+  it("provides complete sequence ordering without gaps", () => {
+    const sortedOrders = specDocs.map((doc) => doc.order).toSorted((a, b) => a - b);
+    for (let i = 0; i < sortedOrders.length; i++) {
+      expect(sortedOrders[i]).toBe(i + 1);
+    }
+  });
+
+  it("has at least one document per category", () => {
+    for (const category of specCategories) {
+      expect(specDocs.some((doc) => doc.category === category)).toBe(true);
+    }
   });
 });
 
@@ -215,12 +241,4 @@ describe("JSON-LD generators", () => {
     }
   });
 
-  it("getVideoObjectJsonLd has required fields", () => {
-    const data = getVideoObjectJsonLd();
-    expect(data["@type"]).toBe("VideoObject");
-    expect(data.name).toBeTruthy();
-    expect(data.transcript).toBeTruthy();
-    expect(data.duration).toMatch(/^PT\d+S$/);
-    expect(data.inLanguage).toBe("en");
-  });
 });

@@ -19,6 +19,7 @@ export default function GlobalError({
             <p className="text-sm text-slate-500 font-mono">Digest: {error.digest}</p>
           )}
           <button
+            type="button"
             onClick={reset}
             className="rounded-full bg-blue-500 px-6 py-3 text-sm font-bold text-white hover:bg-blue-400 transition-colors active:scale-95"
           >

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useForm, useStore } from "@tanstack/react-form";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Search, X } from "lucide-react";
@@ -17,6 +18,7 @@ function FaqAccordion({ question, answer }: { question: string; answer: string }
   const [open, setOpen] = useState(false);
   return (
     <button
+      type="button"
       onClick={() => setOpen(!open)}
       className="w-full text-left rounded-xl border border-white/5 bg-white/[0.02] p-6 hover:border-blue-500/20 hover:bg-white/[0.04] transition-all"
     >
@@ -52,29 +54,44 @@ export default function GlossaryPage() {
     onSubmit: async () => {},
   });
   const search = useStore(searchForm.store, (state) => state.values.query);
+  const deferredSearch = useDeferredValue(search);
   const [selected, setSelected] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
+  const indexedTerms = useMemo(
+    () =>
+      glossaryTerms.map((term) => ({
+        term,
+        letter: term.term[0].toUpperCase(),
+        searchBlob: `${term.term}\n${term.short}\n${term.long}`.toLowerCase(),
+      })),
+    []
+  );
+
+  const normalizedQuery = deferredSearch.trim().toLowerCase();
+
   const filtered = useMemo(() => {
-    if (!search.trim()) return glossaryTerms;
-    const q = search.toLowerCase();
-    return glossaryTerms.filter(
-      (t) =>
-        t.term.toLowerCase().includes(q) ||
-        t.short.toLowerCase().includes(q) ||
-        t.long.toLowerCase().includes(q)
-    );
-  }, [search]);
+    if (!normalizedQuery) return glossaryTerms;
+    return indexedTerms
+      .filter(({ searchBlob }) => searchBlob.includes(normalizedQuery))
+      .map(({ term }) => term);
+  }, [indexedTerms, normalizedQuery]);
 
   const grouped = useMemo(() => {
-    const groups: Record<string, typeof glossaryTerms> = {};
-    for (const term of filtered) {
-      const letter = term.term[0].toUpperCase();
+    const groups: Record<string, (typeof glossaryTerms)[number][]> = {};
+    for (const entry of indexedTerms) {
+      if (normalizedQuery && !entry.searchBlob.includes(normalizedQuery)) continue;
+      const { term, letter } = entry;
       if (!groups[letter]) groups[letter] = [];
       groups[letter].push(term);
     }
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
-  }, [filtered]);
+  }, [indexedTerms, normalizedQuery]);
+
+  const crossLinksByTerm = useMemo(
+    () => new Map(glossaryCrossLinks.map((entry) => [entry.term, entry.links] as const)),
+    []
+  );
 
   const virtualRows = useMemo<GlossaryRow[]>(() => {
     const rows: GlossaryRow[] = [];
@@ -105,7 +122,7 @@ export default function GlossaryPage() {
   }, [rowVirtualizer, selected, virtualRows.length]);
 
   return (
-    <main id="main-content">
+    <main id="main-content" tabIndex={-1}>
       <section
         id="glossary-hero"
         data-scaffold-slot="hero"
@@ -138,11 +155,14 @@ export default function GlossaryPage() {
                   value={search}
                   onChange={(e) => searchForm.setFieldValue("query", e.target.value)}
                   placeholder="Search terms..."
+                  aria-label="Search glossary terms"
                   className="flex-1 bg-transparent text-white placeholder:text-slate-600 text-sm font-medium py-3 outline-none"
                 />
                 {search && (
                   <button
+                    type="button"
                     onClick={() => searchForm.setFieldValue("query", "")}
+                    aria-label="Clear search"
                     className="text-slate-500 hover:text-white transition-colors"
                   >
                     <X className="h-4 w-4" />
@@ -177,6 +197,7 @@ export default function GlossaryPage() {
                         </h2>
                       ) : (
                         <motion.button
+                          type="button"
                           onClick={() => setSelected(selected === row.term.term ? null : row.term.term)}
                           whileHover={{ x: 4 }}
                           aria-expanded={selected === row.term.term}
@@ -202,16 +223,36 @@ export default function GlossaryPage() {
                                   {row.term.long}
                                 </p>
                                 {(() => {
-                                  const crossLink = glossaryCrossLinks.find(cl => cl.term === row.term.term);
-                                  if (!crossLink) return null;
+                                  const crossLinks = crossLinksByTerm.get(row.term.term);
+                                  if (!crossLinks) return null;
                                   return (
                                     <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
                                       <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">See also:</span>
-                                      {crossLink.links.map(link => (
-                                        <a key={link.href} href={link.href} className="text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors">
-                                          {link.label}
-                                        </a>
-                                      ))}
+                                      {crossLinks.map((link) => {
+                                        const internal = /^\/(?!\/)/.test(link.href);
+                                        if (internal) {
+                                          return (
+                                            <Link
+                                              key={link.href}
+                                              href={link.href}
+                                              className="text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors"
+                                            >
+                                              {link.label}
+                                            </Link>
+                                          );
+                                        }
+                                        return (
+                                          <a
+                                            key={link.href}
+                                            href={link.href}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors"
+                                          >
+                                            {link.label}
+                                          </a>
+                                        );
+                                      })}
                                     </div>
                                   );
                                 })()}

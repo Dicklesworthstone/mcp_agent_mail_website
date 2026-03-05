@@ -5,7 +5,7 @@ export const runtime = "edge";
 const subtitle = "Coordination Infrastructure for AI Coding Agents";
 const siteHost = new URL(siteConfig.url).hostname;
 
-export const alt = `${siteConfig.name} — ${subtitle}`;
+export const alt = `${siteConfig.name} | ${subtitle}`;
 export const size = { width: 1200, height: 600 };
 export const contentType = "image/png";
 

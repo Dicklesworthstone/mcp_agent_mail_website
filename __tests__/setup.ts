@@ -13,6 +13,18 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+// ─── IntersectionObserver mock (for VizSurface / LazyViz) ───────
+class MockIntersectionObserver {
+  readonly root: Element | null = null;
+  readonly rootMargin: string = "";
+  readonly thresholds: ReadonlyArray<number> = [];
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+  takeRecords = vi.fn().mockReturnValue([]);
+}
+vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
+
 // ─── Window matchMedia mock (for reduced-motion tests) ──────────
 Object.defineProperty(window, "matchMedia", {
   writable: true,

@@ -46,7 +46,22 @@ test.describe("Accessibility regression suite", () => {
         expect(hasName, `Button ${i} on ${route} has no accessible name`).toBeTruthy();
       }
 
-      diagnostics.breadcrumb(`${route}: ${buttonCount} buttons checked`);
+      const textInputs = page.locator('input:not([type="hidden"])');
+      const inputCount = await textInputs.count();
+      for (let i = 0; i < inputCount; i++) {
+        const input = textInputs.nth(i);
+        const ariaLabel = (await input.getAttribute("aria-label"))?.trim();
+        const ariaLabelledBy = (await input.getAttribute("aria-labelledby"))?.trim();
+        const id = await input.getAttribute("id");
+        let hasForLabel = false;
+        if (id) {
+          hasForLabel = (await page.locator(`label[for="${id}"]`).count()) > 0;
+        }
+        const hasName = Boolean(ariaLabel) || Boolean(ariaLabelledBy) || hasForLabel;
+        expect(hasName, `Input ${i} on ${route} has no accessible name`).toBeTruthy();
+      }
+
+      diagnostics.breadcrumb(`${route}: ${buttonCount} buttons + ${inputCount} inputs checked`);
     });
 
     test(`${route} has proper lang attribute`, async ({ page, diagnostics }) => {
@@ -70,7 +85,7 @@ test.describe("Accessibility regression suite", () => {
 
     // Verify focus moved to main content area
     const main = page.locator("main#main-content");
-    await expect(main).toBeAttached();
+    await expect(main).toBeFocused();
 
     diagnostics.breadcrumb("Skip link interaction verified");
   });

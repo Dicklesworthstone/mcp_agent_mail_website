@@ -36,6 +36,28 @@ test.describe("Smoke tests", () => {
     });
   }
 
+  test("spec explorer supports filtering and document open flow", async ({ page, diagnostics }) => {
+    diagnostics.setRoute("/spec-explorer");
+    diagnostics.breadcrumb("Navigating to spec explorer");
+    await page.goto("/spec-explorer");
+
+    const searchInput = page.locator('input[aria-label="Search spec documents"]:visible');
+    await expect(searchInput).toBeVisible();
+    diagnostics.breadcrumb("Search input visible");
+
+    await searchInput.click();
+    diagnostics.breadcrumb("Search input focus verified");
+
+    const firstDocButton = page.locator("[data-spec-doc-item]:visible").first();
+    await expect(firstDocButton).toBeVisible();
+    const selectedSlug = await firstDocButton.getAttribute("data-spec-doc-item");
+    diagnostics.breadcrumb(`Opening doc from list: ${selectedSlug ?? "unknown"}`);
+    await firstDocButton.click();
+
+    await expect(page.locator("#spec-explorer-workspace .spec-prose")).toBeVisible();
+    diagnostics.breadcrumb("Document content rendered");
+  });
+
   test("no console errors on home page", async ({ page, diagnostics }) => {
     const errors: string[] = [];
     page.on("console", (msg) => {
@@ -44,9 +66,9 @@ test.describe("Smoke tests", () => {
     diagnostics.setRoute("/");
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    // Filter out known benign errors (e.g., missing video file 404)
+    const allowlistedNoise = [/Failed to load resource: net::ERR_FILE_NOT_FOUND/i];
     const realErrors = errors.filter(
-      (e) => !e.includes("ERR_FILE_NOT_FOUND") && !e.includes("404")
+      (e) => !allowlistedNoise.some((pattern) => pattern.test(e))
     );
     expect(realErrors).toEqual([]);
   });

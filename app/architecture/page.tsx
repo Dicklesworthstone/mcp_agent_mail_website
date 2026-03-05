@@ -5,7 +5,6 @@ import dynamic from "next/dynamic";
 import { ArrowRight } from "lucide-react";
 import SectionShell from "@/components/section-shell";
 import GlitchText from "@/components/glitch-text";
-import { SyncContainer } from "@/components/sync-elements";
 import Timeline from "@/components/timeline";
 import { Tooltip } from "@/components/tooltip";
 import { changelog } from "@/lib/content";
@@ -154,9 +153,7 @@ export default function ArchitecturePage() {
         kicker="Two-tier retrieval combining SQLite FTS5 lexical search with semantic embeddings, fused via Reciprocal Rank Fusion."
       >
         <div className="space-y-6">
-          <SyncContainer withPulse={true} accentColor="#6366F1" className="p-4 md:p-6 bg-black/40">
-            <LazyViz><SearchV3PipelineViz /></LazyViz>
-          </SyncContainer>
+          <LazyViz><SearchV3PipelineViz /></LazyViz>
           <div className="space-y-4 text-slate-400 leading-relaxed">
             <p>
               The Search V3 engine is designed for robust operation. It dispatches queries across lexical (BM25) and semantic vectors in parallel, fusing them with RRF. Crucially, if the semantic model times out, the system degrades gracefully to purely lexical mode—and if SQLite locks up, it falls back to a chronological scan, guaranteeing that an agent is never entirely blinded.
@@ -174,9 +171,7 @@ export default function ArchitecturePage() {
         kicker="Independent worker loops, backpressure triggers, and robust pool exhaustion recovery."
       >
         <div className="space-y-6">
-          <SyncContainer withPulse={true} accentColor="#EF4444" className="p-4 md:p-6 bg-black/40">
-            <LazyViz><ReliabilityInternalsViz /></LazyViz>
-          </SyncContainer>
+          <LazyViz><ReliabilityInternalsViz /></LazyViz>
           <div className="space-y-4 text-slate-400 leading-relaxed">
             <p>
               Agent Mail is designed to survive the chaos of AI agent swarms. If the <Tooltip term="Write-Behind Queue">WBQ</Tooltip> floods past a threshold of 128 items, the server safely projects <Tooltip term="Backpressure">backpressure</Tooltip> to limit ingestion, giving background workers (Metrics, Integrity, Retention) time to drain buffers.

@@ -26,7 +26,7 @@ export const specDocs: SpecDoc[] = [
     title: "V4 Formal Semantics",
     filename: "asupersync_v4_formal_semantics.md",
     category: "Formal Semantics",
-    description: "Complete formal semantics specification for the Asupersync v4 runtime.",
+    description: "Complete formal semantics specification for the Agent Mail v4 runtime.",
     order: 1,
   },
   {
@@ -42,7 +42,7 @@ export const specDocs: SpecDoc[] = [
     title: "OTP Comparison",
     filename: "otp_comparison.md",
     category: "Formal Semantics",
-    description: "Comparison of Asupersync's supervision model with Erlang/OTP.",
+    description: "Comparison of Agent Mail's supervision model with Erlang/OTP.",
     order: 3,
   },
 
@@ -60,7 +60,7 @@ export const specDocs: SpecDoc[] = [
     title: "Benchmarking",
     filename: "benchmarking.md",
     category: "Testing",
-    description: "Performance benchmarks and methodology for the Asupersync runtime.",
+    description: "Performance benchmarks and methodology for the Agent Mail runtime.",
     order: 5,
   },
   {
@@ -212,7 +212,7 @@ export const specDocs: SpecDoc[] = [
     title: "Integration Guide",
     filename: "integration.md",
     category: "Operations",
-    description: "Guide for integrating Asupersync with existing Rust projects.",
+    description: "Guide for integrating Agent Mail with existing Rust projects.",
     order: 23,
   },
 
@@ -230,7 +230,7 @@ export const specDocs: SpecDoc[] = [
     title: "Macro DSL",
     filename: "macro-dsl.md",
     category: "Development",
-    description: "Design of the #[asupersync::main] and Region macro DSL.",
+    description: "Design of the #[agent_mail::main] and Region macro DSL.",
     order: 25,
   },
   {

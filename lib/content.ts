@@ -1,7 +1,7 @@
 // Site configuration
 export const siteConfig = {
   name: "MCP Agent Mail",
-  title: "MCP Agent Mail — Coordination Infrastructure For AI Coding Agents",
+  title: "MCP Agent Mail: Coordination Infrastructure for AI Coding Agents",
   description: "Git-auditable, SQLite-backed coordination fabric for multi-agent coding: inboxes, reservations, threads, search, and operator tooling.",
   url: "https://mcpagentmail.com",
   github: "https://github.com/Dicklesworthstone/mcp_agent_mail_rust",
@@ -40,11 +40,13 @@ export const routeScaffolds: RouteScaffold[] = [
     sections: [
       { id: "home-hero", description: "Primary value proposition + hero media" },
       { id: "home-proof-strip", description: "At-a-glance trust metrics" },
+      { id: "home-evidence-strip", description: "Credibility strip with contextual proof points" },
       { id: "home-concepts", description: "Interactive conceptual deep-dive" },
       { id: "features", description: "Core feature grid" },
       { id: "comparison", description: "Comparative positioning table" },
       { id: "code", description: "Quickstart/API proof snippet" },
       { id: "architecture-preview", description: "Architecture teaser + timeline" },
+      { id: "home-adoption-rail", description: "Persona-targeted adoption pathways" },
       { id: "home-cta", description: "Primary conversion CTA" },
       { id: "flywheel", description: "Ecosystem/flywheel module" },
     ],
@@ -89,7 +91,7 @@ export const routeScaffolds: RouteScaffold[] = [
       { id: "glossary-search", description: "Term search controls" },
       { id: "glossary-index", description: "Virtualized term list" },
       { id: "glossary-empty-state", description: "No-results fallback" },
-      { id: "glossary-faq-placeholder", description: "Reserved slot for glossary-adjacent FAQ module" },
+      { id: "glossary-faq", description: "Frequently asked questions" },
     ],
   },
   {
@@ -97,8 +99,9 @@ export const routeScaffolds: RouteScaffold[] = [
     label: "Spec Explorer",
     sections: [
       { id: "spec-explorer-hero", description: "Spec explorer framing + expectations" },
+      { id: "spec-explorer-surface-map", description: "Tool/resource/screen/robot surface map" },
+      { id: "spec-explorer-visualization-priority", description: "Visualization backlog prioritization" },
       { id: "spec-explorer-shell", description: "Search/index/reader shell" },
-      { id: "spec-explorer-workspace", description: "Responsive document workspace" },
     ],
   },
 ];
@@ -924,7 +927,7 @@ export const visualizationBacklog: VisualizationBacklogItem[] = [
       "reset and replay controls",
     ],
     riskNotes: [
-      "Lane labels must match Agent Mail semantics, not inherited asupersync naming.",
+      "Lane labels must match Agent Mail semantics, not inherited legacy naming.",
       "Visual complexity rises quickly when too many concurrent items are shown.",
     ],
   },
@@ -1255,14 +1258,18 @@ export const coreContentDatasets: CoreContentDatasets = {
 // Glossary terms (alphabetically ordered)
 export const glossaryTerms: GlossaryTerm[] = [
   { term: "Acknowledgment", short: "Confirmation that a message was received", long: "When a message is sent with ack_required=true, the recipient agent must explicitly acknowledge receipt. The system tracks ack status and can surface overdue acknowledgments to operators." },
-  { term: "Advisory Lock", short: "Non-blocking coordination signal", long: "File reservations in Agent Mail are advisory \u2014 they surface conflicts and enable the pre-commit guard, but they can always be bypassed. This prevents deadlocks while still making ownership visible." },
+  { term: "Advisory Lock", short: "Non-blocking coordination signal", long: "File reservations in Agent Mail are advisory: they surface conflicts and enable the pre-commit guard, but they can always be bypassed. This prevents deadlocks while still making ownership visible." },
   { term: "Agent Identity", short: "Memorable persistent name for an agent", long: "Each agent gets an adjective+noun identity (GreenCastle, BlueLake, RedHarbor) that persists across sessions. Identities are project-scoped and carry program/model metadata for context." },
-  { term: "Agent Mail", short: "Coordination infrastructure for AI coding agents", long: "MCP Agent Mail provides the full operational fabric for multi-agent coding: identities, threaded messaging, file reservations, search, audit trails, and operator tooling \u2014 all backed by SQLite + Git." },
+  { term: "Agent Mail", short: "Coordination infrastructure for AI coding agents", long: "MCP Agent Mail provides the full operational fabric for multi-agent coding: identities, threaded messaging, file reservations, search, audit trails, and operator tooling, all backed by SQLite + Git." },
+  { term: "Backpressure", short: "Flow control under overload", long: "When incoming request rate exceeds processing capacity, the system applies backpressure by shedding low-priority work (maintenance tools like archive_repair) while always admitting high-priority operations (send_message, fetch_inbox). This prevents cascading failure under load spikes." },
   { term: "Build Slot", short: "Concurrency control for compilation", long: "A lease that controls how many agents can run resource-intensive operations (like cargo build) simultaneously. Agents acquire, renew, and release build slots to prevent contention." },
   { term: "Commit Coalescer", short: "Batches Git commits for efficiency", long: "Instead of creating a Git commit for every write operation, the storage layer batches multiple writes into fewer commits. Stress tests show a 9.1x reduction (100 writes \u2192 11 commits)." },
   { term: "Contact Handshake", short: "Protocol for establishing cross-agent communication", long: "Before agents in different projects can message each other, they perform a contact handshake: request_contact sends the invitation, respond_contact accepts or denies. Contact policies can auto-accept or block by default." },
+  { term: "Context Window", short: "Token budget available to an LLM", long: "The fixed-size buffer of tokens an LLM can process in a single session. Coordination chatter (status updates, broadcasts, trace dumps) consumes context window space that would otherwise be available for reasoning and code generation." },
   { term: "Exclusive Reservation", short: "Sole ownership of files during editing", long: "When an agent reserves files with exclusive=true, no other agent can reserve overlapping paths until the reservation expires or is released. The pre-commit guard enforces this at commit time." },
   { term: "File Reservation", short: "Advisory lease on file paths", long: "An agent declares intent to edit specific file patterns (globs like src/auth/**/*.ts) for a given TTL. Other agents see the reservation and can coordinate accordingly. Conflicts are surfaced but not hard-blocked." },
+  { term: "FTS5", short: "SQLite full-text search engine", long: "The full-text search extension built into SQLite. Agent Mail uses FTS5 to index message subjects, bodies, and metadata, enabling sub-millisecond keyword search across the entire message archive without external search infrastructure." },
+  { term: "Glob Pattern", short: "Wildcard file path matcher", long: "A pattern like src/auth/**/*.ts that matches files using wildcards. Agents reserve glob patterns rather than individual files, so a single reservation can cover an entire directory tree." },
   { term: "Human Overseer", short: "Web UI for operator intervention", long: "The web interface at localhost:8765/mail allows humans to compose and send high-priority messages to agents, view all inboxes, search messages, and monitor file reservations across projects." },
   { term: "Inbox", short: "Per-agent message queue", long: "Each registered agent has a project-scoped inbox where incoming messages are delivered. Agents fetch their inbox via fetch_inbox or the resource://inbox/{agent} MCP resource." },
   { term: "Macro", short: "Multi-step MCP operation in one call", long: "Agent Mail provides four macros that combine common multi-tool workflows into single calls: macro_start_session, macro_prepare_thread, macro_file_reservation_cycle, and macro_contact_handshake." },
@@ -1270,16 +1277,18 @@ export const glossaryTerms: GlossaryTerm[] = [
   { term: "MCP Resource", short: "Read-only data surface discoverable by agents", long: "Unlike tools (which perform actions), MCP resources provide fast read access to data: resource://inbox/{agent}, resource://thread/{id}, resource://agents, etc. No tool call overhead." },
   { term: "Pre-Commit Guard", short: "Git hook enforcing file reservations", long: "The mcp-agent-mail-guard binary installs as a Git pre-commit hook. It checks whether committed files overlap with another agent\u2019s active reservations and blocks the commit if so. Bypassable with AGENT_MAIL_BYPASS=1." },
   { term: "Product Bus", short: "Cross-repository coordination layer", long: "Links multiple Git repositories under a single product umbrella. Enables cross-project search, unified inbox aggregation, and inter-project contact management." },
-  { term: "Project Key", short: "Absolute path identifying a repository", long: "The canonical identifier for a project in Agent Mail \u2014 the absolute filesystem path to the repository root. Used in all tool calls and resource URIs." },
+  { term: "Project Key", short: "Absolute path identifying a repository", long: "The canonical identifier for a project in Agent Mail: the absolute filesystem path to the repository root. Used in all tool calls and resource URIs." },
   { term: "Robot Mode", short: "Non-interactive CLI for agent consumption", long: "The \u2018am robot\u2019 subcommand provides 16 commands (status, inbox, timeline, thread, search, etc.) that output token-efficient toon, JSON, or Markdown. Designed for agent consumption, not human interaction." },
   { term: "Shared Reservation", short: "Non-exclusive file access declaration", long: "When an agent reserves files with exclusive=false, other agents can also create overlapping reservations. Useful for read-heavy access patterns where coordination is desired but exclusivity isn\u2019t required." },
   { term: "Stress Gauntlet", short: "10-scenario production readiness test suite", long: "A comprehensive stress test suite covering: 30-agent message pipelines, 10-project concurrent ops, commit coalescer batching, stale lock recovery, mixed reservations + messages, pool exhaustion, sustained throughput, thundering herd, and inbox reads during storms." },
-  { term: "Thread", short: "Conversation grouping by thread_id", long: "Messages sharing the same thread_id form a conversation thread. Threads enable context-aware communication \u2014 agents can review the full conversation history before replying. Thread IDs often map to bead/issue IDs (e.g., bd-123)." },
+  { term: "Thread", short: "Conversation grouping by thread_id", long: "Messages sharing the same thread_id form a conversation thread. Threads enable context-aware communication; agents can review the full conversation history before replying. Thread IDs often map to bead/issue IDs (e.g., bd-123)." },
   { term: "Tool Cluster", short: "Logical grouping of MCP tools", long: "Agent Mail\u2019s 34 tools are organized into 9 clusters: Infrastructure, Identity, Messaging, Contacts, File Reservations, Search, Macros, Product Bus, and Build Slots. Each cluster handles a distinct coordination concern." },
   { term: "Toon Format", short: "Token-efficient robot output format", long: "The default output format for robot mode at a TTY. Compact, human-scannable, and designed to minimize token consumption when agents parse the output. Alternative formats: json and md." },
   { term: "TTL", short: "Time-to-live for reservations", long: "File reservations and build slots expire after their TTL (default 3600 seconds). Agents can renew before expiration. Expired reservations are automatically cleaned up, preventing stale locks." },
   { term: "TUI", short: "Terminal User Interface operations console", long: "A 15-screen interactive terminal interface built on frankentui. Provides real-time dashboards, message browsing, thread exploration, agent roster, search, reservation management, and system health monitoring." },
+  { term: "WAL", short: "Write-Ahead Log for crash safety", long: "SQLite's WAL (Write-Ahead Log) mode allows concurrent readers and a single writer without blocking. Agent Mail uses WAL mode to serve agent queries while the commit coalescer batches writes, combining high read throughput with durable writes." },
   { term: "Web UI", short: "Browser-based operator interface", long: "Served at http://127.0.0.1:8765/mail, the web interface provides unified inbox, project overview, message details, search, file reservations, and the Human Overseer compose form for sending messages to agents." },
+  { term: "Write-Behind Queue", short: "Buffered async write pipeline", long: "A queue that accumulates rapid-fire write operations and flushes them as batch commits on a configurable interval. Decouples write latency from archive durability, allowing the system to acknowledge writes instantly while persisting them in the background." },
 ];
 
 // General FAQ (broader than getting-started, covers architecture and operational questions)
@@ -2031,61 +2040,290 @@ export const faq: FaqItem[] = [
   },
 ];
 
-// ─── Video Placeholder Spec ──────────────────────────────────────
+// ─── Hero TUI Demo Spec ──────────────────────────────────────────
 
-export interface VideoPlaceholderSpec {
+export interface HeroTuiDemoEvent {
+  id: number;
+  sender: string;
+  program: string;
+  subject: string;
+  threadId: string | null;
+  importance: "low" | "normal" | "high" | "urgent";
+  ackRequired: boolean;
+  createdTs: number;
+}
+
+export interface HeroTuiDemoSpec {
   id: string;
-  poster: string;
-  mediaSrc: string;
-  mediaType: string;
   width: number;
   height: number;
   ariaLabel: string;
-  captionsTrack: {
-    src: string;
-    srcLang: string;
-    label: string;
-    kind: "captions" | "subtitles" | "chapters";
-  }[];
   reducedMotionFallback: string;
   overlayTitle: string;
   overlaySubtitle: string;
-  replacementSteps: string[];
+  sourceDatabasePath: string;
+  sourceProjectKey: string;
+  generatedAtIso: string;
+  realWebAppUrl: string;
+  timelineTickMs: number;
+  feedWindowSize: number;
+  snapshot: {
+    totalMessages: number;
+    totalAgents: number;
+    ackRequiredMessages: number;
+    activeThreads: number;
+    fileReservations: number;
+    importanceBreakdown: {
+      normal: number;
+      high: number;
+      low: number;
+      urgent: number;
+    };
+  };
+  topProjects: { slug: string; messageCount: number }[];
+  topThreads: { threadId: string; messageCount: number }[];
+  topSenders: { name: string; sentCount: number }[];
+  activeAgentPreview: string[];
+  queueDepthSeries: number[];
+  ingressRpsSeries: number[];
+  conflictSeries: number[];
+  feedEvents: HeroTuiDemoEvent[];
 }
 
-export const heroVideoPlaceholder: VideoPlaceholderSpec = {
-  id: "hero-dashboard-video",
-  poster: "/images/agent-mail-dashboard-poster-placeholder.svg",
-  mediaSrc: "/media/agent-mail-dashboard-placeholder.mp4",
-  mediaType: "video/mp4",
+// Snapshot is sourced from a production-scale coordination extract:
+// - source: sanitized SQLite export
+// - table joins: messages + agents + projects
+// - extraction date: 2026-03-05
+export const heroTuiDemo: HeroTuiDemoSpec = {
+  id: "hero-agent-mail-tui-simulation",
   width: 1920,
   height: 1080,
-  ariaLabel: "MCP Agent Mail dashboard demo — shows multi-agent coordination in real time",
-  captionsTrack: [
-    {
-      src: "/media/agent-mail-dashboard.vtt",
-      srcLang: "en",
-      label: "English",
-      kind: "captions",
-    },
-    {
-      src: "/media/agent-mail-dashboard-chapters.vtt",
-      srcLang: "en",
-      label: "Chapters",
-      kind: "chapters",
-    },
-  ],
+  ariaLabel: "Simulated Agent Mail TUI activity seeded from a real local SQLite snapshot",
   reducedMotionFallback: "/images/agent-mail-dashboard-poster-placeholder.svg",
-  overlayTitle: "Placeholder: replace with your Agent Mail dashboard recording",
-  overlaySubtitle: "expected path: `public/media/agent-mail-dashboard-placeholder.mp4`",
-  replacementSteps: [
-    "1. Record a screen capture of the Agent Mail TUI or web dashboard showing live multi-agent coordination (recommended: 1920x1080, 30fps, ≤2 min).",
-    "2. Export as H.264 MP4 and place at `public/media/agent-mail-dashboard-placeholder.mp4`.",
-    "3. Generate a poster frame (first frame or key moment) as PNG/SVG and place at `public/images/agent-mail-dashboard-poster-placeholder.svg`.",
-    "4. Optional: author a WebVTT captions file at `public/media/agent-mail-dashboard.vtt` and chapter markers at `public/media/agent-mail-dashboard-chapters.vtt`.",
-    "5. The `<video>` element in `app/page.tsx` (hero section) auto-picks up these files. No code changes needed.",
-    "6. For reduced-motion users, the poster image is shown instead of autoplaying video (handled by the `prefers-reduced-motion` media query in the component).",
-    "7. Verify: `bun run build` and check that the video loads at `/` with poster, controls, captions track, and accessible label.",
+  overlayTitle: "Simulated Agent Mail TUI stream from real coordination snapshot data",
+  overlaySubtitle:
+    "source dataset: production-scale coordination snapshot | deterministic playback",
+  sourceDatabasePath: "agent_mail_snapshot.sqlite3",
+  sourceProjectKey: "mcp-agent-mail-production-snapshot",
+  generatedAtIso: "2026-03-05T00:00:00Z",
+  realWebAppUrl: `${siteConfig.url}/showcase`,
+  timelineTickMs: 1400,
+  feedWindowSize: 8,
+  snapshot: {
+    totalMessages: 1825,
+    totalAgents: 391,
+    ackRequiredMessages: 295,
+    activeThreads: 513,
+    fileReservations: 0,
+    importanceBreakdown: {
+      normal: 1636,
+      high: 181,
+      low: 4,
+      urgent: 4,
+    },
+  },
+  topProjects: [
+    { slug: "data-projects-frankentui", messageCount: 1971 },
+    { slug: "data-projects-mcp-agent-mail-rust", messageCount: 1825 },
+    { slug: "data-projects-frankensqlite", messageCount: 1123 },
+    { slug: "data-projects-storage-ballast-helper", messageCount: 523 },
+    { slug: "data-projects-midas-edge", messageCount: 243 },
+    { slug: "data-projects-jeffreys-skills-md", messageCount: 139 },
+  ],
+  topThreads: [
+    { threadId: "br-2k3qx.1.2", messageCount: 34 },
+    { threadId: "br-3h13.12", messageCount: 32 },
+    { threadId: "br-3h13.12.4", messageCount: 27 },
+    { threadId: "port-coordination", messageCount: 21 },
+    { threadId: "br-2bbt.9", messageCount: 18 },
+    { threadId: "br-3kwox", messageCount: 17 },
+  ],
+  topSenders: [
+    { name: "RubyPrairie", sentCount: 103 },
+    { name: "GrayElk", sentCount: 53 },
+    { name: "RedHarbor", sentCount: 49 },
+    { name: "CoralDog", sentCount: 43 },
+    { name: "BrownGlacier", sentCount: 32 },
+    { name: "WindyLynx", sentCount: 27 },
+  ],
+  activeAgentPreview: [
+    "CalmCanyon",
+    "CreamLake",
+    "VioletLantern",
+    "YellowBrook",
+    "CreamPond",
+    "SilverAspen",
+    "DustyCardinal",
+    "JadePine",
+  ],
+  queueDepthSeries: [4, 6, 8, 7, 5, 6, 9, 8, 6, 5, 7, 6],
+  ingressRpsSeries: [32, 38, 41, 44, 46, 43, 40, 42, 45, 47, 44, 39],
+  conflictSeries: [0, 1, 0, 2, 1, 0, 1, 0, 0, 1, 0, 0],
+  feedEvents: [
+    {
+      id: 49,
+      sender: "LilacMill",
+      program: "codex-cli",
+      subject: "Re: [coord] BlueCrane online; starting bead triage",
+      threadId: "coord-2026-03-04-bluecrane-intro",
+      importance: "normal",
+      ackRequired: true,
+      createdTs: 1_772_663_705_669_256,
+    },
+    {
+      id: 46,
+      sender: "SandyMouse",
+      program: "codex-cli",
+      subject: "[br-legjy.2] Handoff details: boundary tests + validation results",
+      threadId: "br-legjy.2",
+      importance: "high",
+      ackRequired: false,
+      createdTs: 1_772_663_515_638_696,
+    },
+    {
+      id: 45,
+      sender: "SandyMouse",
+      program: "codex-cli",
+      subject: "Re: [coord] BlueCrane online; starting bead triage",
+      threadId: "coord-2026-03-04-bluecrane-intro",
+      importance: "normal",
+      ackRequired: false,
+      createdTs: 1_772_663_498_391_734,
+    },
+    {
+      id: 88,
+      sender: "IcyCondor",
+      program: "codex-cli",
+      subject:
+        "[br-3kwox.1] Progress update: db regressions pass; tools test blocked by upstream asupersync compile error",
+      threadId: "br-3kwox.1",
+      importance: "normal",
+      ackRequired: false,
+      createdTs: 1_772_655_780_673_123,
+    },
+    {
+      id: 87,
+      sender: "IcyCondor",
+      program: "codex-cli",
+      subject: "[intro] IcyCondor online for br-3kwox.1",
+      threadId: "br-intro-2026-03-04",
+      importance: "normal",
+      ackRequired: true,
+      createdTs: 1_772_655_755_504_775,
+    },
+    {
+      id: 527,
+      sender: "FoggyShore",
+      program: "codex-cli",
+      subject: "[br-legjy.4.5] Closed as verification-complete (implementation already present)",
+      threadId: "br-legjy.4.5",
+      importance: "normal",
+      ackRequired: false,
+      createdTs: 1_772_654_000_434_664,
+    },
+    {
+      id: 526,
+      sender: "FoggyShore",
+      program: "codex-cli",
+      subject:
+        "[br-legjy.3.3] Verification indicates C3 already implemented; rch tests blocked by upstream asupersync compile errors",
+      threadId: "br-legjy.3.3",
+      importance: "normal",
+      ackRequired: false,
+      createdTs: 1_772_653_797_543_384,
+    },
+    {
+      id: 525,
+      sender: "FoggyShore",
+      program: "codex-cli",
+      subject:
+        "[br-legjy.3.3] Claimed; reservation conflict on tui_app/tui_events (held by SandyMouse)",
+      threadId: "br-legjy.3.3",
+      importance: "high",
+      ackRequired: false,
+      createdTs: 1_772_653_564_153_665,
+    },
+    {
+      id: 524,
+      sender: "IcyCondor",
+      program: "codex-cli",
+      subject: "Re: [coord] messaging/db reservation overlap on topic-contract audit",
+      threadId: "coord-2026-03-04",
+      importance: "normal",
+      ackRequired: true,
+      createdTs: 1_772_653_432_324_984,
+    },
+    {
+      id: 522,
+      sender: "BlackPlateau",
+      program: "codex-cli",
+      subject: "[coord] Closed br-2bbt.10 and br-edpom after implementation audits",
+      threadId: "coord-2026-03-04",
+      importance: "normal",
+      ackRequired: false,
+      createdTs: 1_772_652_804_709_276,
+    },
+    {
+      id: 521,
+      sender: "SandyMouse",
+      program: "codex-cli",
+      subject: "[br-legjy.3.3] Status update: reopened/unassigned while I execute br-legjy.2.2",
+      threadId: "br-legjy.3.3",
+      importance: "normal",
+      ackRequired: false,
+      createdTs: 1_772_652_788_123_566,
+    },
+    {
+      id: 519,
+      sender: "SandyMouse",
+      program: "codex-cli",
+      subject: "[br-legjy.2.2] Progress: backoff/park diagnostics patch landed in /dp/asupersync",
+      threadId: "br-legjy.2.2",
+      importance: "normal",
+      ackRequired: false,
+      createdTs: 1_772_652_761_752_384,
+    },
+    {
+      id: 518,
+      sender: "BlackPlateau",
+      program: "codex-cli",
+      subject: "[br-2bbt.10] Closed after implementation audit (no additional code delta)",
+      threadId: "br-2bbt.10",
+      importance: "normal",
+      ackRequired: false,
+      createdTs: 1_772_652_744_173_493,
+    },
+    {
+      id: 517,
+      sender: "LilacMill",
+      program: "codex-cli",
+      subject: "[br-legjy.5.11] Added lookup-cache regression tests; awaiting upstream compile unblock",
+      threadId: "br-legjy.5.11",
+      importance: "normal",
+      ackRequired: false,
+      createdTs: 1_772_652_725_239_041,
+    },
+    {
+      id: 514,
+      sender: "BlackPlateau",
+      program: "codex-cli",
+      subject: "[br-legjy.5.5] Closed + reservation released",
+      threadId: "br-legjy.5.5",
+      importance: "normal",
+      ackRequired: false,
+      createdTs: 1_772_652_605_370_718,
+    },
+    {
+      id: 510,
+      sender: "LilacMill",
+      program: "codex-cli",
+      subject:
+        "[br-legjy.5.11] Progress: Contacts graph edge lookup optimization landed; validation blocked upstream",
+      threadId: "br-legjy.5.11",
+      importance: "normal",
+      ackRequired: false,
+      createdTs: 1_772_652_242_416_189,
+    },
   ],
 };
 
@@ -2217,7 +2455,7 @@ export const adoptionMessages: AdoptionMessage[] = [
   {
     id: "am-solo-dev",
     headline: "Stop watching agents fight over files",
-    subline: "Advisory reservations and TTL expiration mean your agents coordinate instead of collide — even when they crash.",
+    subline: "Advisory reservations and TTL expiration mean your agents coordinate instead of collide, even when they crash.",
     targetAudience: "Solo developers running multiple AI agents",
     ctaLabel: "Get Started Free",
     ctaHref: "/getting-started",
@@ -2549,6 +2787,50 @@ export const heroMediaPackagingSpec: MediaPackagingSpec = {
     fallback: "ffmpeg -i raw-recording.mov -c:v libvpx-vp9 -crf 30 -b:v 0 -an -r 30 -s 1920x1080 public/media/agent-mail-dashboard-placeholder.webm",
     posterExtract: "ffmpeg -i public/media/agent-mail-dashboard-placeholder.mp4 -ss 00:00:08 -frames:v 1 public/images/agent-mail-dashboard-poster-placeholder.png",
   },
+};
+
+// ─── Hero Video Placeholder ──────────────────────────────────────────────────
+// Runtime configuration for the <video> element in HeroMedia.
+// Maps packaging-spec paths to public-facing URLs.
+
+export interface HeroVideoPlaceholder {
+  id: string;
+  poster: string;
+  mediaSrc: string;
+  mediaType: string;
+  width: number;
+  height: number;
+  ariaLabel: string;
+  captionsTrack: { src: string; srcLang: string; label: string; kind: string }[];
+  reducedMotionFallback: string;
+  overlayTitle: string;
+  overlaySubtitle: string;
+  replacementSteps: string[];
+}
+
+export const heroVideoPlaceholder: HeroVideoPlaceholder = {
+  id: "hero-agent-mail-dashboard",
+  poster: "/images/agent-mail-dashboard-poster-placeholder.png",
+  mediaSrc: "/media/agent-mail-dashboard-placeholder.mp4",
+  mediaType: "video/mp4",
+  width: 1920,
+  height: 1080,
+  ariaLabel: "Agent Mail TUI dashboard recording showing multi-agent coordination in real time",
+  captionsTrack: [
+    { src: "/media/agent-mail-dashboard.vtt", srcLang: "en", label: "English", kind: "captions" },
+    { src: "/media/agent-mail-dashboard-chapters.vtt", srcLang: "en", label: "Chapters", kind: "chapters" },
+  ],
+  reducedMotionFallback: "/images/agent-mail-dashboard-poster-placeholder.svg",
+  overlayTitle: "Agent Mail TUI Dashboard",
+  overlaySubtitle: "Multi-agent coordination with file reservations, messaging, and search",
+  replacementSteps: [
+    "Record the TUI dashboard using the storyboard in dashboardDemoStoryboard.",
+    "Encode with ffmpeg commands in heroMediaPackagingSpec.ffmpegEncodeCommands.",
+    "Extract poster frame per heroMediaPackagingSpec.posterFrame.extractionRule.",
+    "Generate .vtt caption and chapter files from heroDemoTranscript.",
+    "Place files at the paths in heroMediaPackagingSpec.filenameConventions.",
+    "Run validation checklist in heroMediaPackagingSpec.validationChecklist.",
+  ],
 };
 
 // ─── Hero Demo Transcript, Captions & Chapters ──────────────────────────────
@@ -3140,26 +3422,6 @@ export function getSoftwareApplicationJsonLd() {
     codeRepository: siteConfig.github,
     programmingLanguage: "Rust",
     runtimePlatform: "MCP (Model Context Protocol)",
-  };
-}
-
-export function getVideoObjectJsonLd() {
-  return {
-    "@context": "https://schema.org",
-    "@type": "VideoObject",
-    name: "MCP Agent Mail Dashboard Demo",
-    description: heroDemoTranscript.accessibleSummary,
-    thumbnailUrl: `${siteConfig.url}/images/agent-mail-dashboard-poster-placeholder.svg`,
-    uploadDate: "2026-01-01",
-    duration: `PT${dashboardDemoStoryboard.totalDurationSeconds}S`,
-    contentUrl: `${siteConfig.url}/media/agent-mail-dashboard-placeholder.mp4`,
-    transcript: heroDemoTranscript.fullTranscript,
-    inLanguage: "en",
-    publisher: {
-      "@type": "Person",
-      name: "Jeffrey Emanuel",
-      url: siteConfig.social.authorGithub,
-    },
   };
 }
 

@@ -48,7 +48,7 @@ const ReliabilityInternalsViz = dynamic(() => import("@/components/viz/reliabili
 
 export default function HomePage() {
   return (
-    <main id="main-content">
+    <main id="main-content" tabIndex={-1}>
       {/* ================================================================
           1. LIVING HERO
           ================================================================ */}
@@ -149,7 +149,7 @@ export default function HomePage() {
             </SyncContainer>
 
             {/* Embedded Stats Card */}
-            <div className="absolute -bottom-6 left-4 md:-bottom-10 md:left-6 z-30 glass-modern p-4 md:p-6 rounded-2xl border border-blue-500/20 shadow-2xl animate-float flex">
+            <div className="pointer-events-none absolute -bottom-6 left-4 md:-bottom-10 md:left-6 z-30 glass-modern p-4 md:p-6 rounded-2xl border border-blue-500/20 shadow-2xl animate-float flex">
               <div className="flex flex-col text-left">
                 <span className="text-2xl md:text-4xl font-black text-blue-400 tabular-nums tracking-tighter">34</span>
                 <span className="text-[8px] md:text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">MCP Tools</span>
@@ -236,11 +236,9 @@ export default function HomePage() {
                 </p>
               </div>
               <div className="flex-1 w-full max-w-2xl">
-                <SyncContainer withPulse={true} accentColor="#F97316" className="p-1 md:p-2 bg-black/40 shadow-2xl shadow-orange-900/20">
-                  <LazyViz>
-                    <FileReservationViz />
-                  </LazyViz>
-                </SyncContainer>
+                <LazyViz>
+                  <FileReservationViz />
+                </LazyViz>
               </div>
             </div>
 
@@ -315,11 +313,9 @@ export default function HomePage() {
                 </p>
               </div>
               <div className="flex-1 w-full max-w-2xl">
-                <SyncContainer withPulse={true} accentColor="#3B82F6" className="p-1 md:p-2 bg-black/40 shadow-2xl shadow-blue-900/20">
-                  <LazyViz>
-                    <AgentHandshakeViz />
-                  </LazyViz>
-                </SyncContainer>
+                <LazyViz>
+                  <AgentHandshakeViz />
+                </LazyViz>
               </div>
             </div>
 
@@ -345,11 +341,9 @@ export default function HomePage() {
                 </p>
               </div>
               <div className="flex-1 w-full max-w-2xl">
-                <SyncContainer withPulse={true} accentColor="#A855F7" className="p-1 md:p-2 bg-black/40 shadow-2xl shadow-purple-900/20">
-                  <LazyViz>
-                    <MessageLifecycleViz />
-                  </LazyViz>
-                </SyncContainer>
+                <LazyViz>
+                  <MessageLifecycleViz />
+                </LazyViz>
               </div>
             </div>
 
@@ -419,11 +413,9 @@ export default function HomePage() {
                 </p>
               </div>
               <div className="flex-1 w-full max-w-2xl">
-                <SyncContainer withPulse={true} accentColor="#EAB308" className="p-1 md:p-2 bg-black/40 shadow-2xl shadow-yellow-900/20">
-                  <LazyViz>
-                    <ReliabilityInternalsViz />
-                  </LazyViz>
-                </SyncContainer>
+                <LazyViz>
+                  <ReliabilityInternalsViz />
+                </LazyViz>
               </div>
             </div>
 

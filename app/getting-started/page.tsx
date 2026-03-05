@@ -50,7 +50,7 @@ export default function GettingStartedPage() {
   }, []);
 
   return (
-    <main id="main-content">
+    <main id="main-content" tabIndex={-1}>
       <JsonLd data={getFaqPageJsonLd()} />
       <JsonLd data={getHowToJsonLd()} />
       {/* Cinematic Header */}
@@ -96,6 +96,7 @@ export default function GettingStartedPage() {
               <code className="text-white font-bold">{gettingStartedInstallCommand}</code>
             </div>
             <button
+              type="button"
               onClick={handleCopy}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-bold text-slate-400 hover:bg-white/10 hover:text-white transition-all"
             >
