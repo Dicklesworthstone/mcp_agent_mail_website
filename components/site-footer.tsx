@@ -6,7 +6,7 @@ import { siteConfig, navItems } from "@/lib/content";
 import { SyncContainer } from "./sync-elements";
 import { Magnetic } from "./motion-wrapper";
 import GlitchText from "./glitch-text";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "@/components/motion";
 import { toSafeHref } from "@/lib/utils";
 
 const socialLinks = [

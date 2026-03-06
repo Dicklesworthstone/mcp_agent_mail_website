@@ -147,3 +147,16 @@ export const ROUTES = [
 ] as const;
 
 export type AppRoute = (typeof ROUTES)[number];
+
+type GotoOptions = Exclude<Parameters<Page["goto"]>[1], undefined>;
+
+export async function gotoRoute(page: Page, route: string, options?: GotoOptions) {
+  const response = await page.goto(route, {
+    waitUntil: "domcontentloaded",
+    ...(options ?? {}),
+  });
+
+  expect(response, `Navigation to ${route} should return a response`).not.toBeNull();
+
+  return response;
+}

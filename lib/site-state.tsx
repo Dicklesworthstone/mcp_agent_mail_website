@@ -31,80 +31,94 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const playSfx = useCallback((type: "click" | "zap" | "hum" | "error") => {
-    if (!audioEnabledRef.current) return;
-
+  const ensureAudioContext = useCallback(async () => {
     try {
-      if (!audioContextRef.current) {
-        const WebkitAudioContext = (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-        const AudioCtx = window.AudioContext || WebkitAudioContext;
-        if (!AudioCtx) return;
+      const WebkitAudioContext = (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      const AudioCtx = window.AudioContext || WebkitAudioContext;
+      if (!AudioCtx) return null;
+
+      if (!audioContextRef.current || audioContextRef.current.state === "closed") {
         audioContextRef.current = new AudioCtx();
       }
 
       const ctx = audioContextRef.current;
       if (ctx.state === "suspended") {
-        ctx.resume().catch(console.error);
+        await ctx.resume();
       }
 
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.onended = () => {
-        try {
-          osc.disconnect();
-          gain.disconnect();
-        } catch {
-          // Ignore disconnect race during rapid toggles.
-        }
-      };
-
-      const now = ctx.currentTime;
-
-      switch (type) {
-        case "click":
-          osc.type = "sine";
-          osc.frequency.setValueAtTime(800, now);
-          osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
-          gain.gain.setValueAtTime(0.1, now);
-          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-          osc.start(now);
-          osc.stop(now + 0.1);
-          break;
-        case "zap":
-          osc.type = "sine";
-          osc.frequency.setValueAtTime(600, now);
-          osc.frequency.exponentialRampToValueAtTime(80, now + 0.15);
-          gain.gain.setValueAtTime(0.04, now);
-          gain.gain.linearRampToValueAtTime(0, now + 0.15);
-          osc.start(now);
-          osc.stop(now + 0.15);
-          break;
-        case "hum":
-          osc.type = "triangle";
-          osc.frequency.setValueAtTime(60, now);
-          gain.gain.setValueAtTime(0, now);
-          gain.gain.linearRampToValueAtTime(0.1, now + 0.1);
-          gain.gain.linearRampToValueAtTime(0, now + 0.5);
-          osc.start(now);
-          osc.stop(now + 0.5);
-          break;
-        case "error":
-          osc.type = "square";
-          osc.frequency.setValueAtTime(150, now);
-          osc.frequency.setValueAtTime(100, now + 0.1);
-          gain.gain.setValueAtTime(0.05, now);
-          gain.gain.linearRampToValueAtTime(0, now + 0.3);
-          osc.start(now);
-          osc.stop(now + 0.3);
-          break;
-      }
+      return ctx;
     } catch (err) {
-      console.error("Audio protocol failure:", err);
+      console.error("Audio context init failure:", err);
+      return null;
     }
   }, []);
+
+  const playSfx = useCallback((type: "click" | "zap" | "hum" | "error") => {
+    if (!audioEnabledRef.current) return;
+    void (async () => {
+      const ctx = await ensureAudioContext();
+      if (!ctx || !audioEnabledRef.current) return;
+
+      try {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.onended = () => {
+          try {
+            osc.disconnect();
+            gain.disconnect();
+          } catch {
+            // Ignore disconnect race during rapid toggles.
+          }
+        };
+
+        const now = ctx.currentTime;
+
+        switch (type) {
+          case "click":
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(800, now);
+            osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now);
+            osc.stop(now + 0.1);
+            break;
+          case "zap":
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(600, now);
+            osc.frequency.exponentialRampToValueAtTime(80, now + 0.15);
+            gain.gain.setValueAtTime(0.04, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.15);
+            osc.start(now);
+            osc.stop(now + 0.15);
+            break;
+          case "hum":
+            osc.type = "triangle";
+            osc.frequency.setValueAtTime(60, now);
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.1, now + 0.1);
+            gain.gain.linearRampToValueAtTime(0, now + 0.5);
+            osc.start(now);
+            osc.stop(now + 0.5);
+            break;
+          case "error":
+            osc.type = "square";
+            osc.frequency.setValueAtTime(150, now);
+            osc.frequency.setValueAtTime(100, now + 0.1);
+            gain.gain.setValueAtTime(0.05, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.3);
+            osc.start(now);
+            osc.stop(now + 0.3);
+            break;
+        }
+      } catch (err) {
+        console.error("Audio protocol failure:", err);
+      }
+    })();
+  }, [ensureAudioContext]);
 
   const toggleLabMode = useCallback(() => {
     setIsLabMode(prev => !prev);
@@ -114,7 +128,7 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
   const queueAudioStateTransition = useCallback((shouldEnable: boolean) => {
     audioTransitionRef.current = audioTransitionRef.current
       .then(async () => {
-        const ctx = audioContextRef.current;
+        const ctx = shouldEnable ? await ensureAudioContext() : audioContextRef.current;
         if (!ctx) return;
 
         if (shouldEnable) {
@@ -131,7 +145,7 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
       .catch((err) => {
         console.error("Audio transition failure:", err);
       });
-  }, []);
+  }, [ensureAudioContext]);
 
   const toggleAudio = useCallback(() => {
     const nextState = !audioEnabledRef.current;
@@ -142,6 +156,7 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
       audioTimerRef.current = null;
     }
     if (nextState) {
+      void ensureAudioContext();
       queueAudioStateTransition(true);
       audioTimerRef.current = setTimeout(() => {
         audioTimerRef.current = null;
@@ -150,7 +165,7 @@ export function SiteProvider({ children }: { children: React.ReactNode }) {
     } else {
       queueAudioStateTransition(false);
     }
-  }, [playSfx, queueAudioStateTransition]);
+  }, [ensureAudioContext, playSfx, queueAudioStateTransition]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

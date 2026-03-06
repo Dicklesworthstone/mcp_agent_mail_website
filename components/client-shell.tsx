@@ -40,10 +40,6 @@ export default function ClientShell({ children }: { children: React.ReactNode })
   }, []);
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "auto" });
-  }, [pathname]);
-
-  useEffect(() => {
     focusMainFromHash();
   }, [pathname, focusMainFromHash]);
 

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Home, Eye, Cpu, Zap, ChevronRight, Globe, Sparkles, BookOpen } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { navItems, siteConfig } from "@/lib/content";
 import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
 import { cn, toSafeHref } from "@/lib/utils";
@@ -24,6 +24,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
 export default function SiteHeader() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [openPathname, setOpenPathname] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const { toggleLabMode, isLabMode, isAudioEnabled, toggleAudio } = useSite();
   const brandGlyph = siteConfig.name.charAt(0).toUpperCase();
@@ -31,6 +32,15 @@ export default function SiteHeader() {
   const openTriggerRef = useRef<HTMLElement | null>(null);
   const focusRafRef = useRef<number | null>(null);
   const githubHref = toSafeHref(siteConfig.github) ?? "https://github.com";
+  const closeMenu = useCallback(() => {
+    setOpen(false);
+    setOpenPathname(null);
+  }, []);
+  const openMenu = useCallback((trigger: HTMLElement) => {
+    openTriggerRef.current = trigger;
+    setOpenPathname(pathname);
+    setOpen(true);
+  }, [pathname]);
 
   useBodyScrollLock(open);
 
@@ -44,13 +54,55 @@ export default function SiteHeader() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    if (!open || openPathname === pathname) {
+      return undefined;
+    }
+
+    const rafId = requestAnimationFrame(() => {
+      setOpen(false);
+      setOpenPathname(null);
+    });
+
+    return () => cancelAnimationFrame(rafId);
+  }, [open, openPathname, pathname]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return undefined;
+    }
+
+    const mediaQuery = window.matchMedia("(min-width: 768px)");
+    const handleViewportChange = () => {
+      if (mediaQuery.matches) {
+        closeMenu();
+      }
+    };
+
+    handleViewportChange();
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", handleViewportChange);
+    } else {
+      mediaQuery.addListener(handleViewportChange);
+    }
+
+    return () => {
+      if (typeof mediaQuery.removeEventListener === "function") {
+        mediaQuery.removeEventListener("change", handleViewportChange);
+      } else {
+        mediaQuery.removeListener(handleViewportChange);
+      }
+    };
+  }, [closeMenu]);
+
   // Focus trap for mobile nav
   useEffect(() => {
     if (!open) return;
 
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        setOpen(false);
+        closeMenu();
       }
     };
 
@@ -94,7 +146,7 @@ export default function SiteHeader() {
       }
       openTriggerRef.current?.focus();
     };
-  }, [open]);
+  }, [closeMenu, open]);
 
   return (
     <>
@@ -218,7 +270,7 @@ export default function SiteHeader() {
           })}
           <button
             type="button"
-            onClick={(e) => { openTriggerRef.current = e.currentTarget; setOpen(true); }}
+            onClick={(e) => openMenu(e.currentTarget)}
             aria-label="Open navigation menu"
             aria-expanded={open}
             className="flex flex-col items-center justify-center w-12 h-12 rounded-xl text-slate-500 active:scale-90"
@@ -236,7 +288,7 @@ export default function SiteHeader() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setOpen(false)}
+              onClick={closeMenu}
               className="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] md:hidden"
             />
             <motion.div
@@ -252,7 +304,7 @@ export default function SiteHeader() {
             >
               <div className="flex items-center justify-between mb-12">
                 <span className="text-xs font-black text-blue-500 uppercase tracking-[0.4em]">MAIL_MENU</span>
-                <button type="button" onClick={() => setOpen(false)} aria-label="Close navigation menu" className="p-2 text-slate-500">
+                <button type="button" onClick={closeMenu} aria-label="Close navigation menu" className="p-2 text-slate-500">
                   <X className="h-6 w-6" />
                 </button>
               </div>
@@ -262,7 +314,7 @@ export default function SiteHeader() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    onClick={() => setOpen(false)}
+                    onClick={closeMenu}
                     className="flex items-center justify-between"
                   >
                     <span className={cn("text-2xl font-black uppercase tracking-tighter", pathname === item.href ? "text-blue-400" : "text-slate-500")}>

@@ -173,3 +173,19 @@ export function toSpecDocPublicHref(href: string): string | null {
   const fragment = hashIndex >= 0 ? href.slice(hashIndex) : "";
   return `/spec-docs/${encodeURIComponent(doc.filename)}${fragment}`;
 }
+
+export function toSpecExplorerHref(href: string): string | null {
+  const doc = resolveSpecDocFromHref(href);
+  if (!doc) return null;
+
+  const url = new URL("/spec-explorer", "https://mcpagentmail.local");
+  url.searchParams.set("doc", doc.slug);
+  url.searchParams.set("category", doc.category);
+
+  const fragment = href.split("#", 2)[1]?.trim();
+  if (fragment) {
+    url.hash = fragment;
+  }
+
+  return `${url.pathname}${url.search}${url.hash}`;
+}

@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const PLAYWRIGHT_PORT = Number(process.env.PLAYWRIGHT_PORT ?? 3100);
+const PLAYWRIGHT_BASE_URL = `http://localhost:${PLAYWRIGHT_PORT}`;
+
 export default defineConfig({
   testDir: "./e2e",
   outputDir: "./test-results/e2e",
@@ -13,7 +16,7 @@ export default defineConfig({
     process.env.CI ? ["github"] : ["list"],
   ],
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: PLAYWRIGHT_BASE_URL,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "on-first-retry",
@@ -35,8 +38,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "bun run build && bun run start",
-    port: 3000,
+    command: `bun run build && bun run start -- --port ${PLAYWRIGHT_PORT}`,
+    port: PLAYWRIGHT_PORT,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },

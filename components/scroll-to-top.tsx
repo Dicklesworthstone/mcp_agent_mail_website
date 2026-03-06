@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { ArrowUp } from "lucide-react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "@/components/motion";
 
 const CIRCLE_RADIUS = 20;
 const CIRCUMFERENCE = 2 * Math.PI * CIRCLE_RADIUS;
@@ -68,7 +68,7 @@ export default function ScrollToTop() {
           exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.8, y: 20 }}
           transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.2 }}
           onClick={scrollToTop}
-          className="fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full border border-blue-500/40 bg-blue-500/10 text-blue-300 shadow-lg shadow-blue-500/20 backdrop-blur-xl transition-all active:scale-95 hover:border-blue-500/60 hover:bg-blue-500/20"
+          className="fixed right-6 bottom-28 z-50 flex h-12 w-12 items-center justify-center rounded-full border border-blue-500/40 bg-blue-500/10 text-blue-300 shadow-lg shadow-blue-500/20 backdrop-blur-xl transition-all active:scale-95 hover:border-blue-500/60 hover:bg-blue-500/20 md:bottom-6"
           aria-label="Scroll to top"
         >
           <svg

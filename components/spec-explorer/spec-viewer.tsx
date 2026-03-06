@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   Fragment,
   useState,
@@ -42,14 +43,14 @@ import {
   Workflow,
 } from "lucide-react";
 import { marked } from "marked";
-import { cn, isTextInputLike } from "@/lib/utils";
+import { cn, isInternalHref, isTextInputLike, toSafeHref } from "@/lib/utils";
 import {
   specDocs,
   specCategories,
   type SpecDoc,
   type SpecCategory,
   resolveSpecDocFromHref,
-  toSpecDocPublicHref,
+  toSpecExplorerHref,
 } from "@/lib/spec-docs";
 import { SyncContainer } from "@/components/sync-elements";
 import GlitchText from "@/components/glitch-text";
@@ -79,6 +80,7 @@ const SPEC_DOC_FILENAME_PATTERN = /^[A-Za-z0-9._-]+\.md$/;
 const DOC_QUERY_PARAM = "doc";
 const CATEGORY_QUERY_PARAM = "category";
 const SEARCH_QUERY_PARAM = "q";
+const DESKTOP_SPEC_MEDIA_QUERY = "(min-width: 1024px)";
 
 type GroupedDocs = Partial<Record<SpecCategory, SpecDoc[]>>;
 
@@ -268,7 +270,9 @@ function buildViewerRelativeUrl(state: ViewerUrlState): string {
     url.searchParams.set(SEARCH_QUERY_PARAM, state.query.trim());
   }
 
-  url.hash = state.docSlug && state.fragment ? `#${state.fragment}` : "";
+  if (state.docSlug) {
+    url.hash = state.fragment ? `#${state.fragment}` : "";
+  }
   return `${url.pathname}${url.search}${url.hash}`;
 }
 
@@ -551,6 +555,12 @@ export default function SpecViewer() {
   const initialUrlState = initialUrlStateRef.current;
   const historyModeRef = useRef<"push" | "replace">("replace");
   const suppressUrlSyncRef = useRef(false);
+  const [isDesktop, setIsDesktop] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia(DESKTOP_SPEC_MEDIA_QUERY).matches,
+  );
   const [activeDocSlug, setActiveDocSlug] = useState<string | null>(initialUrlState.docSlug);
   const [searchQuery, setSearchQuery] = useState(initialUrlState.query);
   const [activeCategory, setActiveCategory] = useState<SpecCategory | "All">(initialUrlState.category);
@@ -654,6 +664,7 @@ export default function SpecViewer() {
   const openDoc = useCallback((doc: SpecDoc, fragment?: string | null) => {
     historyModeRef.current = "push";
     const normalizedFragment = fragment ? fragment.replace(/^#/, "") : null;
+    setActiveCategory(doc.category as SpecCategory);
     setRequestedFragment(normalizedFragment);
     setCurrentSectionFragment(normalizedFragment);
     setActiveDocSlug(doc.slug);
@@ -680,6 +691,33 @@ export default function SpecViewer() {
       prefetchDoc(doc);
     }
   }, [activeDoc, filteredDocs, prefetchDoc]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return undefined;
+    }
+
+    const mediaQuery = window.matchMedia(DESKTOP_SPEC_MEDIA_QUERY);
+    const updateMatch = () => {
+      setIsDesktop(mediaQuery.matches);
+    };
+
+    updateMatch();
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", updateMatch);
+    } else {
+      mediaQuery.addListener(updateMatch);
+    }
+
+    return () => {
+      if (typeof mediaQuery.removeEventListener === "function") {
+        mediaQuery.removeEventListener("change", updateMatch);
+      } else {
+        mediaQuery.removeListener(updateMatch);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const onPopState = () => {
@@ -777,138 +815,140 @@ export default function SpecViewer() {
         </div>
       </header>
 
-      <section id="spec-mobile-shell" className="relative p-4 lg:hidden">
-        <AnimatePresence mode="wait">
-          {activeDoc ? (
-            <motion.div
-              id="spec-mobile-reader"
-              key={`mobile-${activeDoc.slug}`}
-              initial={{ opacity: 0, x: 24 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 24 }}
-              transition={PANEL_TRANSITION}
-              className="space-y-4"
-            >
-              <button
-                type="button"
-                onClick={() => closeDoc("push")}
-                className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/[0.03] px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-200 transition-colors hover:border-blue-400/40 hover:text-blue-200"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to Documents
-              </button>
-              <article className="rounded-2xl border border-white/10 bg-black/30 p-5">
-                <DocHeader doc={activeDoc} />
-                <DocContent
-                  doc={activeDoc}
-                  source={source}
-                  loading={loading}
-                  error={error}
-                  requestedFragment={requestedFragment}
-                  onConsumeRequestedFragment={() => setRequestedFragment(null)}
-                  onActiveSectionChange={handleSectionChange}
-                  onOpenDoc={openDoc}
-                />
-              </article>
-            </motion.div>
-          ) : (
-            <motion.div
-              id="spec-mobile-index"
-              key="mobile-index"
-              initial={{ opacity: 0, x: -24 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -24 }}
-              transition={PANEL_TRANSITION}
-              className="rounded-2xl border border-white/10 bg-black/30 p-4"
-            >
-              <Sidebar
-                variant="mobile"
-                activeCategory={activeCategory}
-                setActiveCategory={handleCategoryChange}
-                searchQuery={searchQuery}
-                setSearchQuery={handleSearchChange}
-                groupedDocs={groupedDocs}
-                activeDoc={activeDoc}
-                onSelect={openDoc}
-                onPrefetch={prefetchDoc}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </section>
-
-      <section
-        id="spec-desktop-shell"
-        className="relative hidden h-[78vh] min-h-[640px] lg:grid lg:grid-cols-[360px,minmax(0,1fr)]"
-      >
-        <aside
-          id="spec-desktop-index"
-          className="min-h-0 border-r border-white/10 bg-black/25 p-5"
-        >
-          <Sidebar
-            variant="desktop"
-            activeCategory={activeCategory}
-            setActiveCategory={handleCategoryChange}
-            searchQuery={searchQuery}
-            setSearchQuery={handleSearchChange}
-            groupedDocs={groupedDocs}
-            activeDoc={activeDoc}
-            onSelect={openDoc}
-            onPrefetch={prefetchDoc}
-          />
-        </aside>
-
+      {isDesktop ? (
         <section
-          id="spec-desktop-reader"
-          data-spec-reader-scroll="true"
-          className="min-h-0 overflow-y-auto bg-slate-950/40 p-8 custom-scrollbar"
+          id="spec-desktop-shell"
+          className="relative h-[78vh] min-h-[640px] lg:grid lg:grid-cols-[360px,minmax(0,1fr)]"
         >
+          <aside
+            id="spec-desktop-index"
+            className="min-h-0 border-r border-white/10 bg-black/25 p-5"
+          >
+            <Sidebar
+              variant="desktop"
+              activeCategory={activeCategory}
+              setActiveCategory={handleCategoryChange}
+              searchQuery={searchQuery}
+              setSearchQuery={handleSearchChange}
+              groupedDocs={groupedDocs}
+              activeDoc={activeDoc}
+              onSelect={openDoc}
+              onPrefetch={prefetchDoc}
+            />
+          </aside>
+
+          <section
+            id="spec-desktop-reader"
+            data-spec-reader-scroll="true"
+            className="min-h-0 overflow-y-auto bg-slate-950/40 p-8 custom-scrollbar"
+          >
+            <AnimatePresence mode="wait">
+              {activeDoc ? (
+                <motion.article
+                  key={activeDoc.slug}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={PANEL_TRANSITION}
+                  className="mx-auto max-w-5xl"
+                >
+                  <DocHeader doc={activeDoc} />
+                  <DocContent
+                    doc={activeDoc}
+                    source={source}
+                    loading={loading}
+                    error={error}
+                    requestedFragment={requestedFragment}
+                    onConsumeRequestedFragment={() => setRequestedFragment(null)}
+                    onActiveSectionChange={handleSectionChange}
+                    onOpenDoc={openDoc}
+                  />
+                </motion.article>
+              ) : (
+                <motion.div
+                  id="spec-desktop-empty-state"
+                  key="desktop-empty"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex h-full min-h-[520px] items-center justify-center"
+                >
+                  <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-black/35 p-8 text-center shadow-[0_0_60px_-20px_rgba(59,130,246,0.25)]">
+                    <FileText className="mx-auto mb-5 h-14 w-14 animate-float text-blue-300/40" />
+                    <h3 className="text-2xl font-black text-gradient-sync">Select a Document</h3>
+                    <p className="mt-3 text-sm text-slate-400">
+                      Pick a spec from the left rail to load the structured reader. Use
+                      <kbd className="mx-1 rounded border border-white/15 bg-white/5 px-1.5 py-0.5 text-[10px] font-bold text-slate-300">
+                        /
+                      </kbd>
+                      to jump into search.
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </section>
+        </section>
+      ) : (
+        <section id="spec-mobile-shell" className="relative p-4">
           <AnimatePresence mode="wait">
             {activeDoc ? (
-              <motion.article
-                key={activeDoc.slug}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
+              <motion.div
+                id="spec-mobile-reader"
+                key={`mobile-${activeDoc.slug}`}
+                initial={{ opacity: 0, x: 24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 24 }}
                 transition={PANEL_TRANSITION}
-                className="mx-auto max-w-5xl"
+                className="space-y-4"
               >
-                <DocHeader doc={activeDoc} />
-                <DocContent
-                  doc={activeDoc}
-                  source={source}
-                  loading={loading}
-                  error={error}
-                  requestedFragment={requestedFragment}
-                  onConsumeRequestedFragment={() => setRequestedFragment(null)}
-                  onActiveSectionChange={handleSectionChange}
-                  onOpenDoc={openDoc}
-                />
-              </motion.article>
+                <button
+                  type="button"
+                  onClick={() => closeDoc("push")}
+                  className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/[0.03] px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-200 transition-colors hover:border-blue-400/40 hover:text-blue-200"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to Documents
+                </button>
+                <article className="rounded-2xl border border-white/10 bg-black/30 p-5">
+                  <DocHeader doc={activeDoc} />
+                  <DocContent
+                    doc={activeDoc}
+                    source={source}
+                    loading={loading}
+                    error={error}
+                    requestedFragment={requestedFragment}
+                    onConsumeRequestedFragment={() => setRequestedFragment(null)}
+                    onActiveSectionChange={handleSectionChange}
+                    onOpenDoc={openDoc}
+                  />
+                </article>
+              </motion.div>
             ) : (
               <motion.div
-                id="spec-desktop-empty-state"
-                key="desktop-empty"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex h-full min-h-[520px] items-center justify-center"
+                id="spec-mobile-index"
+                key="mobile-index"
+                initial={{ opacity: 0, x: -24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -24 }}
+                transition={PANEL_TRANSITION}
+                className="rounded-2xl border border-white/10 bg-black/30 p-4"
               >
-                <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-black/35 p-8 text-center">
-                  <FileText className="mx-auto mb-5 h-14 w-14 text-blue-300/40" />
-                  <h3 className="text-2xl font-black text-white">Select a Document</h3>
-                  <p className="mt-3 text-sm text-slate-400">
-                    Pick a spec from the left rail to load the structured reader. Use
-                    <kbd className="mx-1 rounded border border-white/15 bg-white/5 px-1.5 py-0.5 text-[10px] font-bold text-slate-300">
-                      /
-                    </kbd>
-                    to jump into search.
-                  </p>
-                </div>
+                <Sidebar
+                  variant="mobile"
+                  activeCategory={activeCategory}
+                  setActiveCategory={handleCategoryChange}
+                  searchQuery={searchQuery}
+                  setSearchQuery={handleSearchChange}
+                  groupedDocs={groupedDocs}
+                  activeDoc={activeDoc}
+                  onSelect={openDoc}
+                  onPrefetch={prefetchDoc}
+                />
               </motion.div>
             )}
           </AnimatePresence>
         </section>
-      </section>
+      )}
     </div>
   );
 }
@@ -1074,6 +1114,7 @@ function DocListItem({
         <button
           type="button"
           data-spec-doc-item={doc.slug}
+          aria-pressed={active}
           onClick={() => onSelect(doc)}
           onMouseEnter={() => onPrefetch(doc)}
           onFocus={() => onPrefetch(doc)}
@@ -1121,6 +1162,7 @@ function CategoryTab({
   return (
     <button
       type="button"
+      aria-pressed={active}
       onClick={onClick}
       className={cn(
         "rounded-lg border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] transition-all",
@@ -1182,26 +1224,41 @@ function DocContent({
   const parsed = useMemo(() => (source ? parseSpecDoc(source) : null), [source]);
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [readerProgress, setReaderProgress] = useState(0);
+  const findContentAnchor = useCallback((anchorId: string) => {
+    if (!contentRef.current) return null;
+
+    return Array.from(contentRef.current.querySelectorAll<HTMLElement>("[id]")).find(
+      (node) => node.id === anchorId,
+    ) ?? null;
+  }, []);
   const currentSection =
     parsed?.sections.some((section) => section.id === activeSection)
       ? activeSection
       : parsed?.sections[0]?.id ?? null;
 
   useEffect(() => {
-    onActiveSectionChange(currentSection);
-  }, [currentSection, onActiveSectionChange]);
+    if (!contentRef.current || !parsed?.sections.length) return;
 
-  useEffect(() => {
-    if (!parsed?.sections.length) return;
-
+    const scrollHost = contentRef.current.closest<HTMLElement>("[data-spec-reader-scroll]");
+    const pendingSectionAnchor = requestedFragment?.replace(/^#/, "") ?? null;
     const nodes = parsed.sections
-      .map((section) => document.getElementById(section.id))
+      .map(
+        (section) =>
+          contentRef.current?.querySelector<HTMLElement>(`[data-spec-section="${section.id}"]`) ?? null,
+      )
       .filter((node): node is HTMLElement => Boolean(node));
 
     if (!nodes.length) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
+        if (pendingSectionAnchor && parsed.sections.some((section) => section.id === pendingSectionAnchor)) {
+          setActiveSection((previous) =>
+            previous === pendingSectionAnchor ? previous : pendingSectionAnchor,
+          );
+          return;
+        }
+
         const visible = entries
           .filter((entry) => entry.isIntersecting)
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
@@ -1211,6 +1268,7 @@ function DocContent({
         }
       },
       {
+        root: scrollHost ?? null,
         rootMargin: "-16% 0px -62% 0px",
         threshold: [0.15, 0.4, 0.7],
       },
@@ -1221,24 +1279,29 @@ function DocContent({
     }
 
     return () => observer.disconnect();
-  }, [doc.slug, parsed]);
+  }, [doc.slug, parsed, requestedFragment]);
 
   useEffect(() => {
     if (loading || !parsed) return;
 
     const scrollHost = contentRef.current?.closest<HTMLElement>("[data-spec-reader-scroll]");
     const anchorId = requestedFragment?.replace(/^#/, "") ?? null;
+    const isTrackedSectionAnchor =
+      Boolean(anchorId) && parsed.sections.some((section) => section.id === anchorId);
 
     const rafId = window.requestAnimationFrame(() => {
       if (anchorId) {
-        if (parsed.sections.some((section) => section.id === anchorId)) {
+        if (isTrackedSectionAnchor) {
           setActiveSection(anchorId);
         }
-        document.getElementById(anchorId)?.scrollIntoView({
-          behavior: prefersReducedMotion ? "auto" : "smooth",
+        findContentAnchor(anchorId)?.scrollIntoView({
+          // Deep links and back/forward restoration should land deterministically.
+          behavior: "auto",
           block: "start",
         });
-        onConsumeRequestedFragment();
+        if (!isTrackedSectionAnchor) {
+          onConsumeRequestedFragment();
+        }
         return;
       }
 
@@ -1251,7 +1314,28 @@ function DocContent({
     });
 
     return () => window.cancelAnimationFrame(rafId);
-  }, [doc.slug, loading, parsed, requestedFragment, prefersReducedMotion, onConsumeRequestedFragment]);
+  }, [
+    doc.slug,
+    loading,
+    parsed,
+    requestedFragment,
+    prefersReducedMotion,
+    onConsumeRequestedFragment,
+    findContentAnchor,
+  ]);
+
+  useEffect(() => {
+    const anchorId = requestedFragment?.replace(/^#/, "") ?? null;
+    if (!anchorId || !parsed?.sections.some((section) => section.id === anchorId)) {
+      return;
+    }
+
+    if (currentSection !== anchorId) {
+      return;
+    }
+
+    onConsumeRequestedFragment();
+  }, [currentSection, onConsumeRequestedFragment, parsed, requestedFragment]);
 
   useEffect(() => {
     if (!contentRef.current) return;
@@ -1302,12 +1386,13 @@ function DocContent({
 
   const scrollToSection = useCallback(
     (sectionId: string) => {
-      document.getElementById(sectionId)?.scrollIntoView({
+      onActiveSectionChange(sectionId);
+      findContentAnchor(sectionId)?.scrollIntoView({
         behavior: prefersReducedMotion ? "auto" : "smooth",
         block: "start",
       });
     },
-    [prefersReducedMotion],
+    [findContentAnchor, onActiveSectionChange, prefersReducedMotion],
   );
 
   if (loading) {
@@ -1734,27 +1819,60 @@ function SiteRouteGrid({ items }: { items: MarkdownListItem[] }) {
   return (
     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
       {items.map((item, index) => {
-        const href = flattenBlockText(item.tokens ?? []);
+        const rawHref = flattenBlockText(item.tokens ?? []);
+        const safeHref = toSafeHref(rawHref);
         const tone = getSectionTone(index);
-        return (
-          <a
-            key={`${href}-${index}`}
-            href={href}
-            className={cn(
-              "group rounded-2xl border bg-black/35 p-4 transition-all hover:-translate-y-0.5 hover:bg-white/[0.04]",
-              tone.borderClass,
-            )}
-          >
+        const interactive = Boolean(safeHref);
+        const cardClassName = cn(
+          "rounded-2xl border bg-black/35 p-4",
+          interactive && "group transition-all hover:-translate-y-0.5 hover:bg-white/[0.04]",
+          tone.borderClass,
+        );
+        const cardContent = (
+          <>
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className={cn("text-[10px] font-black uppercase tracking-[0.24em]", tone.textClass)}>
                   Site Route
                 </p>
-                <h3 className="mt-2 text-base font-black text-white">{formatRouteLabel(href)}</h3>
+                <h3 className="mt-2 text-base font-black text-white">{formatRouteLabel(rawHref)}</h3>
               </div>
-              <ArrowUpRight className="mt-1 h-4 w-4 text-slate-500 transition-colors group-hover:text-white" />
+              <ArrowUpRight
+                className={cn(
+                  "mt-1 h-4 w-4 text-slate-500",
+                  interactive && "transition-colors group-hover:text-white",
+                )}
+              />
             </div>
-            <p className="mt-4 font-mono text-[11px] text-slate-400">{href}</p>
+            <p className="mt-4 font-mono text-[11px] text-slate-400">{rawHref}</p>
+          </>
+        );
+
+        if (!safeHref) {
+          return (
+            <div key={`${rawHref}-${index}`} className={cardClassName}>
+              {cardContent}
+            </div>
+          );
+        }
+
+        if (isInternalHref(safeHref)) {
+          return (
+            <Link key={`${rawHref}-${index}`} href={safeHref} className={cardClassName}>
+              {cardContent}
+            </Link>
+          );
+        }
+
+        return (
+          <a
+            key={`${rawHref}-${index}`}
+            href={safeHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cardClassName}
+          >
+            {cardContent}
           </a>
         );
       })}
@@ -1839,6 +1957,7 @@ function SectionRail({
                     type="button"
                     data-spec-rail-item={section.id}
                     data-spec-rail-active={active ? "true" : "false"}
+                    aria-pressed={active}
                     onClick={() => onScrollToSection(section.id)}
                     className={cn(
                       "relative z-10 w-full rounded-2xl border px-3 py-3 text-left transition-all",
@@ -2027,23 +2146,34 @@ function DocInlineLink({
   onOpenDoc: (doc: SpecDoc, fragment?: string | null) => void;
 }) {
   const targetDoc = resolveSpecDocFromHref(href);
-  const normalizedHref = targetDoc ? toSpecDocPublicHref(href) ?? href : href;
-  const isExternal = /^(?:https?:)?\/\//i.test(normalizedHref);
+  const fragment = extractFragmentId(href);
+  const normalizedHref = targetDoc
+    ? toSpecExplorerHref(href)
+    : toSafeHref(href);
+  const isExternal = typeof normalizedHref === "string" && /^(?:https?:)?\/\//i.test(normalizedHref);
 
   const handleClick = useCallback(
     (event: MouseEvent<HTMLAnchorElement>) => {
       if (!targetDoc) return;
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+        return;
+      }
       event.preventDefault();
-      onOpenDoc(targetDoc, extractFragmentId(href));
+      onOpenDoc(targetDoc, fragment);
     },
-    [href, onOpenDoc, targetDoc],
+    [fragment, onOpenDoc, targetDoc],
   );
+
+  if (!normalizedHref) {
+    return <span title={title} className="font-semibold text-slate-200">{children}</span>;
+  }
 
   return (
     <a
       href={normalizedHref}
       title={title}
       onClick={handleClick}
+      data-spec-inline-doc-link={targetDoc?.slug ?? undefined}
       target={isExternal ? "_blank" : undefined}
       rel={isExternal ? "noopener noreferrer" : undefined}
       className="font-semibold text-blue-200 underline decoration-blue-400/35 underline-offset-4 transition-colors hover:text-blue-100 hover:decoration-blue-300"

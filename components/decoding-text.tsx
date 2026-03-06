@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { useEffect, useState, useRef, useMemo } from "react";
-import { useReducedMotion } from "framer-motion";
+import { useReducedMotion } from "@/components/motion";
 
 const GLYPHS = "0123456789ABCDEF$#@&*<>[]{}";
 

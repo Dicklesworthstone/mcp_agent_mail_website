@@ -3,7 +3,15 @@ import { useLayoutEffect, useEffect } from "react";
 const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 let lockCount = 0;
-let originalStyle: { overflow: string; paddingRight: string } | null = null;
+let originalStyle: {
+  bodyOverflow: string;
+  bodyPaddingRight: string;
+  bodyPosition: string;
+  bodyTop: string;
+  bodyWidth: string;
+  htmlOverflow: string;
+  scrollY: number;
+} | null = null;
 
 export function useBodyScrollLock(isLocked: boolean) {
   useIsomorphicLayoutEffect(() => {
@@ -12,13 +20,23 @@ export function useBodyScrollLock(isLocked: boolean) {
 
     if (lockCount === 0) {
       const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      const scrollY = window.scrollY;
 
       originalStyle = {
-        overflow: document.body.style.overflow,
-        paddingRight: document.body.style.paddingRight,
+        bodyOverflow: document.body.style.overflow,
+        bodyPaddingRight: document.body.style.paddingRight,
+        bodyPosition: document.body.style.position,
+        bodyTop: document.body.style.top,
+        bodyWidth: document.body.style.width,
+        htmlOverflow: document.documentElement.style.overflow,
+        scrollY,
       };
 
       document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = "100%";
+      document.documentElement.style.overflow = "hidden";
       if (scrollbarWidth > 0) {
         document.body.style.paddingRight = `${scrollbarWidth}px`;
       }
@@ -31,10 +49,16 @@ export function useBodyScrollLock(isLocked: boolean) {
     return () => {
       lockCount = Math.max(0, lockCount - 1);
       if (lockCount === 0 && originalStyle) {
-        document.body.style.overflow = originalStyle.overflow;
-        document.body.style.paddingRight = originalStyle.paddingRight;
+        const { scrollY, bodyOverflow, bodyPaddingRight, bodyPosition, bodyTop, bodyWidth, htmlOverflow } = originalStyle;
+        document.body.style.overflow = bodyOverflow;
+        document.body.style.paddingRight = bodyPaddingRight;
+        document.body.style.position = bodyPosition;
+        document.body.style.top = bodyTop;
+        document.body.style.width = bodyWidth;
+        document.documentElement.style.overflow = htmlOverflow;
         originalStyle = null;
         document.documentElement.style.removeProperty("--scrollbar-width");
+        window.scrollTo({ top: scrollY, behavior: "auto" });
       }
     };
   }, [isLocked]);

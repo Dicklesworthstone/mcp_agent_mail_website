@@ -20,6 +20,7 @@ import {
   specCategories,
   specDocs,
   resolveSpecDocFromHref,
+  toSpecExplorerHref,
   toSpecDocPublicHref,
 } from "@/lib/spec-docs";
 
@@ -212,6 +213,14 @@ describe("specDocs", () => {
     );
     expect(toSpecDocPublicHref("../src/lab/oracle/mod.rs")).toBeNull();
     expect(toSpecDocPublicHref("javascript:alert(1)")).toBeNull();
+  });
+
+  it("builds spec explorer deep links for known markdown links", () => {
+    expect(toSpecExplorerHref("./system-topology.md#visual-mental-model")).toBe(
+      "/spec-explorer?doc=system-topology&category=Coordination+Flows#visual-mental-model",
+    );
+    expect(toSpecExplorerHref("../src/lab/oracle/mod.rs")).toBeNull();
+    expect(toSpecExplorerHref("javascript:alert(1)")).toBeNull();
   });
 
   it("points to files that exist in public/spec-docs", () => {
