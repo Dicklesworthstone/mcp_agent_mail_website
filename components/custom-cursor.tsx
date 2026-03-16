@@ -28,14 +28,12 @@ function DataDebris({ x, y }: { x: MotionValue<number>; y: MotionValue<number> }
   }, []);
 
   return (
-    <div className="absolute inset-0 pointer-events-none">
+    <motion.div className="absolute pointer-events-none" style={{ x, y }}>
       {particles.map((p) => (
         <motion.div
           key={p.id}
           className="absolute text-[8px] font-mono text-blue-500/40 select-none"
           style={{
-            x,
-            y,
             left: p.offsetX,
             top: p.offsetY,
           }}
@@ -53,7 +51,7 @@ function DataDebris({ x, y }: { x: MotionValue<number>; y: MotionValue<number> }
           {p.char}
         </motion.div>
       ))}
-    </div>
+    </motion.div>
   );
 }
 
