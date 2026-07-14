@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { AnimatePresence, motion, useReducedMotion } from "@/components/motion";
+import { motion, useReducedMotion } from "@/components/motion";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import SiteHeader from "@/components/site-header";
 import SiteFooter from "@/components/site-footer";
@@ -59,30 +59,24 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 
             <SiteHeader />
 
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={pathname}
-                initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
-                animate={{
-                  opacity: 1,
-                  transition: {
-                    duration: prefersReducedMotion ? 0 : 0.4,
-                    ease: "easeOut",
-                    delay: prefersReducedMotion ? 0 : 0.1
-                  }
-                }}
-                exit={prefersReducedMotion ? { opacity: 1 } : {
-                  opacity: 0,
-                  transition: {
-                    duration: 0.3,
-                    ease: "easeIn"
-                  }
-                }}
-                className="flex-1 relative"
-              >
-                {children}
-              </motion.div>
-            </AnimatePresence>
+            {/* Exit animations (AnimatePresence mode="wait") are incompatible with the App
+                Router: the outgoing page's children are swapped for the new route mid-exit,
+                and the presence swap can stall, leaving the page stuck at opacity 0 until an
+                unrelated re-render. Enter-only fade, remounted per route via key. */}
+            <motion.div
+              key={pathname}
+              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
+              animate={{
+                opacity: 1,
+                transition: {
+                  duration: prefersReducedMotion ? 0 : 0.4,
+                  ease: "easeOut"
+                }
+              }}
+              className="flex-1 relative"
+            >
+              {children}
+            </motion.div>
 
             <SiteFooter />
             <ScrollToTop />
