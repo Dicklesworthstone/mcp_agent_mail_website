@@ -128,7 +128,7 @@ Before editing, agents declare exclusive or shared leases on file glob patterns 
 Two-tier fusion combining lexical and semantic search with reranking. Field-based filters (`subject:`, `body:`, `from:`), cross-project search via product bus, and relevance scoring built on frankensearch. Agents recover context from message history before asking teammates for status.
 
 **5. Operator Visibility**
-A 15-screen TUI dashboard plus a web UI give humans real-time visibility into what every agent is doing. The Human Overseer compose form lets operators send high-priority messages to redirect agents mid-session.
+A 16-screen TUI dashboard plus a web UI give humans real-time visibility into what every agent is doing. The Human Overseer compose form lets operators send high-priority messages to redirect agents mid-session.
 
 ### The Numbers
 
@@ -153,7 +153,7 @@ The full comparison across 12 coordination dimensions:
 | Audit Trail | Git + SQLite | Git history only | File history | None |
 | Cross-Project Coordination | Product bus | None | None | None |
 | Search | Hybrid lexical + semantic | Git log | Text search | None |
-| Operator Visibility | 15-screen TUI + Web UI | Git log | File browser | None |
+| Operator Visibility | 16-screen TUI + Web UI | Git log | File browser | None |
 | MCP Integration | 34 tools + 20 resources | None | None | None |
 | Agent Discovery | Auto-detect + register | Manual | Manual | Manual |
 | Acknowledgments | Built-in ack protocol | None | None | None |
@@ -574,7 +574,7 @@ The architecture page and spec explorer are centered on the actual `mcp_agent_ma
 
 **Search V3 migration.** A large part of the corpus is dedicated to the search stack transition: query contracts, quality gates, corpus design, component mapping, and rollout/rollback procedures.
 
-**Operator surfaces.** The TUI product contract, parity matrix, developer guide, operator runbook, and web UI parity docs show how the 15-screen operations console and `/mail/*` surfaces are expected to behave.
+**Operator surfaces.** The TUI product contract, parity matrix, developer guide, operator runbook, and web UI parity docs show how the 16-screen operations console and `/mail/*` surfaces are expected to behave.
 
 **Release, cutover, and incident discipline.** The bundled specs include release gates, artifact schemas, deployment verification, Python-to-Rust import procedures, and real incident diagnostics from the Rust repo.
 
@@ -590,12 +590,14 @@ The site uses a dark theme with animated glass-morphism effects:
 
 ### Hero Media System
 
-The hero embeds the actual Agent Mail `DashboardScreen`, compiled from Rust to
-WebAssembly and rendered to canvas by FrankenTUI. It is not the old DOM simulation and
-not a prerecorded video.
+The hero embeds the actual Agent Mail terminal shell and production `DashboardScreen`,
+compiled from Rust to WebAssembly and rendered to canvas by FrankenTUI. It is not the
+old DOM simulation and not a prerecorded video.
 
-- **Real TUI behavior:** production responsive layout, search/filter shortcuts,
-  navigation, event panels, sparklines, and keyboard/pointer input
+- **Real TUI behavior:** the shared 16-screen native tab bar and bottom status chrome,
+  production responsive dashboard layout, search/filter shortcuts, event panels,
+  sparklines, and direct keyboard/pointer input; non-dashboard tabs expose populated,
+  read-only views derived from the same validated public replay state
 - **Verified assets:** the pack, runner, renderer, and font are checked against byte
   counts and SHA-256 digests in `public/agent-mail-dashboard/manifest.v1.json`
 - **Privacy-bounded data:** project/agent/message/reservation/contact/ack counts come
@@ -603,17 +605,27 @@ not a prerecorded video.
   event is synthetic
 - **Deterministic replay:** an 18-second loop drives the in-memory browser adapter; the
   site never opens a visitor's database or calls a mailbox mutation API
-- **Production-density opening frame:** 986 privacy-safe synthetic startup events plus
-  populated agent, project, reservation, contact, latency, and throughput state make the
-  first frame resemble a busy real Agent Mail session instead of an empty toy dashboard
-- **Play/Pause/Reset controls**, a direct focus control, and one-click browser fullscreen
-  that refits the native terminal and restores keyboard focus on exit
-- **Fast, sharp startup:** verified artifact fetching begins when the client module is
-  evaluated, JavaScript executes directly from the already-verified bytes, the terminal
-  starts at 68% zoom for the production mega layout, and renderer density is capped at 3x;
-  digest-keyed request URLs prevent an older browser cache from crossing deployments
-- **Responsive lifecycle:** resize events reflow the production TUI, the logical loop
-  runs at the native 100 ms tick, and off-screen frames are suspended
+- **Production-density opening frame:** 192 varied privacy-safe startup events, 500
+  synthetic agents, 41 synthetic projects, 200 synthetic contacts, and populated
+  reservation, latency, throughput, activity, and message-preview panels make the first
+  frame resemble a busy real Agent Mail session without shipping a megabyte of repeated
+  snapshot rows; the visible aggregate counters still come from the count-only export
+- **Interactive by default:** the first click both focuses and operates the terminal;
+  native tabs, dashboard filters, replay rows, scrolling, Tab/Shift+Tab, direct number
+  jumps, and slash search work without an extra interaction gate
+- **Overlay Play/Pause/Reset controls** and one-click browser fullscreen refit the native
+  terminal without adding a decorative frame or consuming terminal height
+- **Fast, sharp startup:** a dense native-structure shell poster is preloaded for
+  immediate paint; verified pack/font/module loading and WebAssembly compilation run in
+  parallel, JavaScript executes directly from verified bytes, and digest-keyed immutable
+  artifact requests prevent an older browser cache from crossing deployments
+- **Bounded raster cost:** the terminal starts at 60% zoom for the production mega
+  layout, caps device density at 2x, and enforces an adaptive 8.5-million-pixel backing
+  budget for large and fullscreen canvases
+- **Responsive lifecycle:** resize events reflow the production TUI, pointer moves are
+  coalesced and input is drained every animation frame, replay time uses the native
+  100 ms cadence, empty patch batches do not repaint the canvas, and off-screen frames
+  are suspended
 - **Accessible fallback:** a screen-reader mirror, live status, keyboard instructions,
   static poster, and no-script/error fallback remain available
 
@@ -781,7 +793,7 @@ Set `turbopack.root` in `next.config.ts` or remove unrelated lockfiles in parent
 
 ### What is MCP Agent Mail?
 
-A coordination infrastructure for AI coding agents. It provides project-scoped identities, threaded messaging, advisory file reservations, hybrid search, and a 15-screen operations TUI, all exposed via 34 MCP tools. See the [engine source](https://github.com/Dicklesworthstone/mcp_agent_mail_rust).
+A coordination infrastructure for AI coding agents. It provides project-scoped identities, threaded messaging, advisory file reservations, hybrid search, and a 16-screen operations TUI, all exposed via 34 MCP tools. See the [engine source](https://github.com/Dicklesworthstone/mcp_agent_mail_rust).
 
 ### Is this the Agent Mail server itself?
 
@@ -849,7 +861,7 @@ The site is designed for three primary personas:
 
 **Solo Builder.** An individual developer running 3-5 agents on a single repo. Without coordination they get silent file overwrites, merge conflicts, and lost work. Reservations prevent collisions, roster visibility shows what each agent is doing, threaded messaging enables handoffs, and audit trails explain what happened.
 
-**Team Lead.** An engineering lead managing agent swarms across multiple repositories. Without visibility into what agents are doing across repos, there is no way to redirect an agent mid-session. The 15-screen TUI and Web UI provide real-time dashboards, Human Overseer messaging redirects agents, pre-commit guard enforces reservation discipline, and the searchable audit trail captures every decision.
+**Team Lead.** An engineering lead managing agent swarms across multiple repositories. Without visibility into what agents are doing across repos, there is no way to redirect an agent mid-session. The 16-screen TUI and Web UI provide real-time dashboards, Human Overseer messaging redirects agents, pre-commit guard enforces reservation discipline, and the searchable audit trail captures every decision.
 
 **Platform Engineer.** Someone building internal multi-agent infrastructure for their organization. They need scalable coordination without vendor lock-in: open-source, MCP standard (works with any MCP-compatible agent), cross-provider (Claude, GPT, Gemini), and stress-tested at 30+ concurrent agents.
 

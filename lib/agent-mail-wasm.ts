@@ -69,6 +69,11 @@ export interface DashboardRunnerStatus {
   active_reservations: number;
   pending_acknowledgements: number;
   last_deep_link: string | null;
+  active_screen: string;
+  dashboard_filter: string;
+  help_visible: boolean;
+  interaction_revision: number;
+  selected_row: number;
 }
 
 export interface FlatPatchBatch {
@@ -126,7 +131,6 @@ interface RendererModule {
 
 export interface LoadedDashboardArtifacts {
   manifest: DashboardArtifactManifest;
-  pack: DashboardDemoPack;
   packJson: string;
   AgentMailDashboardRunner: RunnerModule["AgentMailDashboardRunner"];
   FrankenTermWeb: RendererModule["FrankenTermWeb"];
@@ -298,7 +302,6 @@ async function loadFont(bytes: ArrayBuffer): Promise<void> {
   });
   document.fonts.add(font);
   await font.load();
-  await document.fonts.ready;
 }
 
 async function loadDashboardArtifactsUncached(): Promise<LoadedDashboardArtifacts> {
@@ -320,22 +323,28 @@ async function loadDashboardArtifactsUncached(): Promise<LoadedDashboardArtifact
     fetchVerifiedArtifact(artifacts.terminal_font),
   ]);
 
-  const packJson = new TextDecoder("utf-8", { fatal: true }).decode(packBytes);
-  const pack = validateDashboardDemoPack(JSON.parse(packJson));
-
-  const [runnerModule, rendererModule] = await Promise.all([
+  const packPromise = Promise.resolve().then(() => {
+    const json = new TextDecoder("utf-8", { fatal: true }).decode(packBytes);
+    // JavaScript validates the public boundary, then drops the parsed object;
+    // Rust remains the authoritative typed consumer of the original bytes.
+    validateDashboardDemoPack(JSON.parse(json));
+    return json;
+  });
+  const [runnerModule, rendererModule, runnerCompiled, rendererCompiled, packJson] = await Promise.all([
     importVerifiedModule<RunnerModule>(runnerJs),
     importVerifiedModule<RendererModule>(rendererJs),
+    WebAssembly.compile(runnerWasm),
+    WebAssembly.compile(rendererWasm),
+    packPromise,
     loadFont(fontBytes),
   ]);
   await Promise.all([
-    runnerModule.default({ module_or_path: runnerWasm }),
-    rendererModule.default({ module_or_path: rendererWasm }),
+    runnerModule.default({ module_or_path: runnerCompiled }),
+    rendererModule.default({ module_or_path: rendererCompiled }),
   ]);
 
   return {
     manifest,
-    pack,
     packJson,
     AgentMailDashboardRunner: runnerModule.AgentMailDashboardRunner,
     FrankenTermWeb: rendererModule.FrankenTermWeb,

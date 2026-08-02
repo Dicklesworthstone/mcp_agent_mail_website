@@ -612,8 +612,8 @@ export default function ShowcasePage() {
         id="tui-screens"
         icon="monitor"
         eyebrow="Operations Console"
-        title="15-Screen TUI Architecture"
-        kicker="Jump-key navigation across four screen categories: operations, coordination, observability, and system."
+        title="16-Screen TUI Architecture"
+        kicker="Jump-key navigation across the native overview, communication, operations, and system categories."
       >
         <div className="space-y-6">
           <LazyViz>
@@ -621,16 +621,17 @@ export default function ShowcasePage() {
           </LazyViz>
           <div className="space-y-4 text-slate-400 leading-relaxed">
             <p>
-              The <Tooltip term="TUI">TUI</Tooltip> organizes 15 screens into four categories: operations (dashboard,
-              inbox, threads), coordination (agents, reservations, contacts), observability (metrics, health, timeline),
-              and system (search, projects, settings). Each screen answers a single core question and surfaces the
-              primary signals an operator needs for fast decisions.
+              The <Tooltip term="TUI">TUI</Tooltip> organizes 16 screens into four native categories: overview
+              (Dashboard, Timeline, Projects), communication (Messages, Threads, Search, Contacts, Explorer,
+              Attachments), operations (Agents, Reservations, Archive Browser), and system (Tool Metrics, System
+              Health, Analytics, ATC). Each screen answers a single core question and surfaces the primary signals an
+              operator needs for fast decisions.
             </p>
             <p>
-              Jump keys provide O(1) navigation to any screen. Press <code className="text-blue-400 font-mono">d</code> for
-              dashboard, <code className="text-blue-400 font-mono">i</code> for inbox, <code className="text-blue-400 font-mono">r</code> for
-              reservations. Filter by category in the visualization, then inspect the selected screen&apos;s core
-              question to understand the information architecture behind each key.
+              Jump keys provide O(1) navigation to any screen: the first nine use <code className="text-blue-400 font-mono">1-9</code>,
+              Projects uses <code className="text-blue-400 font-mono">0</code>, and screens 11-16 use the shifted number-row
+              symbols <code className="text-blue-400 font-mono">! @ # $ % ^</code>. Filter by category in the visualization,
+              then inspect the selected screen&apos;s core question to understand the information architecture behind each key.
             </p>
             <p>
               The design principle: an operator should be able to assess swarm health, identify blocked agents, and

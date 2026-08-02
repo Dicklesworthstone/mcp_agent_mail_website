@@ -141,17 +141,17 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Hero Visual — Robot Mascot + production FrankenTUI WASM dashboard */}
-          <div className="relative mt-12 w-full mx-auto">
-            {/* Keep the animated mascot in normal flow, safely above the terminal. */}
+          {/* Full-bleed production FrankenTUI shell; copy remains comfortably constrained. */}
+          <div className="relative left-1/2 mt-8 w-[96vw] -translate-x-1/2">
+            {/* Decorative only: zero flow height and always fully above the terminal. */}
             <div
-              className="mb-6 ml-auto mr-[6%] h-28 w-20 animate-float md:mb-8 md:h-40 md:w-28"
+              className="pointer-events-none absolute right-[4%] bottom-[calc(100%+3rem)] hidden h-36 w-24 animate-float lg:block"
               data-testid="hero-robot-mascot"
             >
               <RobotMascot className="h-full w-full" />
             </div>
 
-            {/* Production Agent Mail DashboardScreen rendered by FrankenTUI in WASM */}
+            {/* Production Agent Mail shell + DashboardScreen rendered by FrankenTUI in WASM. */}
             <HeroMedia />
           </div>
         </div>

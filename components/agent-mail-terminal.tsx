@@ -34,11 +34,15 @@ interface AgentMailTerminalProps {
 type LoadState = "loading" | "running" | "error";
 
 const POSTER_URL = "/images/agent-mail-dashboard-poster-placeholder.svg";
-const DEFAULT_TERMINAL_ZOOM = 0.68;
-const MAX_DEVICE_PIXEL_RATIO = 3;
+const DEFAULT_TERMINAL_ZOOM = 0.6;
+const MAX_DEVICE_PIXEL_RATIO = 2;
+const MAX_BACKING_PIXELS = 8_500_000;
 
-function rendererDpr(): number {
-  return Math.min(Math.max(window.devicePixelRatio || 1, 1), MAX_DEVICE_PIXEL_RATIO);
+function rendererDpr(widthCss: number, heightCss: number): number {
+  const deviceDpr = Math.min(Math.max(window.devicePixelRatio || 1, 1), MAX_DEVICE_PIXEL_RATIO);
+  const cssPixels = Math.max(widthCss, 1) * Math.max(heightCss, 1);
+  const budgetDpr = Math.sqrt(MAX_BACKING_PIXELS / cssPixels);
+  return Math.max(1, Math.min(deviceDpr, budgetDpr));
 }
 
 function releaseRunner(runner: DashboardRunnerInstance | null): void {
@@ -133,6 +137,12 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
         if (!runner) return;
         runner.reset();
         const status = parseStatus(runner);
+        const container = containerRef.current;
+        if (container) {
+          container.dataset.activeScreen = status.active_screen;
+          container.dataset.dashboardFilter = status.dashboard_filter;
+          container.dataset.interactionRevision = String(status.interaction_revision);
+        }
         callbacksRef.current.onStatus?.(status);
       },
       setPaused(nextPaused: boolean) {
@@ -178,12 +188,19 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
       let resizeObserver: ResizeObserver | null = null;
       let inputController: AbortController | null = null;
       let initializingTerm: FrankenTermInstance | null = null;
+      let pendingPointerMove: unknown | null = null;
 
       const failRuntime = (cause: unknown) => {
         resizeObserver?.disconnect();
         resizeObserver = null;
         inputController?.abort();
         inputController = null;
+        const currentContainer = containerRef.current;
+        if (currentContainer) {
+          currentContainer.dataset.activeScreen = "error";
+          currentContainer.dataset.dashboardFilter = "error";
+          currentContainer.dataset.interactionRevision = "error";
+        }
         cleanup();
         const nextError = cause instanceof Error ? cause : new Error(String(cause));
         setError(nextError);
@@ -204,7 +221,9 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
           setLoadingLabel("Starting the production FrankenTUI dashboard…");
           const term = new loaded.FrankenTermWeb();
           initializingTerm = term;
-          const dpr = rendererDpr();
+          const initialWidth = Math.max(container.clientWidth, 320);
+          const initialHeight = Math.max(container.clientHeight, 300);
+          const dpr = rendererDpr(initialWidth, initialHeight);
           await term.init(canvas, {
             cols: 220,
             rows: 48,
@@ -224,8 +243,8 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
           term.setAccessibility({ reducedMotion: reducedMotionRef.current, screenReader: true });
 
           let geometry = term.fitToContainer(
-            Math.max(container.clientWidth, 320),
-            Math.max(container.clientHeight, 300),
+            initialWidth,
+            initialHeight,
             dpr,
           );
           let cols = Math.max(1, geometry.cols);
@@ -249,8 +268,22 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
           const initialStatus = parseStatus(runner);
           setScreenReaderText(`Agent Mail dashboard ready at ${cols} columns by ${rows} rows.`);
           setLoadState("running");
+          container.dataset.activeScreen = initialStatus.active_screen;
+          container.dataset.dashboardFilter = initialStatus.dashboard_filter;
+          container.dataset.interactionRevision = String(initialStatus.interaction_revision);
           callbacksRef.current.onReady?.(initialStatus);
           callbacksRef.current.onStatus?.(initialStatus);
+
+          const publishStatus = () => {
+            const status = parseStatus(runner);
+            container.dataset.activeScreen = status.active_screen;
+            container.dataset.dashboardFilter = status.dashboard_filter;
+            container.dataset.interactionRevision = String(status.interaction_revision);
+            container.dataset.statusPublishedAt = String(performance.now());
+            callbacksRef.current.onStatus?.(status);
+            const announcement = announcementText(term);
+            if (announcement) setScreenReaderText(announcement);
+          };
 
           function frame(timestamp: number) {
             if (cancelled) return;
@@ -260,29 +293,34 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
 
             try {
               if (visibleRef.current && !document.hidden) {
+                if (pendingPointerMove !== null) {
+                  currentTerm.input(pendingPointerMove);
+                  pendingPointerMove = null;
+                }
+                let inputProcessed = false;
+                for (const encoded of currentTerm.drainEncodedInputs()) {
+                  if (typeof encoded === "string" && currentRunner.pushEncodedInput(encoded)) {
+                    inputProcessed = true;
+                  }
+                }
                 const elapsed = lastFrameAtRef.current === 0 ? 100 : timestamp - lastFrameAtRef.current;
-                // The native dashboard's logical tick is 100 ms. Matching it in
-                // the browser avoids burning a full TUI render at display refresh rate.
-                if (elapsed >= 100) {
+                const replayDue = elapsed >= 100;
+                if (replayDue) {
                   lastFrameAtRef.current = timestamp;
                   currentRunner.advanceTime(Math.min(elapsed, 250));
-                  for (const encoded of currentTerm.drainEncodedInputs()) {
-                    if (typeof encoded === "string") currentRunner.pushEncodedInput(encoded);
-                  }
+                }
+                if (inputProcessed || replayDue) {
                   const result = currentRunner.step();
                   if (result.rendered) {
                     const patches = currentRunner.takeFlatPatches();
                     if (patches.cells.length > 0) {
                       currentTerm.applyPatchBatchFlat(patches.spans, patches.cells);
+                      currentTerm.render();
                     }
-                    currentTerm.render();
                   }
-                  if (timestamp - statusAtRef.current >= 750) {
+                  if (inputProcessed || timestamp - statusAtRef.current >= 750) {
                     statusAtRef.current = timestamp;
-                    const status = parseStatus(currentRunner);
-                    callbacksRef.current.onStatus?.(status);
-                    const announcement = announcementText(currentTerm);
-                    if (announcement) setScreenReaderText(announcement);
+                    publishStatus();
                   }
                 }
               } else {
@@ -302,10 +340,12 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
               const currentRunner = runnerRef.current;
               const currentContainer = containerRef.current;
               if (!currentTerm || !currentRunner || !currentContainer) return;
-              const currentDpr = rendererDpr();
+              const width = Math.max(currentContainer.clientWidth, 1);
+              const height = Math.max(currentContainer.clientHeight, 1);
+              const currentDpr = rendererDpr(width, height);
               geometry = currentTerm.fitToContainer(
-                Math.max(currentContainer.clientWidth, 1),
-                Math.max(currentContainer.clientHeight, 1),
+                width,
+                height,
                 currentDpr,
               );
               const nextCols = Math.max(1, geometry.cols);
@@ -335,10 +375,21 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
 
           inputController = new AbortController();
           const signal = inputController.signal;
-          const safeInput = (value: unknown) => {
-            try { termRef.current?.input(value); } catch { /* malformed browser event is ignored */ }
+          const safeInput = (value: unknown, coalescePointerMove = false) => {
+            if (coalescePointerMove) {
+              pendingPointerMove = value;
+              return;
+            }
+            try {
+              const currentTerm = termRef.current;
+              if (pendingPointerMove !== null) {
+                currentTerm?.input(pendingPointerMove);
+                pendingPointerMove = null;
+              }
+              currentTerm?.input(value);
+            } catch { /* malformed browser event is ignored */ }
           };
-          const cellPoint = (event: MouseEvent | WheelEvent) => {
+          const cellPoint = (event: PointerEvent | WheelEvent) => {
             const rect = canvas.getBoundingClientRect();
             const x = Math.floor(((event.clientX - rect.left) / Math.max(rect.width, 1)) * cols);
             const y = Math.floor(((event.clientY - rect.top) / Math.max(rect.height, 1)) * rows);
@@ -350,7 +401,10 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
 
           canvas.addEventListener("keydown", (event) => {
             if (event.isComposing || event.key === "Process") return;
-            if (event.key === "Tab") return;
+            if (event.key === "Escape" && event.ctrlKey) {
+              canvas.blur();
+              return;
+            }
             event.preventDefault();
             safeInput({
               kind: "key",
@@ -363,7 +417,6 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
           }, { signal, capture: true });
           canvas.addEventListener("keyup", (event) => {
             if (event.isComposing || event.key === "Process") return;
-            if (event.key === "Tab") return;
             event.preventDefault();
             safeInput({
               kind: "key",
@@ -374,23 +427,51 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
               repeat: event.repeat,
             });
           }, { signal, capture: true });
-          canvas.addEventListener("mousedown", (event) => {
+          let activePointerId: number | null = null;
+          let activePointerButton = 0;
+          const releasePointer = (event: PointerEvent, sendRelease: boolean) => {
+            if (activePointerId !== event.pointerId) return;
+            if (sendRelease) {
+              safeInput({
+                kind: "mouse",
+                phase: "up",
+                button: activePointerButton,
+                ...cellPoint(event),
+                mods: inputModifiers(event),
+              });
+            }
+            if (canvas.hasPointerCapture(event.pointerId)) {
+              canvas.releasePointerCapture(event.pointerId);
+            }
+            activePointerId = null;
+          };
+          canvas.addEventListener("pointerdown", (event) => {
             event.preventDefault();
             canvas.focus();
+            container.dataset.lastInputAt = String(performance.now());
+            activePointerId = event.pointerId;
+            activePointerButton = event.button;
+            canvas.setPointerCapture(event.pointerId);
             safeInput({ kind: "mouse", phase: "down", button: event.button, ...cellPoint(event), mods: inputModifiers(event) });
           }, { signal });
-          canvas.addEventListener("mouseup", (event) => {
-            safeInput({ kind: "mouse", phase: "up", button: event.button, ...cellPoint(event), mods: inputModifiers(event) });
+          canvas.addEventListener("pointerup", (event) => {
+            releasePointer(event, true);
           }, { signal });
-          canvas.addEventListener("mousemove", (event) => {
+          canvas.addEventListener("pointermove", (event) => {
+            if (activePointerId !== event.pointerId) return;
             safeInput({
               kind: "mouse",
-              phase: event.buttons ? "drag" : "move",
-              button: event.buttons ? 0 : event.button,
+              phase: "drag",
+              button: activePointerButton,
               ...cellPoint(event),
               mods: inputModifiers(event),
-            });
+            }, true);
           }, { signal });
+          canvas.addEventListener("pointercancel", (event) => releasePointer(event, true), { signal });
+          canvas.addEventListener("lostpointercapture", (event) => {
+            if (activePointerId === event.pointerId) activePointerId = null;
+          }, { signal });
+          window.addEventListener("pointerup", (event) => releasePointer(event, true), { signal });
           canvas.addEventListener("wheel", (event) => {
             event.preventDefault();
             safeInput({
@@ -427,31 +508,34 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
       <div
         ref={containerRef}
         data-testid="hero-agent-mail-terminal"
-        className="relative h-full min-h-[390px] w-full overflow-hidden bg-[#020611] sm:min-h-[500px] lg:min-h-[620px]"
+        className="group relative h-full w-full overflow-hidden bg-[#020611]"
         role="region"
         aria-label="Interactive Agent Mail FrankenTUI dashboard"
         aria-describedby="agent-mail-terminal-help agent-mail-terminal-screen-reader"
+        aria-busy={!showCanvas}
       >
         <canvas
           ref={canvasRef}
           data-testid="hero-agent-mail-canvas"
-          tabIndex={0}
-          aria-label="Agent Mail terminal. Focus, then use arrow keys or j and k to navigate."
-          className={`h-full w-full touch-none select-none outline-none ring-inset focus-visible:ring-2 focus-visible:ring-cyan-300 ${showCanvas ? "block" : "invisible"}`}
+          tabIndex={showCanvas ? 0 : -1}
+          aria-disabled={!showCanvas}
+          aria-label="Agent Mail terminal. Click tabs, filters, and rows, or use Tab, number keys, arrows, j and k. Press Control Escape to return focus to the webpage."
+          className={`block h-full w-full touch-none select-none outline-none ring-inset focus-visible:ring-2 focus-visible:ring-cyan-300 ${showCanvas ? "pointer-events-auto" : "pointer-events-none"}`}
           style={{ imageRendering: "auto" }}
         />
 
         {!showCanvas && (
-          <div className="absolute inset-0 grid place-items-center bg-[#020611]">
+          <div className="pointer-events-none absolute inset-0 bg-[#020611]">
             <Image
               src={POSTER_URL}
               alt="Preview of the Agent Mail operations dashboard"
-              className="absolute inset-0 h-full w-full object-cover opacity-35"
-              width={1920}
-              height={1080}
-              sizes="(max-width: 768px) 100vw, 70vw"
+              className="absolute inset-0 h-full w-full object-cover opacity-100"
+              width={1600}
+              height={800}
+              sizes="96vw"
+              priority
             />
-            <div className="relative mx-6 max-w-md rounded-xl border border-cyan-400/20 bg-slate-950/90 px-5 py-4 text-center font-mono text-xs text-slate-300 shadow-2xl">
+            <div className="absolute bottom-3 left-3 max-w-md border-l-2 border-cyan-300 bg-slate-950/85 px-3 py-2 font-mono text-[10px] text-slate-300 backdrop-blur-sm">
               {loadState === "error" ? (
                 <>
                   <p className="font-bold text-rose-300">Interactive dashboard unavailable</p>
@@ -459,25 +543,20 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
                   <p className="mt-2 text-[10px] text-slate-500">The static preview remains available; no private data was requested.</p>
                 </>
               ) : (
-                <>
-                  <div className="mx-auto mb-3 h-1 w-44 overflow-hidden rounded-full bg-white/10">
-                    <div className="h-full w-2/3 animate-pulse rounded-full bg-gradient-to-r from-blue-500 to-cyan-300 motion-reduce:animate-none" />
-                  </div>
-                  <p>{loadingLabel}</p>
-                </>
+                <p>{loadingLabel}</p>
               )}
             </div>
           </div>
         )}
 
         <p id="agent-mail-terminal-help" className="sr-only">
-          This is the real Agent Mail DashboardScreen compiled to WebAssembly and rendered by FrankenTUI. It replays a privacy-checked public pack. Use arrow keys, j and k, slash, Enter, Escape, and the number keys shown in the terminal.
+          This is the real Agent Mail shell and DashboardScreen compiled to WebAssembly and rendered by FrankenTUI. It replays a privacy-checked public pack. Click tabs, filters, and rows, or use Tab, Shift Tab, arrows, j and k, slash, Enter, Escape, and the number keys shown in the terminal. Control Escape returns focus to the webpage.
         </p>
         <pre id="agent-mail-terminal-screen-reader" className="sr-only" aria-live="polite" aria-atomic="true">
           {screenReaderText}
         </pre>
         <noscript>
-          <Image src={POSTER_URL} alt="Agent Mail operations dashboard preview" width={1920} height={1080} />
+          <Image src={POSTER_URL} alt="Agent Mail operations dashboard preview" width={1600} height={800} />
         </noscript>
       </div>
     );

@@ -13,10 +13,9 @@ test.describe("Hero media module", () => {
     const terminal = hero.getByTestId("hero-agent-mail-terminal");
     await expect(terminal).toBeVisible();
     await expect(hero.getByTestId("hero-agent-mail-canvas")).toBeVisible({ timeout: 30_000 });
-    await expect(hero.getByTestId("hero-dashboard-runtime-status")).toContainText(/WASM frame/i, {
-      timeout: 30_000,
-    });
-    diagnostics.breadcrumb("Production DashboardScreen rendered through FrankenTUI WASM");
+    await expect(terminal).toHaveAttribute("data-active-screen", "dashboard", { timeout: 30_000 });
+    await expect(hero.getByTestId("hero-dashboard-runtime-status")).toContainText(/dashboard screen ready/i);
+    diagnostics.breadcrumb("Production Agent Mail shell and DashboardScreen rendered through FrankenTUI WASM");
   });
 
   test("desktop embed starts in the native mega-density geometry without mascot overlap", async ({
@@ -30,17 +29,23 @@ test.describe("Hero media module", () => {
 
     const hero = page.locator("#home-hero");
     const terminal = hero.getByTestId("hero-agent-mail-terminal");
-    await expect(hero.getByTestId("hero-dashboard-runtime-status")).toContainText(/WASM frame/i, {
-      timeout: 30_000,
-    });
+    await expect(terminal).toHaveAttribute("data-active-screen", "dashboard", { timeout: 30_000 });
     await expect.poll(async () => Number(await terminal.getAttribute("data-terminal-cols"))).toBeGreaterThanOrEqual(220);
 
     const mascotBox = await hero.getByTestId("hero-robot-mascot").boundingBox();
     const demoBox = await hero.getByTestId("hero-tui-demo").boundingBox();
+    const ctaBox = await hero.getByRole("link", { name: /see agent mail in action/i }).boundingBox();
+    const viewport = page.viewportSize();
     expect(mascotBox).not.toBeNull();
     expect(demoBox).not.toBeNull();
+    expect(ctaBox).not.toBeNull();
+    expect(viewport).not.toBeNull();
+    expect(demoBox!.width).toBeGreaterThanOrEqual(viewport!.width * 0.92);
+    expect(demoBox!.width / demoBox!.height).toBeGreaterThanOrEqual(1.9);
+    expect(demoBox!.width / demoBox!.height).toBeLessThanOrEqual(2.1);
+    expect(demoBox!.y - (ctaBox!.y + ctaBox!.height)).toBeLessThanOrEqual(64);
     expect(mascotBox!.y + mascotBox!.height).toBeLessThanOrEqual(demoBox!.y);
-    diagnostics.breadcrumb("Dashboard opened at >=220 columns and mascot remained above its bounds");
+    diagnostics.breadcrumb("Full-bleed 2:1 shell opened at >=220 columns with <=64px CTA gap and zero mascot overlap");
   });
 
   test("verified artifacts are fetched once and JavaScript executes from verified bytes", async ({
@@ -66,9 +71,7 @@ test.describe("Hero media module", () => {
       }
     });
     await page.goto("/");
-    await expect(page.getByTestId("hero-dashboard-runtime-status")).toContainText(/WASM frame/i, {
-      timeout: 30_000,
-    });
+    await expect(page.getByTestId("hero-agent-mail-terminal")).toHaveAttribute("data-active-screen", "dashboard", { timeout: 30_000 });
     for (const pathname of checkedArtifacts) {
       expect(artifactRequests.get(pathname), pathname).toBe(1);
       expect(artifactRequestUrls.get(pathname)?.searchParams.get("sha256"), pathname)
@@ -85,9 +88,10 @@ test.describe("Hero media module", () => {
     await page.goto("/");
 
     const hero = page.locator("#home-hero");
-    await expect(hero.getByText(/Real aggregate counts from a read-only Agent Mail SQLite export/i)).toBeVisible();
-    await expect(hero.getByText(/names, paths, messages, and replay events are synthetic/i)).toBeVisible();
-    await expect(hero.getByText(/45 projects · 1,554 agents · 8,059 messages/i)).toBeVisible({
+    const runtime = hero.getByTestId("hero-dashboard-runtime-status");
+    await expect(runtime).toContainText(/aggregate counts come from a read-only Agent Mail SQLite export/i);
+    await expect(runtime).toContainText(/names, paths, messages, and replay events are synthetic/i);
+    await expect(runtime).toContainText(/45 projects, 1554 agents, 8059 messages/i, {
       timeout: 30_000,
     });
     await expect(page.getByText(/source db:/i)).toHaveCount(0);
@@ -103,32 +107,70 @@ test.describe("Hero media module", () => {
 
     const hero = page.locator("#home-hero");
     const canvas = hero.getByTestId("hero-agent-mail-canvas");
-    const runtime = hero.getByTestId("hero-dashboard-runtime-status");
-    await expect(runtime).toContainText(/WASM frame/i, { timeout: 30_000 });
+    const demo = hero.getByTestId("hero-tui-demo");
+    await expect(demo).toHaveAttribute("data-active-screen", "dashboard", { timeout: 30_000 });
     await hero.getByRole("button", { name: "Pause dashboard replay" }).click();
     await expect(hero.getByRole("button", { name: "Play dashboard replay" })).toBeVisible();
-    const beforeInputFrame = await runtime.textContent();
+    const beforeInputFrame = Number(await demo.getAttribute("data-frame-index"));
     await canvas.focus();
     await page.keyboard.press("2");
-    await expect.poll(async () => runtime.textContent()).not.toBe(beforeInputFrame);
+    await expect(demo).toHaveAttribute("data-active-screen", "messages");
+    await expect.poll(async () => Number(await demo.getAttribute("data-frame-index"))).toBeGreaterThan(beforeInputFrame);
 
-    await canvas.focus();
     await page.keyboard.press("Tab");
-    await expect(canvas).not.toBeFocused();
+    await expect(demo).toHaveAttribute("data-active-screen", "threads");
+    await expect(canvas).toBeFocused();
 
-    await canvas.focus();
     await page.keyboard.press("Shift+Tab");
-    await expect(canvas).not.toBeFocused();
+    await expect(demo).toHaveAttribute("data-active-screen", "messages");
+    await expect(canvas).toBeFocused();
 
     const liveUpdate = hero.locator("#agent-mail-terminal-screen-reader");
     await expect(liveUpdate).not.toBeEmpty();
     expect((await liveUpdate.textContent())?.length ?? Number.POSITIVE_INFINITY).toBeLessThan(500);
 
     await page.waitForTimeout(900);
-    const pausedFrame = await runtime.textContent();
+    const pausedFrame = await demo.getAttribute("data-frame-index");
     await page.waitForTimeout(900);
-    expect(await runtime.textContent()).toBe(pausedFrame);
+    expect(await demo.getAttribute("data-frame-index")).toBe(pausedFrame);
     diagnostics.breadcrumb("Keyboard input rendered and pause held the deterministic frame");
+  });
+
+  test("mouse clicks switch native tabs and select public replay rows", async ({ page, diagnostics }) => {
+    diagnostics.setRoute("/");
+    await page.setViewportSize({ width: 1600, height: 1000 });
+    await page.goto("/");
+
+    const terminal = page.getByTestId("hero-agent-mail-terminal");
+    const canvas = page.getByTestId("hero-agent-mail-canvas");
+    await expect(terminal).toHaveAttribute("data-active-screen", "dashboard", { timeout: 30_000 });
+    const box = await canvas.boundingBox();
+    const cols = Number(await terminal.getAttribute("data-terminal-cols"));
+    const rows = Number(await terminal.getAttribute("data-terminal-rows"));
+    expect(box).not.toBeNull();
+    expect(cols).toBeGreaterThan(0);
+    expect(rows).toBeGreaterThan(0);
+
+    const clickCell = async (x: number, y: number) => {
+      await page.mouse.click(
+        box!.x + ((x + 0.5) / cols) * box!.width,
+        box!.y + ((y + 0.5) / rows) * box!.height,
+      );
+    };
+    await clickCell(18, 0);
+    await expect(terminal).toHaveAttribute("data-active-screen", "messages");
+    const pointerLatencyMs = await terminal.evaluate((element) => {
+      const host = element as HTMLElement;
+      return Number(host.dataset.statusPublishedAt) - Number(host.dataset.lastInputAt);
+    });
+    expect(pointerLatencyMs).toBeGreaterThanOrEqual(0);
+    expect(pointerLatencyMs).toBeLessThan(50);
+
+    const beforeRevision = Number(await terminal.getAttribute("data-interaction-revision"));
+    await clickCell(8, 6);
+    await expect.poll(async () => Number(await terminal.getAttribute("data-interaction-revision")))
+      .toBeGreaterThan(beforeRevision);
+    diagnostics.breadcrumb("Canvas pointer input switched a native shell tab and selected a replay row");
   });
 
   test("one-click fullscreen fills the browser and exits back to the trigger", async ({
@@ -142,9 +184,7 @@ test.describe("Hero media module", () => {
 
     const demo = page.getByTestId("hero-tui-demo");
     const enter = page.getByRole("button", { name: "Open dashboard fullscreen" });
-    await expect(page.getByTestId("hero-dashboard-runtime-status")).toContainText(/WASM frame/i, {
-      timeout: 30_000,
-    });
+    await expect(demo).toHaveAttribute("data-active-screen", "dashboard", { timeout: 30_000 });
     await enter.click();
     await expect(demo).toHaveAttribute("data-fullscreen", "true");
     const box = await demo.boundingBox();
@@ -153,12 +193,10 @@ test.describe("Hero media module", () => {
     expect(viewport).not.toBeNull();
     expect(Math.abs(box!.width - viewport!.width)).toBeLessThanOrEqual(1);
     expect(Math.abs(box!.height - viewport!.height)).toBeLessThanOrEqual(1);
-    await expect.poll(async () => {
-      const controlsBox = await page.getByTestId("hero-dashboard-controls").boundingBox();
-      return controlsBox && viewport
-        ? Math.abs(controlsBox.y + controlsBox.height - viewport.height)
-        : Number.POSITIVE_INFINITY;
-    }).toBeLessThanOrEqual(1);
+    const terminalBox = await page.getByTestId("hero-agent-mail-terminal").boundingBox();
+    expect(terminalBox).not.toBeNull();
+    expect(Math.abs(terminalBox!.width - viewport!.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(terminalBox!.height - viewport!.height)).toBeLessThanOrEqual(1);
 
     const exit = page.getByRole("button", { name: "Exit dashboard fullscreen" });
     await exit.click();
@@ -175,10 +213,8 @@ test.describe("Hero media module", () => {
     const hero = page.locator("#home-hero");
     const playButton = hero.getByRole("button", { name: "Play dashboard replay" });
     await expect(playButton).toBeDisabled();
-    await expect(hero.getByText(/Reduced motion: deterministic static frame/i)).toBeVisible();
-    await expect(hero.getByTestId("hero-dashboard-runtime-status")).toContainText(/WASM frame/i, {
-      timeout: 30_000,
-    });
+    await expect(hero.getByTestId("hero-tui-demo")).toHaveAttribute("data-reduced-motion", "true");
+    await expect(hero.getByTestId("hero-agent-mail-terminal")).toHaveAttribute("data-active-screen", "dashboard", { timeout: 30_000 });
     diagnostics.breadcrumb("Reduced-motion mode initialized a static WASM frame");
   });
 
@@ -191,9 +227,7 @@ test.describe("Hero media module", () => {
 
     const hero = page.locator("#home-hero");
     const canvas = hero.getByTestId("hero-agent-mail-canvas");
-    await expect(hero.getByTestId("hero-dashboard-runtime-status")).toContainText(/WASM frame/i, {
-      timeout: 30_000,
-    });
+    await expect(hero.getByTestId("hero-agent-mail-terminal")).toHaveAttribute("data-active-screen", "dashboard", { timeout: 30_000 });
     const initialWidth = Number(await canvas.getAttribute("width"));
     await page.setViewportSize({ width: 720, height: 740 });
     await expect.poll(async () => Number(await canvas.getAttribute("width"))).not.toBe(initialWidth);
@@ -211,7 +245,7 @@ test.describe("Hero media module", () => {
     await page.goto("/");
 
     const hero = page.locator("#home-hero");
-    await expect(hero.getByTestId("hero-dashboard-runtime-status")).toContainText(/Static fallback/i, {
+    await expect(hero.getByTestId("hero-dashboard-runtime-status")).toContainText(/interactive terminal unavailable/i, {
       timeout: 30_000,
     });
     await expect(hero.getByText(/Interactive dashboard unavailable/i)).toBeVisible();
@@ -234,7 +268,7 @@ test.describe("Hero media module", () => {
     await page.goto("/");
 
     const hero = page.locator("#home-hero");
-    await expect(hero.getByTestId("hero-dashboard-runtime-status")).toContainText(/Static fallback/i, {
+    await expect(hero.getByTestId("hero-dashboard-runtime-status")).toContainText(/interactive terminal unavailable/i, {
       timeout: 30_000,
     });
     await expect(hero.getByText(/failed SHA-256 verification/i)).toBeVisible();
@@ -242,17 +276,19 @@ test.describe("Hero media module", () => {
     diagnostics.breadcrumb("A mutated WASM response failed closed at the SHA-256 gate");
   });
 
-  test("showcase button points to a public route", async ({ page, diagnostics }) => {
+  test("overlay controls do not consume terminal layout height", async ({ page, diagnostics }) => {
     diagnostics.setRoute("/");
     await page.goto("/");
 
-    const link = page.locator("#home-hero").getByTestId("hero-real-webapp-link");
-    const href = await link.getAttribute("href");
-    expect(href).toBeTruthy();
-    const parsed = new URL(href!, page.url());
-    expect(["http:", "https:"]).toContain(parsed.protocol);
-    expect(parsed.pathname.startsWith("/")).toBeTruthy();
-    diagnostics.breadcrumb(`Showcase href=${href}`);
+    const demo = page.getByTestId("hero-tui-demo");
+    const terminal = page.getByTestId("hero-agent-mail-terminal");
+    await expect(terminal).toHaveAttribute("data-active-screen", "dashboard", { timeout: 30_000 });
+    const demoBox = await demo.boundingBox();
+    const terminalBox = await terminal.boundingBox();
+    expect(demoBox).not.toBeNull();
+    expect(terminalBox).not.toBeNull();
+    expect(Math.abs(demoBox!.height - terminalBox!.height)).toBeLessThanOrEqual(1);
+    diagnostics.breadcrumb("Pause/reset/fullscreen controls overlay the terminal without a framing tray");
   });
 });
 

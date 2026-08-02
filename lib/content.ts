@@ -295,7 +295,7 @@ export const features: Feature[] = [
   },
   {
     id: "tui-operations-console",
-    title: "15-Screen Operations TUI",
+    title: "16-Screen Operations TUI",
     description: "Real-time dashboard, message browser, thread explorer, agent roster, unified search, reservation manager, tool metrics, system health, timeline views, contact graph, and more. Five themes including Cyberpunk Aurora.",
     icon: "activity",
     category: "Operator Tooling",
@@ -391,7 +391,7 @@ export const comparisonStatusByValue: Record<string, ComparisonStatus> = {
   "Git + SQLite": "positive",
   "Product bus": "positive",
   "Hybrid lexical + semantic": "positive",
-  "15-screen TUI + Web UI": "positive",
+  "16-screen TUI + Web UI": "positive",
   "34 tools + 20 resources": "positive",
   "Auto-detect + register": "positive",
   "Built-in ack protocol": "positive",
@@ -418,7 +418,7 @@ export const comparisonData: AgentMailComparisonRow[] = [
   { id: "audit-trail", feature: "Audit Trail", agentMail: "Git + SQLite", gitWorktrees: "Git history only", sharedDocs: "File history", noCoordination: "None" },
   { id: "cross-project-coordination", feature: "Cross-Project Coordination", agentMail: "Product bus", gitWorktrees: "None", sharedDocs: "None", noCoordination: "None" },
   { id: "search", feature: "Search", agentMail: "Hybrid lexical + semantic", gitWorktrees: "Git log", sharedDocs: "Text search", noCoordination: "None" },
-  { id: "operator-visibility", feature: "Operator Visibility", agentMail: "15-screen TUI + Web UI", gitWorktrees: "Git log", sharedDocs: "File browser", noCoordination: "None" },
+  { id: "operator-visibility", feature: "Operator Visibility", agentMail: "16-screen TUI + Web UI", gitWorktrees: "Git log", sharedDocs: "File browser", noCoordination: "None" },
   { id: "mcp-integration", feature: "MCP Integration", agentMail: "34 tools + 20 resources", gitWorktrees: "None", sharedDocs: "None", noCoordination: "None" },
   { id: "agent-discovery", feature: "Agent Discovery", agentMail: "Auto-detect + register", gitWorktrees: "Manual", sharedDocs: "Manual", noCoordination: "Manual" },
   { id: "acknowledgments", feature: "Acknowledgments", agentMail: "Built-in ack protocol", gitWorktrees: "None", sharedDocs: "None", noCoordination: "None" },
@@ -1084,7 +1084,7 @@ export const visualizationBacklog: VisualizationBacklogItem[] = [
   },
   {
     id: "viz-tui-screen-atlas",
-    title: "15-Screen TUI Atlas",
+    title: "16-Screen TUI Atlas",
     objective: "Provide a map of TUI screens, core questions, and operational signals.",
     tier: "should",
     pedagogicalOrder: 11,
@@ -1213,7 +1213,7 @@ export const changelog: ChangelogEntry[] = [
     period: "Phase 4",
     title: "Operations Console & CLI",
     items: [
-      "15-screen TUI built on frankentui with 5 themes",
+      "16-screen TUI built on frankentui with 5 themes",
       "Robot mode: 16 non-interactive subcommands for agent consumption",
       "Web UI for human oversight with Overseer compose form",
       "Pre-commit guard integration for reservation enforcement",
@@ -1277,7 +1277,7 @@ export const glossaryTerms: GlossaryTerm[] = [
   { term: "Tool Cluster", short: "Logical grouping of MCP tools", long: "Agent Mail\u2019s 34 tools are organized into 9 clusters: Infrastructure, Identity, Messaging, Contacts, File Reservations, Search, Macros, Product Bus, and Build Slots. Each cluster handles a distinct coordination concern." },
   { term: "Toon Format", short: "Token-efficient robot output format", long: "The default output format for robot mode at a TTY. Compact, human-scannable, and designed to minimize token consumption when agents parse the output. Alternative formats: json and md." },
   { term: "TTL", short: "Time-to-live for reservations", long: "File reservations and build slots expire after their TTL (default 3600 seconds). Agents can renew before expiration. Expired reservations are automatically cleaned up, preventing stale locks." },
-  { term: "TUI", short: "Terminal User Interface operations console", long: "A 15-screen interactive terminal interface built on frankentui. Provides real-time dashboards, message browsing, thread exploration, agent roster, search, reservation management, and system health monitoring." },
+  { term: "TUI", short: "Terminal User Interface operations console", long: "A 16-screen interactive terminal interface built on frankentui. Provides real-time dashboards, message browsing, thread exploration, agent roster, search, reservation management, and system health monitoring." },
   { term: "WAL", short: "Write-Ahead Log for crash safety", long: "SQLite's WAL (Write-Ahead Log) mode allows concurrent readers and a single writer without blocking. Agent Mail uses WAL mode to serve agent queries while the commit coalescer batches writes, combining high read throughput with durable writes." },
   { term: "Web UI", short: "Browser-based operator interface", long: "Served at http://127.0.0.1:8765/mail, the web interface provides unified inbox, project overview, message details, search, file reservations, and the Human Overseer compose form for sending messages to agents." },
   { term: "Write-Behind Queue", short: "Buffered async write pipeline", long: "A queue that accumulates rapid-fire write operations and flushes them as batch commits on a configurable interval. Decouples write latency from archive durability, allowing the system to acknowledge writes instantly while persisting them in the background." },
@@ -1391,7 +1391,7 @@ export const userPersonas: UserPersona[] = [
       "No audit trail for who changed what and why",
     ],
     valueProps: [
-      "15-screen TUI and Web UI give real-time operational visibility",
+      "16-screen TUI and Web UI give real-time operational visibility",
       "Human Overseer lets you send urgent redirects to any agent",
       "Pre-commit guard enforces file ownership boundaries",
       "Every message, reservation, and action is searchable and auditable",
@@ -2020,11 +2020,11 @@ export const faq: FaqItem[] = [
   },
   {
     question: "How is Agent Mail different from the Python version?",
-    answer: "The Rust rewrite is a ground-up reimplementation that eliminates the Python version's scalability bottlenecks: Git lock contention, SQLite pool exhaustion, and GIL limitations. The Rust version adds hybrid search (V3), a 15-screen TUI, robot mode CLI, build slot management, and passes a 10-scenario stress gauntlet including 30-agent pipelines and sustained 49 RPS workloads.",
+    answer: "The Rust rewrite is a ground-up reimplementation that eliminates the Python version's scalability bottlenecks: Git lock contention, SQLite pool exhaustion, and GIL limitations. The Rust version adds hybrid search (V3), a 16-screen TUI, robot mode CLI, build slot management, and passes a 10-scenario stress gauntlet including 30-agent pipelines and sustained 49 RPS workloads.",
   },
   {
     question: "How do I monitor what my agents are doing?",
-    answer: "Three ways: (1) The 15-screen TUI provides real-time dashboards, message browsing, thread exploration, and system health monitoring. (2) The web UI at localhost:8765/mail gives browser-based oversight with inbox, search, and the Human Overseer compose form. (3) Robot mode (am robot status) provides machine-readable output for automation.",
+    answer: "Three ways: (1) The 16-screen TUI provides real-time dashboards, message browsing, thread exploration, and system health monitoring. (2) The web UI at localhost:8765/mail gives browser-based oversight with inbox, search, and the Human Overseer compose form. (3) Robot mode (am robot status) provides machine-readable output for automation.",
   },
   {
     question: "What is the stress gauntlet?",
@@ -2455,7 +2455,7 @@ export const adoptionMessages: AdoptionMessage[] = [
   {
     id: "am-team-lead",
     headline: "See what every agent is doing, in real time",
-    subline: "15-screen TUI, web dashboard, and robot mode CLI give you full visibility. Human Overseer lets you intervene when needed.",
+    subline: "16-screen TUI, web dashboard, and robot mode CLI give you full visibility. Human Overseer lets you intervene when needed.",
     targetAudience: "Team leads managing AI-assisted development",
     ctaLabel: "View Dashboard Demo",
     ctaHref: "/showcase",

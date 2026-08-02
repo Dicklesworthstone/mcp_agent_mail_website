@@ -19,13 +19,14 @@ import {
   Search,
   UserCheck,
   Workflow,
-  Hammer,
   Network,
   Clock,
   HeartPulse,
   Eye,
   BarChart3,
-  Palette,
+  Paperclip,
+  Archive,
+  TowerControl,
 } from "lucide-react";
 
 /* ---------- data ---------- */
@@ -34,61 +35,63 @@ interface TuiScreen {
   id: string;
   label: string;
   jumpKey: string;
-  category: "operations" | "coordination" | "observability" | "system";
+  category: "overview" | "communication" | "operations" | "system";
   coreQuestion: string;
   signals: string[];
 }
 
 const SCREENS: TuiScreen[] = [
-  { id: "dashboard", label: "Dashboard", jumpKey: "1", category: "operations", coreQuestion: "Is the system healthy and active right now?", signals: ["inbound message rate", "reservation conflicts", "service health"] },
-  { id: "inbox", label: "Inbox Browser", jumpKey: "2", category: "coordination", coreQuestion: "What requires my immediate response?", signals: ["importance", "ack_required", "thread continuity"] },
-  { id: "threads", label: "Thread Explorer", jumpKey: "3", category: "coordination", coreQuestion: "How did this decision evolve over time?", signals: ["participants", "open action items", "decision checkpoints"] },
-  { id: "roster", label: "Agent Roster", jumpKey: "4", category: "coordination", coreQuestion: "Who is online and what are they doing?", signals: ["last active", "task description", "program/model"] },
-  { id: "reservations", label: "Reservation Mgr", jumpKey: "5", category: "coordination", coreQuestion: "Where are file ownership conflicts emerging?", signals: ["path overlaps", "exclusive holders", "TTL expiration"] },
-  { id: "search", label: "Unified Search", jumpKey: "6", category: "operations", coreQuestion: "Where is the prior context for this topic?", signals: ["query relevance", "thread_id", "sender filters"] },
-  { id: "contacts", label: "Contact Graph", jumpKey: "7", category: "coordination", coreQuestion: "Can this agent message that agent?", signals: ["approval state", "policy mode", "cross-project links"] },
-  { id: "macros", label: "Macro Inspector", jumpKey: "8", category: "operations", coreQuestion: "Which high-level workflows are available?", signals: ["macro preconditions", "side effects", "result shape"] },
-  { id: "build-slots", label: "Build Slots", jumpKey: "9", category: "system", coreQuestion: "Are build leases saturating infrastructure?", signals: ["active holders", "expiry", "exclusive contention"] },
-  { id: "product-bus", label: "Product Bus", jumpKey: "0", category: "system", coreQuestion: "How are projects linked under products?", signals: ["linked repos", "cross-project traffic", "search scope"] },
-  { id: "audit", label: "Audit Timeline", jumpKey: "a", category: "observability", coreQuestion: "What happened and when?", signals: ["message lifecycle", "reservation changes", "identity updates"] },
-  { id: "health", label: "System Health", jumpKey: "h", category: "observability", coreQuestion: "Which subsystem is degraded?", signals: ["DB pool pressure", "search fallback", "transport status"] },
-  { id: "overseer", label: "Human Overseer", jumpKey: "o", category: "operations", coreQuestion: "How can an operator redirect execution?", signals: ["compose path", "recipient targeting", "importance overrides"] },
-  { id: "tool-metrics", label: "Tool Metrics", jumpKey: "m", category: "observability", coreQuestion: "Which tools are hot or failing?", signals: ["call volume", "error rate", "tail latency"] },
-  { id: "theme", label: "Theme + Status", jumpKey: "t", category: "system", coreQuestion: "Is the session readable?", signals: ["active theme", "connection status", "time windows"] },
+  { id: "dashboard", label: "Dashboard", jumpKey: "1", category: "overview", coreQuestion: "What is happening across Agent Mail right now?", signals: ["live event stream", "operational counters", "latency and throughput"] },
+  { id: "messages", label: "Messages", jumpKey: "2", category: "communication", coreQuestion: "Which messages need inspection or acknowledgement?", signals: ["message search", "detail panel", "acknowledgement state"] },
+  { id: "threads", label: "Threads", jumpKey: "3", category: "communication", coreQuestion: "How did this conversation evolve?", signals: ["ordered messages", "participants", "thread context"] },
+  { id: "agents", label: "Agents", jumpKey: "4", category: "operations", coreQuestion: "Which agents are active, idle, or stale?", signals: ["status", "last activity", "program and model"] },
+  { id: "search", label: "Search", jumpKey: "5", category: "communication", coreQuestion: "Where is the relevant context across Agent Mail?", signals: ["facet filters", "ranked results", "selected record"] },
+  { id: "reservations", label: "Reservations", jumpKey: "6", category: "operations", coreQuestion: "Where are file reservation conflicts or expirations?", signals: ["reserved paths", "exclusive holders", "TTL and conflicts"] },
+  { id: "tool_metrics", label: "Tool Metrics", jumpKey: "7", category: "system", coreQuestion: "Which tools are busy, slow, or failing?", signals: ["call counts", "tail latency", "error rates"] },
+  { id: "system_health", label: "System Health", jumpKey: "8", category: "system", coreQuestion: "Are the database, queues, and connections healthy?", signals: ["database diagnostics", "queue pressure", "connection health"] },
+  { id: "timeline", label: "Timeline", jumpKey: "9", category: "overview", coreQuestion: "What happened and when?", signals: ["chronological events", "timeline cursor", "event inspector"] },
+  { id: "projects", label: "Projects", jumpKey: "0", category: "overview", coreQuestion: "Which projects carry the current activity?", signals: ["project statistics", "agent and message counts", "project detail"] },
+  { id: "contacts", label: "Contacts", jumpKey: "!", category: "communication", coreQuestion: "Which cross-agent contact links and policies apply?", signals: ["contact links", "approval state", "policy mode"] },
+  { id: "explorer", label: "Explorer", jumpKey: "@", category: "communication", coreQuestion: "What is moving through the inbox and outbox?", signals: ["direction filters", "grouping", "acknowledgement filters"] },
+  { id: "analytics", label: "Analytics", jumpKey: "#", category: "system", coreQuestion: "Which anomalies deserve action?", signals: ["confidence score", "supporting evidence", "recommended next step"] },
+  { id: "attachments", label: "Attachments", jumpKey: "$", category: "communication", coreQuestion: "What artifacts were shared and where did they come from?", signals: ["attachment type", "inline preview", "source provenance"] },
+  { id: "archive_browser", label: "Archive Browser", jumpKey: "%", category: "operations", coreQuestion: "What does the durable Git archive contain?", signals: ["directory tree", "file content", "archive path"] },
+  { id: "atc", label: "ATC", jumpKey: "^", category: "system", coreQuestion: "Which coordination decision should happen next?", signals: ["agent liveness", "conflict state", "evidence ledger"] },
 ];
 
 const ICON_MAP: Record<string, React.ElementType> = {
   dashboard: LayoutDashboard,
-  inbox: Inbox,
+  messages: Inbox,
   threads: MessageSquare,
-  roster: Users,
-  reservations: Lock,
+  agents: Users,
   search: Search,
+  reservations: Lock,
+  tool_metrics: BarChart3,
+  system_health: HeartPulse,
+  timeline: Clock,
+  projects: Network,
   contacts: UserCheck,
-  macros: Workflow,
-  "build-slots": Hammer,
-  "product-bus": Network,
-  audit: Clock,
-  health: HeartPulse,
-  overseer: Eye,
-  "tool-metrics": BarChart3,
-  theme: Palette,
+  explorer: Workflow,
+  analytics: Eye,
+  attachments: Paperclip,
+  archive_browser: Archive,
+  atc: TowerControl,
 };
 
 const SCREENS_MAP = new Map(SCREENS.map(s => [s.id, s]));
 
 const CATEGORY_SCREEN_COUNTS: Record<string, number> = Object.fromEntries(
-  ["operations", "coordination", "observability", "system"].map((cat) => [cat, SCREENS.filter((s) => s.category === cat).length]),
+  ["overview", "communication", "operations", "system"].map((cat) => [cat, SCREENS.filter((s) => s.category === cat).length]),
 );
 
 const CATEGORY_META: Record<string, { color: string; bg: string; label: string }> = {
-  operations: { color: "#3B82F6", bg: "#3B82F61A", label: "Operations" },
-  coordination: { color: "#22C55E", bg: "#22C55E1A", label: "Coordination" },
-  observability: { color: "#A855F7", bg: "#A855F71A", label: "Observability" },
+  overview: { color: "#3B82F6", bg: "#3B82F61A", label: "Overview" },
+  communication: { color: "#22C55E", bg: "#22C55E1A", label: "Communication" },
+  operations: { color: "#A855F7", bg: "#A855F71A", label: "Operations" },
   system: { color: "#F59E0B", bg: "#F59E0B1A", label: "System" },
 };
 
-type CategoryFilter = "all" | "operations" | "coordination" | "observability" | "system";
+type CategoryFilter = "all" | "overview" | "communication" | "operations" | "system";
 
 /* ---------- component ---------- */
 
@@ -121,11 +124,11 @@ export default function TuiScreensViz() {
       <VizHeader
         accent="blue"
         eyebrow="Console Information Architecture"
-        title="15-Screen TUI Navigation Model"
+        title="16-Screen TUI Navigation Model"
         subtitle="Filter by category, inspect each screen's core question, and learn the jump-key grammar that keeps operator navigation O(1)."
         controls={
           <div className="flex flex-wrap gap-2">
-            {(["all", "operations", "coordination", "observability", "system"] as const).map((cat) => (
+            {(["all", "overview", "communication", "operations", "system"] as const).map((cat) => (
               <VizControlButton
                 key={cat}
                 tone={categoryFilter === cat ? "blue" : "neutral"}
@@ -270,7 +273,7 @@ export default function TuiScreensViz() {
             <ul className="space-y-2 text-sm text-slate-400">
               <li className="flex gap-2">
                 <span className="text-slate-600 select-none">&bull;</span>
-                <span><kbd className="text-blue-300 font-mono text-xs">1-9, 0, a, h, o, m, t</kbd> jump directly to any screen</span>
+                <span><kbd className="text-blue-300 font-mono text-xs">1-9, 0, !, @, #, $, %, ^</kbd> jump directly to any screen</span>
               </li>
               <li className="flex gap-2">
                 <span className="text-slate-600 select-none">&bull;</span>

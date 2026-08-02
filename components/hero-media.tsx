@@ -10,16 +10,11 @@ import {
   type DashboardRunnerStatus,
 } from "@/lib/agent-mail-wasm";
 import {
-  Database,
-  ExternalLink,
-  Keyboard,
   Maximize2,
   Minimize2,
-  MousePointer2,
   Pause,
   Play,
   RotateCcw,
-  ShieldCheck,
 } from "lucide-react";
 
 if (typeof window !== "undefined") {
@@ -86,118 +81,92 @@ export default function HeroMedia() {
   return (
     <div
       ref={hostRef}
-      className={`relative bg-[#020611] ${isFullscreen ? "flex h-screen w-screen flex-col overflow-hidden" : "overflow-hidden rounded-xl border border-white/10 shadow-[0_24px_80px_rgba(2,132,199,0.16)]"}`}
+      className={`group relative bg-[#020611] ${isFullscreen ? "flex h-dvh w-screen flex-col overflow-hidden" : "w-full overflow-visible"}`}
       data-testid="hero-tui-demo"
       data-fullscreen={isFullscreen ? "true" : "false"}
+      data-active-screen={loadError ? "error" : status?.active_screen ?? "loading"}
+      data-dashboard-filter={loadError ? "error" : status?.dashboard_filter ?? "loading"}
+      data-frame-index={status?.frame_index ?? 0}
+      data-reduced-motion={prefersReducedMotion ? "true" : "false"}
     >
       <div
-        className={`relative min-h-0 bg-black ${
-          isFullscreen ? "flex-1" : "lg:h-[min(820px,50vw)]"
+        className={`absolute right-0 z-20 flex items-center gap-1 border border-white/10 bg-[#020611]/90 p-1 backdrop-blur-sm transition-opacity hover:opacity-100 focus-within:opacity-100 ${
+          isFullscreen ? "top-7 opacity-40" : "bottom-[calc(100%+0.25rem)] opacity-70"
         }`}
+        data-testid="hero-dashboard-controls"
       >
-          <AgentMailTerminal
-            ref={terminalRef}
-            paused={effectivePaused}
-            reducedMotion={prefersReducedMotion}
-            onError={() => setLoadError(true)}
-            onReady={(nextStatus) => {
-              setLoadError(false);
-              setStatus(nextStatus);
-            }}
-            onStatus={setStatus}
-          />
+        <button
+          type="button"
+          onClick={() => setPaused((current) => !current)}
+          className="grid h-9 w-9 place-items-center text-slate-300 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
+          aria-label={effectivePaused ? "Play dashboard replay" : "Pause dashboard replay"}
+          disabled={prefersReducedMotion}
+          title={effectivePaused ? "Play replay" : "Pause replay"}
+        >
+          {effectivePaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => terminalRef.current?.reset()}
+          className="grid h-9 w-9 place-items-center text-slate-300 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+          aria-label="Reset dashboard replay"
+          title="Reset replay"
+        >
+          <RotateCcw className="h-4 w-4" />
+        </button>
+
+        <button
+          ref={fullscreenButtonRef}
+          type="button"
+          onClick={() => void toggleFullscreen()}
+          className="inline-flex h-9 items-center gap-1.5 bg-blue-500/15 px-2.5 text-xs font-bold text-blue-100 transition-colors hover:bg-blue-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+          aria-label={isFullscreen ? "Exit dashboard fullscreen" : "Open dashboard fullscreen"}
+          title={isFullscreen ? "Exit fullscreen" : "Fill browser window"}
+        >
+          {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          <span className="hidden sm:inline">{isFullscreen ? "Exit" : "Fullscreen"}</span>
+        </button>
       </div>
 
       <div
-        className={`border-t border-white/10 bg-[#050b15] px-3 py-3 sm:px-4 ${isFullscreen ? "shrink-0" : ""}`}
-        data-testid="hero-dashboard-controls"
+        className={`relative min-h-0 bg-black ${
+          isFullscreen ? "flex-1" : "aspect-[2/1] min-h-[340px] w-full sm:min-h-[440px]"
+        }`}
       >
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setPaused((current) => !current)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-slate-300 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
-            aria-label={effectivePaused ? "Play dashboard replay" : "Pause dashboard replay"}
-            disabled={prefersReducedMotion}
-          >
-            {effectivePaused ? <Play className="h-3 w-3" /> : <Pause className="h-3 w-3" />}
-            {effectivePaused ? "Play" : "Pause"}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => terminalRef.current?.reset()}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-slate-300 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-            aria-label="Reset dashboard replay"
-          >
-            <RotateCcw className="h-3 w-3" />
-            Reset
-          </button>
-
-          <button
-            type="button"
-            onClick={() => terminalRef.current?.focus()}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/25 bg-cyan-500/10 px-3 py-1.5 text-xs font-bold text-cyan-200 transition-colors hover:bg-cyan-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-            aria-label="Focus interactive terminal"
-          >
-            <Keyboard className="h-3 w-3" />
-            Interact
-          </button>
-
-          <button
-            ref={fullscreenButtonRef}
-            type="button"
-            onClick={() => void toggleFullscreen()}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-blue-200 transition-colors hover:bg-blue-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
-            aria-label={isFullscreen ? "Exit dashboard fullscreen" : "Open dashboard fullscreen"}
-          >
-            {isFullscreen ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
-            {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
-          </button>
-
-          <a
-            data-testid="hero-real-webapp-link"
-            href="/showcase"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-blue-200 transition-colors hover:bg-blue-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
-            aria-label="Open the Agent Mail visualization showcase"
-          >
-            <ExternalLink className="h-3 w-3" />
-            Showcase
-          </a>
-
-          <span
-            data-testid="hero-dashboard-runtime-status"
-            className={`ml-auto inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.12em] ${
-              loadError
-                ? "border-rose-500/30 bg-rose-500/10 text-rose-300"
-                : status
-                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                  : "border-slate-500/30 bg-slate-500/10 text-slate-400"
-            }`}
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-current" />
-            {loadError ? "Static fallback" : status ? `WASM frame ${status.frame_index}` : "Verifying assets"}
-          </span>
-        </div>
-
-        <div className="mt-3 grid gap-2 font-mono text-[9px] leading-relaxed text-slate-500 sm:grid-cols-3 sm:text-[10px]">
-          <span className="inline-flex items-center gap-1.5">
-            <Database className="h-3 w-3 text-blue-300" />
-            {status
-              ? `${status.projects.toLocaleString()} projects · ${status.agents.toLocaleString()} agents · ${status.messages.toLocaleString()} messages`
-              : "Aggregate snapshot metrics load inside the verified pack"}
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <MousePointer2 className="h-3 w-3 text-cyan-300" />
-            Real aggregate counts from a read-only Agent Mail SQLite export. Names, paths, messages, and replay events are synthetic public-demo details.
-          </span>
-          <span className="inline-flex items-center gap-1.5 sm:justify-end">
-            <ShieldCheck className="h-3 w-3 text-emerald-300" />
-            {prefersReducedMotion ? "Reduced motion: deterministic static frame" : "18-second deterministic replay loop"}
-          </span>
-        </div>
-        <p className="sr-only" aria-live="polite">{fullscreenError}</p>
+        <AgentMailTerminal
+          ref={terminalRef}
+          paused={effectivePaused}
+          reducedMotion={prefersReducedMotion}
+          onError={() => {
+            setLoadError(true);
+            setStatus(null);
+          }}
+          onReady={(nextStatus) => {
+            setLoadError(false);
+            setStatus(nextStatus);
+          }}
+          onStatus={setStatus}
+        />
       </div>
+
+      <p
+        className={`pointer-events-none absolute z-10 bg-[#020611]/90 px-2 py-1 font-mono text-[9px] text-cyan-100 opacity-0 transition-opacity group-focus-within:opacity-100 ${
+          isFullscreen ? "bottom-2 left-2" : "bottom-[calc(100%+0.25rem)] left-0"
+        }`}
+      >
+        Ctrl+Esc returns keyboard focus to the page
+      </p>
+
+      <p data-testid="hero-dashboard-runtime-status" className="sr-only" aria-live="polite">
+        {loadError
+          ? "Interactive terminal unavailable; static preview shown."
+          : status
+            ? `Agent Mail ${status.active_screen} screen ready. ${status.projects} projects, ${status.agents} agents, ${status.messages} messages.`
+            : "Verifying Agent Mail browser assets."}
+        {" Aggregate counts come from a read-only Agent Mail SQLite export; names, paths, messages, and replay events are synthetic public-demo details."}
+        {fullscreenError ? ` ${fullscreenError}` : ""}
+      </p>
     </div>
   );
 }

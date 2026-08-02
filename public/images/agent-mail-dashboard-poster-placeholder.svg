@@ -1,48 +1,124 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
-  <title id="title">Agent Mail Dashboard Placeholder</title>
-  <desc id="desc">Placeholder poster for the Agent Mail dashboard recording hero video.</desc>
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#020a14" />
-      <stop offset="50%" stop-color="#0a1628" />
-      <stop offset="100%" stop-color="#0f2744" />
-    </linearGradient>
-    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#3b82f6" />
-      <stop offset="100%" stop-color="#06b6d4" />
-    </linearGradient>
-  </defs>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="800" viewBox="0 0 1600 800" role="img" aria-labelledby="title desc">
+  <title id="title">Agent Mail operations terminal</title>
+  <desc id="desc">Dense read-only public replay arranged like the native sixteen-screen Agent Mail dashboard.</desc>
+  <rect width="1600" height="800" fill="#06171b"/>
+  <g font-family="Pragmasevka NF, ui-monospace, SFMono-Regular, Menlo, monospace">
+    <!-- Native shell: all sixteen directly addressable screens, with no device chrome. -->
+    <rect width="1600" height="25" fill="#0a2228"/>
+    <text y="17" font-size="11.5" font-weight="600" fill="#54d8ef">
+      <tspan x="8" fill="#e6fbff">1› Dashboard</tspan><tspan x="105">2› Messages</tspan><tspan x="204">3› Threads</tspan><tspan x="294" fill="#d4dd58">4› Agents</tspan><tspan x="378">5› Search</tspan><tspan x="460" fill="#d4dd58">6› Reservations</tspan><tspan x="580">7› Tool Metrics</tspan><tspan x="696" fill="#43e6cf">8› System Health</tspan><tspan x="824">9› Timeline</tspan><tspan x="909">0› Projects</tspan><tspan x="995">!› Contacts</tspan><tspan x="1082">@› Explorer</tspan><tspan x="1170" fill="#34d399">#› Analytics</tspan><tspan x="1265">$› Attachments</tspan><tspan x="1374" fill="#d4dd58">%› Archive</tspan><tspan x="1470" fill="#43e6cf">^› ATC</tspan>
+    </text>
 
-  <rect width="1600" height="900" fill="url(#bg)" />
-  <rect x="80" y="80" width="1440" height="740" rx="28" fill="#071220" stroke="#23456d" stroke-width="2" />
-  <rect x="110" y="120" width="1380" height="54" rx="12" fill="#0d1c2f" />
-  <circle cx="145" cy="147" r="8" fill="#3b82f6" />
-  <circle cx="172" cy="147" r="8" fill="#06b6d4" />
-  <circle cx="199" cy="147" r="8" fill="#22c55e" />
-  <text x="230" y="154" fill="#95b9e3" font-family="monospace" font-size="20">MCP Agent Mail Dashboard</text>
+    <rect y="25" width="1600" height="48" fill="#0c3032"/>
+    <g font-size="10.5" fill="#89c9d1">
+      <text x="8" y="39">Messages</text><text x="145" y="39">Ack Pend</text><text x="278" y="39">Locks</text><text x="406" y="39">Agents</text><text x="538" y="39">Contacts</text><text x="670" y="39">Projects</text><text x="805" y="39">Requests</text><text x="940" y="39">Avg Lat</text><text x="1073" y="39">Error %</text><text x="1205" y="39">Ring Fill</text><text x="1339" y="39">Drops</text><text x="1471" y="39">Uptime</text>
+    </g>
+    <g font-size="15" font-weight="600">
+      <text x="8" y="61" fill="#2dd4bf">8,059</text><text x="145" y="61" fill="#e879f9">28</text><text x="278" y="61" fill="#d4dd58">10</text><text x="406" y="61" fill="#ec4899">1,554</text><text x="538" y="61" fill="#57e7e1">537</text><text x="670" y="61" fill="#67e8f9">45</text><text x="805" y="61" fill="#2dd4bf">42,318</text><text x="940" y="61" fill="#d4dd58">82ms</text><text x="1073" y="61" fill="#f472b6">0.4%</text><text x="1205" y="61" fill="#67e8f9">19%</text><text x="1339" y="61" fill="#2dd4bf">0</text><text x="1471" y="61" fill="#43e6cf">0m 00s</text>
+    </g>
+    <rect x="5" y="77" width="1590" height="12" rx="2" fill="#13272c" stroke="#f97316" stroke-width="1"/>
 
-  <rect x="110" y="205" width="360" height="580" rx="16" fill="#0b192b" />
-  <rect x="500" y="205" width="580" height="580" rx="16" fill="#0b192b" />
-  <rect x="1110" y="205" width="380" height="580" rx="16" fill="#0b192b" />
+    <!-- Primary event stream: the native wide dashboard uses two dense log columns. -->
+    <rect x="5" y="95" width="820" height="405" fill="#0a292e" stroke="#31525a"/>
+    <text x="10" y="108" font-size="10.5" fill="#8eb4bb">Events (192/192) [FOLLOW] [Verbose] [filter: All]</text>
+    <text x="14" y="128" font-size="11.5" fill="#d7eff2">[1:All] [2:Msg] [3:Tools] [4:Resv]</text>
+    <g font-size="9.3" fill="#b9dfe3">
+      <text x="14" y="147">181 12:59:43.250 INF ✉ MsgRecv #8051 from TurquoiseTower: parity pass</text>
+      <text x="14" y="163">182 12:59:43.500 DBG ◆ Health  p=45 a=1554 m=8059 r=10 ack=28</text>
+      <text x="14" y="179">183 12:59:43.750 INF ✉ MsgRecv #8052 from IvoryMeadow: review notes</text>
+      <text x="14" y="195">184 12:59:44.000 DBG ◴ HTTP    POST /mcp 200 48ms</text>
+      <text x="14" y="211">185 12:59:44.250 INF ⚿ ResGrant AmberDeer crates/dashboard/**</text>
+      <text x="14" y="227">186 12:59:44.500 INF ✉ MsgSent #8053 RubyPrairie → AmberDeer</text>
+      <text x="14" y="243">187 12:59:44.750 DBG ◴ ToolEnd file_reservation_paths 74ms</text>
+      <text x="14" y="259">188 12:59:45.000 INF ✉ MsgRecv #8054 from GrayElk: trace summary</text>
+      <text x="14" y="275">189 12:59:45.250 DBG ◆ Health  p=45 a=1554 m=8060 r=10 ack=29</text>
+      <text x="14" y="291">190 12:59:45.500 INF ⚙ AgentReg SilverCove release-automation</text>
+      <text x="14" y="307">191 12:59:45.750 INF ✉ MsgRecv #8055 from CoralDog: findings</text>
+      <text x="14" y="323">192 12:59:46.000 DBG ◴ HTTP    POST /mcp 200 51ms</text>
+      <text x="14" y="339">193 12:59:46.250 INF ✉ MsgSent #8056 BlueMeadow → GoldenReef</text>
+      <text x="14" y="355">194 12:59:46.500 INF ⚿ ResGrant JadePine skills/agent-mail/**</text>
+      <text x="14" y="371">195 12:59:46.750 DBG ◆ Health  p=45 a=1554 m=8061 r=11 ack=29</text>
+      <text x="14" y="387">196 12:59:47.000 INF ✉ MsgRecv #8057 from RedHarbor: checkpoint</text>
+      <text x="14" y="403">197 12:59:47.250 DBG ◴ ToolEnd search_messages 61ms results=20</text>
+      <text x="14" y="419">198 12:59:47.500 INF ✉ MsgSent #8058 parity review complete</text>
+      <text x="14" y="435">199 12:59:47.750 DBG ◆ Health  p=45 a=1554 m=8062 r=11 ack=30</text>
+      <text x="14" y="451">200 12:59:48.000 INF ✉ MsgRecv #8059 native shell ready</text>
 
-  <rect x="130" y="235" width="320" height="20" rx="8" fill="#15314f" />
-  <rect x="130" y="273" width="290" height="16" rx="8" fill="#112841" />
-  <rect x="130" y="305" width="300" height="16" rx="8" fill="#112841" />
-  <rect x="130" y="337" width="250" height="16" rx="8" fill="#112841" />
+      <text x="416" y="147">201 12:59:48.250 DBG ◆ Health  p=45 a=1554 m=8059 r=10 ack=28</text>
+      <text x="416" y="163">202 12:59:48.500 INF ◴ ToolEnd acknowledge_message 55ms</text>
+      <text x="416" y="179">203 12:59:48.750 INF ✉ MsgRecv #8060 from RubyPrairie: mouse parity</text>
+      <text x="416" y="195">204 12:59:49.000 DBG ◴ HTTP    POST /mcp 200 49ms</text>
+      <text x="416" y="211">205 12:59:49.250 INF ⚿ ResGrant IvoryMeadow AGENTS.md</text>
+      <text x="416" y="227">206 12:59:49.500 DBG ◆ Health  p=45 a=1554 m=8060 r=11 ack=28</text>
+      <text x="416" y="243">207 12:59:49.750 INF ✉ MsgSent #8061 coordination complete</text>
+      <text x="416" y="259">208 12:59:50.000 DBG ◴ ToolEnd fetch_inbox 22ms</text>
+      <text x="416" y="275">209 12:59:50.250 INF ✉ MsgRecv #8062 from TealFalcon: deploy ready</text>
+      <text x="416" y="291">210 12:59:50.500 DBG ◆ Health  p=45 a=1554 m=8062 r=11 ack=29</text>
+      <text x="416" y="307">211 12:59:50.750 INF ✉ MsgRecv #8063 from CopperField: tests pass</text>
+      <text x="416" y="323">212 12:59:51.000 DBG ◴ HTTP    GET /mail/ws-state 200 18ms</text>
+      <text x="416" y="339">213 12:59:51.250 INF ⚙ AgentReg CrimsonLake browser-runtime</text>
+      <text x="416" y="355">214 12:59:51.500 DBG ◆ Health  p=45 a=1554 m=8063 r=11 ack=29</text>
+      <text x="416" y="371">215 12:59:51.750 INF ✉ MsgSent #8064 fresh-eyes fixes landed</text>
+      <text x="416" y="387">216 12:59:52.000 DBG ◴ ToolEnd macro_start_session 162ms</text>
+      <text x="416" y="403">217 12:59:52.250 INF ✉ MsgRecv #8065 from AmberDeer: verified</text>
+      <text x="416" y="419">218 12:59:52.500 DBG ◆ Health  p=45 a=1554 m=8065 r=11 ack=30</text>
+      <text x="416" y="435">219 12:59:52.750 INF ⚿ ResRelease RubyPrairie ftui-web/**</text>
+      <text x="416" y="451">220 12:59:53.000 INF ✉ MsgSent #8066 deployment checkpoint</text>
+    </g>
 
-  <rect x="520" y="235" width="540" height="20" rx="8" fill="#15314f" />
-  <rect x="520" y="275" width="510" height="16" rx="8" fill="#112841" />
-  <rect x="520" y="307" width="490" height="16" rx="8" fill="#112841" />
-  <rect x="520" y="339" width="460" height="16" rx="8" fill="#112841" />
+    <!-- Right rail: native charts, then the compact two-row operational matrix. -->
+    <rect x="831" y="95" width="764" height="74" fill="#172a29" stroke="#a3a944"/>
+    <text x="839" y="108" font-size="10.5" fill="#c9d45b">Latency P50/P95/P99</text>
+    <text x="839" y="128" font-size="9.5" fill="#ff7b72">99</text><rect x="858" y="120" width="692" height="10" fill="#ff5f5f"/>
+    <text x="839" y="143" font-size="9.5" fill="#facc15">95</text><rect x="858" y="135" width="618" height="9" fill="#eabf3c"/>
+    <text x="839" y="158" font-size="9.5" fill="#69d46d">50</text><rect x="858" y="150" width="390" height="6" fill="#4bbf63"/>
 
-  <rect x="1130" y="235" width="340" height="20" rx="8" fill="#15314f" />
-  <rect x="1130" y="273" width="300" height="16" rx="8" fill="#112841" />
-  <rect x="1130" y="305" width="330" height="16" rx="8" fill="#112841" />
+    <rect x="831" y="174" width="764" height="70" fill="#0b2b30" stroke="#1593a7"/>
+    <text x="839" y="187" font-size="10.5" fill="#22d3ee">Throughput (req/interval)</text>
+    <polyline points="843,228 858,227 867,193 877,188 887,211 899,226 930,229 1045,229 1160,228 1275,229 1390,228 1510,229 1585,228" fill="none" stroke="#36d4df" stroke-width="2"/>
+    <rect x="1555" y="193" width="5" height="5" fill="#5ee7ed"/><text x="1565" y="199" font-size="8.5" fill="#c8e6e9">calls/sec</text>
 
-  <rect x="520" y="642" width="250" height="54" rx="14" fill="url(#accent)" />
-  <text x="645" y="676" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="700" font-size="20">Drop Recording Here</text>
+    <g font-size="9.3">
+      <rect x="831" y="250" width="184" height="116" fill="#0a292e" stroke="#31525a"/><text x="839" y="263" fill="#90aeb4">Agents · 500/1554</text><text x="839" y="282" fill="#d9eeee">active:8 idle:0 stale:492</text><text x="839" y="299" fill="#43e6cf">● AmberDeer  codex 0s</text><text x="839" y="315" fill="#b9dfe3">○ RubyPrairie claude 2s</text><text x="839" y="331" fill="#b9dfe3">○ GrayElk codex 5s</text><text x="839" y="347" fill="#718f95">sorted by activity</text>
+      <rect x="1024" y="250" width="184" height="116" fill="#0a292e" stroke="#31525a"/><text x="1032" y="263" fill="#90aeb4">Projects · 41</text><text x="1032" y="282" fill="#d9eeee">msg:8059 ag:1554</text><text x="1032" y="299" fill="#57e7e1">mcp-agent-mail  m:1906</text><text x="1032" y="315" fill="#57e7e1">frankentui      m:1440</text><text x="1032" y="331" fill="#57e7e1">frankensqlite   m:913</text><text x="1032" y="347" fill="#718f95">shown:41 · active:8</text>
+      <rect x="1217" y="250" width="184" height="116" fill="#0a292e" stroke="#31525a"/><text x="1225" y="263" fill="#90aeb4">Reservations · 10</text><text x="1225" y="283" fill="#d9eeee">active:10 expiring:0</text><text x="1225" y="301" fill="#d4dd58">AmberDeer dashboard/**</text><text x="1225" y="317" fill="#d4dd58">RubyPrairie ftui-web/**</text><text x="1225" y="333" fill="#d4dd58">GrayElk docs/**</text><text x="1225" y="349" fill="#718f95">exclusive:7 shared:3</text>
+      <rect x="1410" y="250" width="185" height="116" fill="#092b33" stroke="#0e7490"/><text x="1418" y="263" fill="#22d3ee">Signals · anomalies:1</text><text x="1418" y="282" fill="#c9e7ea">contacts pending:0</text><text x="1418" y="299" fill="#facc15">! 28 messages awaiting ack</text><text x="1418" y="315" fill="#facc15">! GET /mcp 405 0ms</text><text x="1418" y="331" fill="#67e8f9">› #8059 parity complete</text><text x="1418" y="347" fill="#718f95">priority: warn/error</text>
 
-  <text x="800" y="830" text-anchor="middle" fill="#7ca7da" font-family="monospace" font-size="18">
-    Replace with: public/media/agent-mail-dashboard-placeholder.mp4
-  </text>
+      <rect x="831" y="373" width="184" height="127" fill="#0a292e" stroke="#31525a"/><text x="839" y="386" fill="#90aeb4">Contacts · 200/537</text><text x="839" y="406" fill="#d9eeee">pending:0 active:200</text><text x="839" y="423" fill="#b9dfe3">Amber→Ruby approved</text><text x="839" y="439" fill="#b9dfe3">Gray→Red approved</text><text x="839" y="455" fill="#b9dfe3">Coral→Brown approved</text><text x="839" y="471" fill="#b9dfe3">Windy→Jade approved</text><text x="839" y="487" fill="#718f95">no pending links</text>
+      <rect x="1024" y="373" width="184" height="127" fill="#0a292e" stroke="#31525a"/><text x="1032" y="386" fill="#90aeb4">Project Load · 41</text><text x="1032" y="406" fill="#d9eeee">score 10899 projects:41</text><rect x="1032" y="417" width="34" height="63" fill="#18d7db"/><rect x="1068" y="431" width="34" height="49" fill="#18d7db"/><rect x="1104" y="444" width="34" height="36" fill="#18d7db"/><rect x="1140" y="457" width="34" height="23" fill="#18d7db"/><text x="1032" y="493" fill="#718f95">L:msg + agents + resv</text>
+      <rect x="1217" y="373" width="184" height="127" fill="#0a292e" stroke="#31525a"/><text x="1225" y="386" fill="#90aeb4">Reservation TTL · 10</text><text x="1225" y="407" fill="#d9eeee">expiring &lt;5m 0/10</text><text x="1225" y="428" fill="#43e6cf">● 42m dashboard/**</text><text x="1225" y="446" fill="#43e6cf">● 51m ftui-web/**</text><text x="1225" y="464" fill="#43e6cf">● 58m docs/**</text><text x="1225" y="486" fill="#718f95">healthy lease horizon</text>
+      <rect x="1410" y="373" width="185" height="127" fill="#172a29" stroke="#a3a944"/><text x="1418" y="386" fill="#d4dd58">Tool Latency · 2</text><text x="1418" y="407" fill="#d9eeee">tools:2 calls:2</text><text x="1418" y="429" fill="#f472b6">fetch_inbox    p95:82ms</text><rect x="1512" y="420" width="57" height="10" fill="#ec4899"/><text x="1418" y="451" fill="#facc15">ack_message    p95:58ms</text><rect x="1512" y="442" width="39" height="10" fill="#eabf3c"/><text x="1418" y="486" fill="#718f95">ranked by p95</text>
+    </g>
+
+    <!-- Bottom analysis rail: five independent panes, as in the native mega layout. -->
+    <rect x="5" y="507" width="377" height="260" fill="#092b33" stroke="#0e7490"/>
+    <text x="12" y="521" font-size="10.5" fill="#22d3ee">Recent Message Preview</text>
+    <text x="12" y="545" font-size="11.5" fill="#f0abfc">Inbound Message · 00:12:53.058</text>
+    <g font-size="9.5"><text x="12" y="566" fill="#e6f4f5">Re: ownership and alignment guardrails</text><text x="12" y="584" fill="#67e8f9">• From: IvoryMeadow</text><text x="12" y="600" fill="#67e8f9">• To: TurquoiseTower</text><text x="12" y="616" fill="#67e8f9">• Thread: public-coordination-11</text><text x="12" y="642" fill="#a8c7cc">Concurrence + execution plan. Preserve invariants,</text><text x="12" y="658" fill="#a8c7cc">keep the replay privacy-safe, and verify all paths.</text><text x="12" y="681" fill="#d4dd58">1. Mouse regions follow rendered layout.</text><text x="12" y="697" fill="#d4dd58">2. Empty patches skip full-canvas paint.</text><text x="12" y="713" fill="#d4dd58">3. Fullscreen refits and restores focus.</text><text x="12" y="741" fill="#718f95">Reserved: dashboard, README, replay tests</text></g>
+
+    <rect x="389" y="507" width="278" height="260" fill="#0a292e" stroke="#31525a"/>
+    <text x="397" y="521" font-size="10.5" fill="#90aeb4">Live Search</text>
+    <g font-size="10"><text x="397" y="548" fill="#82aeb5">Hint: press / then type</text><text x="397" y="566" fill="#82aeb5">Totals: events:192 agents:1554</text><text x="397" y="584" fill="#82aeb5">projects:45 reservations:10</text><text x="397" y="612" fill="#a8c7cc">Enter opens Search with the</text><text x="397" y="630" fill="#a8c7cc">same query. Filtering is</text><text x="397" y="648" fill="#a8c7cc">case-insensitive and live.</text><text x="397" y="742" fill="#718f95">/ Focus dashboard search</text></g>
+
+    <rect x="674" y="507" width="300" height="260" fill="#0a292e" stroke="#31525a"/>
+    <text x="682" y="521" font-size="10.5" fill="#90aeb4">Recent Activity · 192</text>
+    <g font-size="9.5" fill="#8ab4ba"><text x="682" y="546">12:59:53.000 ◆ Health p=45 a=1554</text><text x="682" y="562">12:59:52.750 ⚿ ResRelease ftui-web/**</text><text x="682" y="578">12:59:52.500 ◆ Health m=8065 ack=30</text><text x="682" y="594">12:59:52.250 ✉ MsgRecv #8065 verified</text><text x="682" y="610">12:59:52.000 ◴ ToolEnd macro 162ms</text><text x="682" y="626">12:59:51.750 ✉ MsgSent #8064 fixes</text><text x="682" y="642">12:59:51.500 ◆ Health m=8063</text><text x="682" y="658">12:59:51.250 ⚙ AgentReg CrimsonLake</text><text x="682" y="674">12:59:51.000 ◴ HTTP GET state 18ms</text><text x="682" y="690">12:59:50.750 ✉ MsgRecv tests pass</text><text x="682" y="706">12:59:50.500 ◆ Health ack=29</text><text x="682" y="722">12:59:50.250 ✉ MsgRecv deploy ready</text><text x="682" y="742" fill="#718f95">newest first · 192 retained</text></g>
+
+    <rect x="981" y="507" width="294" height="260" fill="#0a292e" stroke="#31525a"/>
+    <text x="989" y="521" font-size="10.5" fill="#90aeb4">Event Mix · 192</text>
+    <text x="989" y="548" font-size="10" fill="#f472b6">ERR:0</text><text x="1045" y="548" font-size="10" fill="#facc15">WRN:4</text><text x="1104" y="548" font-size="10" fill="#43e6cf">INF:162</text><text x="1174" y="548" font-size="10" fill="#67e8f9">DBG:26</text>
+    <rect x="989" y="559" width="0" height="8" fill="#ef4444"/><rect x="989" y="559" width="18" height="8" fill="#eabf3c"/><rect x="1009" y="559" width="188" height="8" fill="#2dd4bf"/><rect x="1199" y="559" width="54" height="8" fill="#38bdf8"/>
+    <g font-size="10" fill="#a8c7cc"><text x="989" y="594">• Health      66%</text><text x="989" y="612">• HTTP        17%</text><text x="989" y="630">• ToolEnd      7%</text><text x="989" y="648">• MsgRecv      6%</text><text x="989" y="666">• MsgSent      2%</text><text x="989" y="684">• ResGrant     1%</text><text x="989" y="702">• ResStart     1%</text><text x="989" y="742" fill="#718f95">severity + event-kind distribution</text></g>
+
+    <rect x="1282" y="507" width="313" height="260" fill="#0a292e" stroke="#31525a"/>
+    <text x="1290" y="521" font-size="10.5" fill="#90aeb4">Message Flow · 77</text>
+    <text x="1290" y="549" font-size="11" fill="#22d3ee">↑16 (21%)  ↓61 (79%)  Δ:-45</text>
+    <rect x="1290" y="558" width="54" height="11" fill="#0ea5e9"/><rect x="1347" y="558" width="204" height="11" fill="#22d3ee"/>
+    <g font-size="9.5" fill="#67e8f9"><text x="1290" y="592">↓ #8065 from AmberDeer: verified</text><text x="1290" y="608">↓ #8064 from RubyPrairie: parity ready</text><text x="1290" y="624">↑ #8063 to GrayElk: trace summary</text><text x="1290" y="640">↓ #8062 from RedHarbor: checkpoint</text><text x="1290" y="656">↓ #8061 from CoralDog: findings</text><text x="1290" y="672">↑ #8060 to BlueMeadow: focus restored</text><text x="1290" y="688">↓ #8059 from GoldenReef: tests pass</text><text x="1290" y="704">↓ #8058 from TealFalcon: deploy ready</text><text x="1290" y="720">↑ #8057 to CopperField: ack received</text><text x="1290" y="742" fill="#718f95">inbound/outbound relative shares</text></g>
+
+    <rect y="771" width="1600" height="13" fill="#0a2228"/>
+    <text x="8" y="781" font-size="8.8" fill="#9bb8bd">Req:42,318 Avg:82ms 2xx:42,112 4xx:190 5xx:16   Events:192/10,000 (2%) Drops:0</text>
+    <rect y="785" width="1600" height="15" fill="#0b252b"/>
+    <text x="8" y="796" font-size="9.5" fill="#39d5e0"><tspan fill="#e6fbff">Dashboard</tspan>  mcp  up:0m00s</text><text x="615" y="796" font-size="9.5" fill="#d4dd58">req:42,318 ok:42,112 err:206 avg:82ms</text><text x="925" y="796" font-size="9.5" fill="#22d3ee">Tab next · Enter inspect · / search · F1 help</text><text x="1500" y="796" font-size="9.5" fill="#43e6cf">LIVE Aurora</text>
+  </g>
 </svg>

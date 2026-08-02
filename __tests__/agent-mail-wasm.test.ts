@@ -110,6 +110,11 @@ const RUNNER_STATUS = JSON.stringify({
   active_reservations: 24,
   pending_acknowledgements: 1_597,
   last_deep_link: null,
+  active_screen: "dashboard",
+  dashboard_filter: "all",
+  help_visible: false,
+  interaction_revision: 1,
+  selected_row: 0,
 });
 
 class TestTerminal {
@@ -174,7 +179,6 @@ function testArtifacts(
 ) {
   return {
     manifest: {},
-    pack: {},
     packJson: "{}",
     FrankenTermWeb: Terminal,
     AgentMailDashboardRunner: Runner,
@@ -204,6 +208,45 @@ function installAnimationEnvironment(callbacks?: FrameRequestCallback[]) {
 }
 
 describe("AgentMailTerminal lifecycle", () => {
+  it("does not repaint the full canvas when a rendered step has an empty patch", async () => {
+    TestTerminal.instances = [];
+    TestRunner.instances = [];
+    const frameCallbacks: FrameRequestCallback[] = [];
+    const restoreEnvironment = installAnimationEnvironment(frameCallbacks);
+    const load = vi.spyOn(dashboardRuntime, "loadDashboardArtifacts").mockResolvedValue(testArtifacts());
+
+    try {
+      const { default: AgentMailTerminal } = await import("@/components/agent-mail-terminal");
+      let view!: ReturnType<typeof render>;
+      await act(async () => {
+        view = render(createElement(AgentMailTerminal, { paused: false, reducedMotion: false }));
+        await flushMicrotasks();
+      });
+      const [terminal] = TestTerminal.instances;
+      const [runner] = TestRunner.instances;
+      runner.step.mockReturnValue({
+        running: true,
+        rendered: true,
+        events_processed: 1,
+        frame_idx: 2,
+      });
+      const initialRenderCount = terminal.render.mock.calls.length;
+
+      await act(async () => {
+        frameCallbacks[0]?.(100);
+        await flushMicrotasks();
+      });
+
+      expect(runner.takeFlatPatches).toHaveBeenCalled();
+      expect(terminal.applyPatchBatchFlat).not.toHaveBeenCalled();
+      expect(terminal.render).toHaveBeenCalledTimes(initialRenderCount);
+      view.unmount();
+    } finally {
+      load.mockRestore();
+      restoreEnvironment();
+    }
+  });
+
   it("releases every initialized WASM wrapper exactly once across Strict Mode remounts", async () => {
     TestTerminal.instances = [];
     TestRunner.instances = [];
