@@ -107,6 +107,7 @@ export interface FrankenTermInstance {
   render(): void;
   resize(cols: number, rows: number): void;
   setAccessibility(options: Record<string, unknown>): void;
+  setZoom(zoom: number): unknown;
   screenReaderMirrorText(): string;
   drainAccessibilityAnnouncements(): unknown[];
   destroy(): void;
@@ -141,18 +142,42 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function requirePublicArtifactUrl(value: unknown, label: string): string {
-  if (typeof value !== "string" || !value.startsWith(ARTIFACT_ROOT) || value.includes("..")) {
-    throw new Error(`${label} must be a local ${ARTIFACT_ROOT} URL`);
+function requireLocalAssetUrl(value: unknown, label: string, root: string): string {
+  if (typeof value !== "string" || value.length > 2_048 || !value.startsWith(root)) {
+    throw new Error(`${label} must be a local ${root} URL`);
+  }
+  let decoded = value;
+  try {
+    while (true) {
+      const next = decodeURIComponent(decoded);
+      if (next === decoded) break;
+      decoded = next;
+    }
+  } catch {
+    throw new Error(`${label} must be a local ${root} URL`);
+  }
+  const parsed = new URL(decoded, "https://agent-mail.invalid");
+  const pathSegments = parsed.pathname.split("/");
+  if (
+    parsed.origin !== "https://agent-mail.invalid" ||
+    !parsed.pathname.startsWith(root) ||
+    parsed.search !== "" ||
+    parsed.hash !== "" ||
+    decoded.includes("\0") ||
+    decoded.includes("\\") ||
+    pathSegments.includes("..")
+  ) {
+    throw new Error(`${label} must be a local ${root} URL`);
   }
   return value;
 }
 
+function requirePublicArtifactUrl(value: unknown, label: string): string {
+  return requireLocalAssetUrl(value, label, ARTIFACT_ROOT);
+}
+
 function requirePosterUrl(value: unknown): string {
-  if (typeof value !== "string" || !value.startsWith("/images/") || value.includes("..")) {
-    throw new Error("poster.url must be a local /images/ URL");
-  }
-  return value;
+  return requireLocalAssetUrl(value, "poster.url", "/images/");
 }
 
 function requireArtifact(value: unknown, label: string): Required<DashboardArtifact> {
@@ -236,7 +261,8 @@ async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
 
 async function fetchVerifiedArtifact(artifact: Required<DashboardArtifact>): Promise<ArrayBuffer> {
   const response = await fetch(artifact.url, {
-    credentials: "same-origin",
+    credentials: "omit",
+    cache: "default",
     signal: AbortSignal.timeout(15_000),
   });
   if (!response.ok) throw new Error(`GET ${artifact.url} returned ${response.status}`);
@@ -249,10 +275,14 @@ async function fetchVerifiedArtifact(artifact: Required<DashboardArtifact>): Pro
   return bytes;
 }
 
-async function importPublicModule<T>(url: string): Promise<T> {
-  // webpackIgnore keeps the generated wasm-bindgen module at its public URL so
-  // its own import.meta.url remains correct. The URL was manifest-validated.
-  return import(/* webpackIgnore: true */ url) as Promise<T>;
+async function importVerifiedModule<T>(bytes: ArrayBuffer): Promise<T> {
+  const source = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  const moduleUrl = URL.createObjectURL(new Blob([source], { type: "text/javascript" }));
+  try {
+    return await import(/* webpackIgnore: true */ moduleUrl) as T;
+  } finally {
+    URL.revokeObjectURL(moduleUrl);
+  }
 }
 
 async function loadFont(bytes: ArrayBuffer): Promise<void> {
@@ -269,7 +299,7 @@ async function loadFont(bytes: ArrayBuffer): Promise<void> {
 
 async function loadDashboardArtifactsUncached(): Promise<LoadedDashboardArtifacts> {
   const manifestResponse = await fetch(MANIFEST_URL, {
-    credentials: "same-origin",
+    credentials: "omit",
     cache: "no-cache",
     signal: AbortSignal.timeout(15_000),
   });
@@ -286,18 +316,12 @@ async function loadDashboardArtifactsUncached(): Promise<LoadedDashboardArtifact
     fetchVerifiedArtifact(artifacts.terminal_font),
   ]);
 
-  // Keep the verified JS buffers alive through import so every manifest entry
-  // participates in the gate even though native import owns module execution.
-  if (runnerJs.byteLength === 0 || rendererJs.byteLength === 0) {
-    throw new Error("Dashboard JavaScript modules are empty");
-  }
-
   const packJson = new TextDecoder("utf-8", { fatal: true }).decode(packBytes);
   const pack = validateDashboardDemoPack(JSON.parse(packJson));
 
   const [runnerModule, rendererModule] = await Promise.all([
-    importPublicModule<RunnerModule>(artifacts.dashboard_runner_js.url),
-    importPublicModule<RendererModule>(artifacts.renderer_js.url),
+    importVerifiedModule<RunnerModule>(runnerJs),
+    importVerifiedModule<RendererModule>(rendererJs),
     loadFont(fontBytes),
   ]);
   await Promise.all([

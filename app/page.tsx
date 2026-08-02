@@ -26,10 +26,11 @@ import ComparisonTable from "@/components/comparison-table";
 import RustCodeBlock from "@/components/rust-code-block";
 import Timeline from "@/components/timeline";
 import RobotMascot from "@/components/robot-mascot";
+import HeroMedia from "@/components/hero-media";
 import GlitchText from "@/components/glitch-text";
 import { SyncContainer } from "@/components/sync-elements";
 import { Tooltip } from "@/components/tooltip";
-import { Magnetic, BorderBeam } from "@/components/motion-wrapper";
+import { Magnetic } from "@/components/motion-wrapper";
 import {
   siteConfig,
   heroStats,
@@ -45,11 +46,9 @@ import {
 } from "@/lib/content";
 import { isInternalHref, toSafeHref } from "@/lib/utils";
 
-import { Suspense } from "react";
 import { LazyViz } from "@/components/viz/viz-framework";
 
 const AgentFlywheel = dynamic(() => import("@/components/agent-flywheel"), { ssr: false });
-const HeroMedia = dynamic(() => import("@/components/hero-media"));
 const FileReservationViz = dynamic(() => import("@/components/viz/file-reservation-viz"), { ssr: false });
 const MessageLifecycleViz = dynamic(() => import("@/components/viz/message-lifecycle-viz"), { ssr: false });
 const AgentHandshakeViz = dynamic(() => import("@/components/viz/agent-handshake-viz"), { ssr: false });
@@ -74,7 +73,7 @@ export default function HomePage() {
           <GlowOrbits />
         </div>
 
-        <div className="relative z-10 mx-auto max-w-screen-2xl px-6 lg:px-8 w-full mt-12 md:mt-0">
+        <div className="relative z-10 mx-auto max-w-[1800px] px-4 sm:px-6 lg:px-8 w-full mt-12 md:mt-0">
           <div className="flex flex-col items-start max-w-4xl">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -143,21 +142,17 @@ export default function HomePage() {
           </div>
 
           {/* Hero Visual — Robot Mascot + production FrankenTUI WASM dashboard */}
-          <div className="relative mt-16 w-full max-w-[1200px] mx-auto group">
-            {/* Floating Robot Mascot */}
-            <div className="absolute -top-8 right-4 md:top-[-60px] md:right-[8%] z-20 w-20 h-28 md:w-28 md:h-40 animate-float">
-              <RobotMascot />
+          <div className="relative mt-12 w-full mx-auto">
+            {/* Keep the animated mascot in normal flow, safely above the terminal. */}
+            <div
+              className="mb-6 ml-auto mr-[6%] h-28 w-20 animate-float md:mb-8 md:h-40 md:w-28"
+              data-testid="hero-robot-mascot"
+            >
+              <RobotMascot className="h-full w-full" />
             </div>
 
-            <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-orange-500 rounded-[2rem] blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200" />
-            <SyncContainer withNodes={false} className="relative glass-modern p-0 overflow-hidden shadow-2xl w-full">
-              <BorderBeam />
-
-              {/* Production Agent Mail DashboardScreen rendered by FrankenTUI in WASM */}
-              <Suspense fallback={<div className="min-h-[300px] md:min-h-[420px] bg-black/60 animate-pulse" />}>
-                <HeroMedia />
-              </Suspense>
-            </SyncContainer>
+            {/* Production Agent Mail DashboardScreen rendered by FrankenTUI in WASM */}
+            <HeroMedia />
           </div>
         </div>
       </section>

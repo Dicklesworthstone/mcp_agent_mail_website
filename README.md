@@ -603,10 +603,16 @@ not a prerecorded video.
   event is synthetic
 - **Deterministic replay:** an 18-second loop drives the in-memory browser adapter; the
   site never opens a visitor's database or calls a mailbox mutation API
-- **Play/Pause/Reset controls** plus a direct focus control for the terminal
-- **Responsive lifecycle:** resize events reflow the production TUI, device pixel ratio
-  is capped at 2, the logical loop runs at the native 100 ms tick, and off-screen frames
-  are suspended
+- **Production-density opening frame:** 986 privacy-safe synthetic startup events plus
+  populated agent, project, reservation, contact, latency, and throughput state make the
+  first frame resemble a busy real Agent Mail session instead of an empty toy dashboard
+- **Play/Pause/Reset controls**, a direct focus control, and one-click browser fullscreen
+  that refits the native terminal and restores keyboard focus on exit
+- **Fast, sharp startup:** verified artifact fetching begins when the client module is
+  evaluated, JavaScript executes directly from the already-verified bytes, the terminal
+  starts at 68% zoom for the production mega layout, and renderer density is capped at 3x
+- **Responsive lifecycle:** resize events reflow the production TUI, the logical loop
+  runs at the native 100 ms tick, and off-screen frames are suspended
 - **Accessible fallback:** a screen-reader mirror, live status, keyboard instructions,
   static poster, and no-script/error fallback remain available
 

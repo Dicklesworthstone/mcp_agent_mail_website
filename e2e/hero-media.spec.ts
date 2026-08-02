@@ -19,6 +19,60 @@ test.describe("Hero media module", () => {
     diagnostics.breadcrumb("Production DashboardScreen rendered through FrankenTUI WASM");
   });
 
+  test("desktop embed starts in the native mega-density geometry without mascot overlap", async ({
+    page,
+    diagnostics,
+  }, testInfo) => {
+    test.skip(testInfo.project.name === "mobile-chrome", "Desktop density contract");
+    diagnostics.setRoute("/");
+    await page.setViewportSize({ width: 1600, height: 1000 });
+    await page.goto("/");
+
+    const hero = page.locator("#home-hero");
+    const terminal = hero.getByTestId("hero-agent-mail-terminal");
+    await expect(hero.getByTestId("hero-dashboard-runtime-status")).toContainText(/WASM frame/i, {
+      timeout: 30_000,
+    });
+    await expect.poll(async () => Number(await terminal.getAttribute("data-terminal-cols"))).toBeGreaterThanOrEqual(220);
+
+    const mascotBox = await hero.getByTestId("hero-robot-mascot").boundingBox();
+    const demoBox = await hero.getByTestId("hero-tui-demo").boundingBox();
+    expect(mascotBox).not.toBeNull();
+    expect(demoBox).not.toBeNull();
+    expect(mascotBox!.y + mascotBox!.height).toBeLessThanOrEqual(demoBox!.y);
+    diagnostics.breadcrumb("Dashboard opened at >=220 columns and mascot remained above its bounds");
+  });
+
+  test("verified artifacts are fetched once and JavaScript executes from verified bytes", async ({
+    page,
+    diagnostics,
+  }) => {
+    diagnostics.setRoute("/");
+    const artifactRequests = new Map<string, number>();
+    const checkedArtifacts = new Set([
+      "/agent-mail-dashboard/demo_pack.v1.json",
+      "/agent-mail-dashboard/runner/agent_mail_dashboard.js",
+      "/agent-mail-dashboard/runner/agent_mail_dashboard_bg.wasm",
+      "/agent-mail-dashboard/renderer/FrankenTerm.js",
+      "/agent-mail-dashboard/renderer/FrankenTerm_bg.wasm",
+      "/agent-mail-dashboard/fonts/pragmasevka-nf-subset.woff2",
+    ]);
+    page.on("request", (request) => {
+      const pathname = new URL(request.url()).pathname;
+      if (checkedArtifacts.has(pathname)) {
+        artifactRequests.set(pathname, (artifactRequests.get(pathname) ?? 0) + 1);
+      }
+    });
+    await page.goto("/");
+    await expect(page.getByTestId("hero-dashboard-runtime-status")).toContainText(/WASM frame/i, {
+      timeout: 30_000,
+    });
+    for (const pathname of checkedArtifacts) {
+      expect(artifactRequests.get(pathname), pathname).toBe(1);
+    }
+    diagnostics.breadcrumb("Each verified artifact crossed the network exactly once");
+  });
+
   test("verified replay exposes real aggregate counts and synthetic-detail boundary", async ({
     page,
     diagnostics,
@@ -29,7 +83,7 @@ test.describe("Hero media module", () => {
     const hero = page.locator("#home-hero");
     await expect(hero.getByText(/Real aggregate counts from a read-only Agent Mail SQLite export/i)).toBeVisible();
     await expect(hero.getByText(/names, paths, messages, and replay events are synthetic/i)).toBeVisible();
-    await expect(hero.getByText(/44 projects · 1,550 agents · 7,916 messages/i)).toBeVisible({
+    await expect(hero.getByText(/45 projects · 1,554 agents · 8,059 messages/i)).toBeVisible({
       timeout: 30_000,
     });
     await expect(page.getByText(/source db:/i)).toHaveCount(0);
@@ -47,21 +101,66 @@ test.describe("Hero media module", () => {
     const canvas = hero.getByTestId("hero-agent-mail-canvas");
     const runtime = hero.getByTestId("hero-dashboard-runtime-status");
     await expect(runtime).toContainText(/WASM frame/i, { timeout: 30_000 });
-    await canvas.focus();
-    await page.keyboard.press("2");
-    const screenReaderMirror = hero.locator("#agent-mail-terminal-screen-reader");
-    await expect(screenReaderMirror).toContainText(/MsgRecv|MsgSent/i, {
-      timeout: 5_000,
-    });
-    await expect(screenReaderMirror).not.toContainText(/ResGrant/i);
-
     await hero.getByRole("button", { name: "Pause dashboard replay" }).click();
     await expect(hero.getByRole("button", { name: "Play dashboard replay" })).toBeVisible();
+    const beforeInputFrame = await runtime.textContent();
+    await canvas.focus();
+    await page.keyboard.press("2");
+    await expect.poll(async () => runtime.textContent()).not.toBe(beforeInputFrame);
+
+    await canvas.focus();
+    await page.keyboard.press("Tab");
+    await expect(canvas).not.toBeFocused();
+
+    await canvas.focus();
+    await page.keyboard.press("Shift+Tab");
+    await expect(canvas).not.toBeFocused();
+
+    const liveUpdate = hero.locator("#agent-mail-terminal-screen-reader");
+    await expect(liveUpdate).not.toBeEmpty();
+    expect((await liveUpdate.textContent())?.length ?? Number.POSITIVE_INFINITY).toBeLessThan(500);
+
     await page.waitForTimeout(900);
     const pausedFrame = await runtime.textContent();
     await page.waitForTimeout(900);
     expect(await runtime.textContent()).toBe(pausedFrame);
     diagnostics.breadcrumb("Keyboard input rendered and pause held the deterministic frame");
+  });
+
+  test("one-click fullscreen fills the browser and exits back to the trigger", async ({
+    page,
+    diagnostics,
+  }, testInfo) => {
+    test.skip(testInfo.project.name === "mobile-chrome", "Fullscreen API is browser-shell dependent on mobile");
+    diagnostics.setRoute("/");
+    await page.setViewportSize({ width: 1600, height: 1000 });
+    await page.goto("/");
+
+    const demo = page.getByTestId("hero-tui-demo");
+    const enter = page.getByRole("button", { name: "Open dashboard fullscreen" });
+    await expect(page.getByTestId("hero-dashboard-runtime-status")).toContainText(/WASM frame/i, {
+      timeout: 30_000,
+    });
+    await enter.click();
+    await expect(demo).toHaveAttribute("data-fullscreen", "true");
+    const box = await demo.boundingBox();
+    const viewport = page.viewportSize();
+    expect(box).not.toBeNull();
+    expect(viewport).not.toBeNull();
+    expect(Math.abs(box!.width - viewport!.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(box!.height - viewport!.height)).toBeLessThanOrEqual(1);
+    await expect.poll(async () => {
+      const controlsBox = await page.getByTestId("hero-dashboard-controls").boundingBox();
+      return controlsBox && viewport
+        ? Math.abs(controlsBox.y + controlsBox.height - viewport.height)
+        : Number.POSITIVE_INFINITY;
+    }).toBeLessThanOrEqual(1);
+
+    const exit = page.getByRole("button", { name: "Exit dashboard fullscreen" });
+    await exit.click();
+    await expect(demo).toHaveAttribute("data-fullscreen", "false");
+    await expect(page.getByRole("button", { name: "Open dashboard fullscreen" })).toBeFocused();
+    diagnostics.breadcrumb("Fullscreen entered at viewport bounds and restored focus on exit");
   });
 
   test("reduced motion renders a deterministic static frame", async ({ page, diagnostics }) => {
@@ -115,6 +214,28 @@ test.describe("Hero media module", () => {
     await expect(hero.getByText(/no private data was requested/i)).toBeVisible();
     await expect(hero.getByAltText(/Preview of the Agent Mail operations dashboard/i)).toBeVisible();
     diagnostics.breadcrumb("Manifest failure rendered a local poster and privacy-safe error state");
+  });
+
+  test("artifact-integrity failure stops before WASM execution and uses the safe fallback", async ({
+    page,
+    diagnostics,
+  }) => {
+    diagnostics.setRoute("/");
+    await page.route("**/agent-mail-dashboard/runner/agent_mail_dashboard_bg.wasm", async (route) => {
+      const response = await route.fetch();
+      const body = await response.body();
+      body[0] ^= 0xff;
+      await route.fulfill({ response, body });
+    });
+    await page.goto("/");
+
+    const hero = page.locator("#home-hero");
+    await expect(hero.getByTestId("hero-dashboard-runtime-status")).toContainText(/Static fallback/i, {
+      timeout: 30_000,
+    });
+    await expect(hero.getByText(/failed SHA-256 verification/i)).toBeVisible();
+    await expect(hero.getByText(/no private data was requested/i)).toBeVisible();
+    diagnostics.breadcrumb("A mutated WASM response failed closed at the SHA-256 gate");
   });
 
   test("showcase button points to a public route", async ({ page, diagnostics }) => {

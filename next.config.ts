@@ -13,8 +13,8 @@ const nextConfig: NextConfig = {
   async headers() {
     const scriptSrc =
       process.env.NODE_ENV === "development"
-        ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval';"
-        : "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval';";
+        ? "script-src 'self' blob: 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval';"
+        : "script-src 'self' blob: 'unsafe-inline' 'wasm-unsafe-eval';";
 
     return [
       {
@@ -22,9 +22,15 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Cache-Control",
-            value: "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800",
+            value: "public, max-age=0, must-revalidate",
           },
           { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
+        ],
+      },
+      {
+        source: "/agent-mail-dashboard/manifest.v1.json",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=0, s-maxage=0, must-revalidate" },
         ],
       },
       {

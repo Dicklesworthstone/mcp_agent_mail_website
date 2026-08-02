@@ -1,47 +1,100 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "@/components/motion";
 import AgentMailTerminal, {
   type AgentMailTerminalHandle,
 } from "@/components/agent-mail-terminal";
-import type { DashboardRunnerStatus } from "@/lib/agent-mail-wasm";
+import {
+  loadDashboardArtifacts,
+  type DashboardRunnerStatus,
+} from "@/lib/agent-mail-wasm";
 import {
   Database,
   ExternalLink,
   Keyboard,
+  Maximize2,
+  Minimize2,
   MousePointer2,
   Pause,
   Play,
   RotateCcw,
   ShieldCheck,
-  Zap,
 } from "lucide-react";
 
+if (typeof window !== "undefined") {
+  void loadDashboardArtifacts().catch(() => {
+    // AgentMailTerminal owns the visible fallback and retry path. Starting the
+    // verified fetch here only removes the client-mount delay.
+  });
+}
+
 export default function HeroMedia() {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const fullscreenButtonRef = useRef<HTMLButtonElement>(null);
+  const wasDashboardFullscreenRef = useRef(false);
   const terminalRef = useRef<AgentMailTerminalHandle>(null);
   const prefersReducedMotion = useReducedMotion() ?? false;
   const [paused, setPaused] = useState(false);
   const [status, setStatus] = useState<DashboardRunnerStatus | null>(null);
   const [loadError, setLoadError] = useState(false);
+  const [fullscreenError, setFullscreenError] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const effectivePaused = paused || prefersReducedMotion;
 
-  return (
-    <div className="relative" data-testid="hero-tui-demo">
-      <div className="relative min-h-[360px] overflow-hidden bg-[#020a14] p-3 sm:p-5 md:min-h-[500px] md:p-7">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,0.14),transparent_55%),radial-gradient(circle_at_80%_80%,rgba(14,165,233,0.12),transparent_55%)]" />
-        <div className="relative overflow-hidden rounded-2xl border border-blue-500/25 bg-black/50 shadow-[0_30px_100px_rgba(2,132,199,0.12)]">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-slate-950/95 px-3 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-slate-400 sm:px-4 sm:text-[10px]">
-            <span className="inline-flex items-center gap-2 text-cyan-200">
-              <Zap className="h-3 w-3" />
-              Production DashboardScreen · Rust → WASM
-            </span>
-            <span className="inline-flex items-center gap-2 text-emerald-300">
-              <ShieldCheck className="h-3 w-3" />
-              Verified public replay
-            </span>
-          </div>
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const active = document.fullscreenElement === hostRef.current;
+      const wasDashboardFullscreen = wasDashboardFullscreenRef.current;
+      wasDashboardFullscreenRef.current = active;
+      setIsFullscreen(active);
+      window.requestAnimationFrame(() => {
+        terminalRef.current?.refit();
+        if (active) terminalRef.current?.focus();
+        else if (wasDashboardFullscreen) fullscreenButtonRef.current?.focus();
+      });
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
 
+  useEffect(() => {
+    let settledFrame = 0;
+    const layoutFrame = window.requestAnimationFrame(() => {
+      terminalRef.current?.refit();
+      settledFrame = window.requestAnimationFrame(() => terminalRef.current?.refit());
+    });
+    return () => {
+      window.cancelAnimationFrame(layoutFrame);
+      if (settledFrame) window.cancelAnimationFrame(settledFrame);
+    };
+  }, [isFullscreen]);
+
+  async function toggleFullscreen() {
+    setFullscreenError(null);
+    try {
+      if (document.fullscreenElement === hostRef.current) {
+        await document.exitFullscreen();
+      } else if (hostRef.current) {
+        await hostRef.current.requestFullscreen();
+      }
+    } catch {
+      setFullscreenError("Fullscreen is unavailable in this browser context.");
+    }
+  }
+
+  return (
+    <div
+      ref={hostRef}
+      className={`relative bg-[#020611] ${isFullscreen ? "flex h-screen w-screen flex-col overflow-hidden" : "overflow-hidden rounded-xl border border-white/10 shadow-[0_24px_80px_rgba(2,132,199,0.16)]"}`}
+      data-testid="hero-tui-demo"
+      data-fullscreen={isFullscreen ? "true" : "false"}
+    >
+      <div
+        className={`relative min-h-0 bg-black ${
+          isFullscreen ? "flex-1" : "lg:h-[min(820px,50vw)]"
+        }`}
+      >
           <AgentMailTerminal
             ref={terminalRef}
             paused={effectivePaused}
@@ -53,19 +106,12 @@ export default function HeroMedia() {
             }}
             onStatus={setStatus}
           />
-
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/45 to-transparent px-4 pb-4 pt-12 sm:px-5">
-            <p className="text-xs font-bold uppercase tracking-wide text-white sm:text-sm">
-              The actual Agent Mail TUI, running in your browser
-            </p>
-            <p className="mt-1 max-w-3xl font-mono text-[9px] leading-relaxed text-slate-300 sm:text-[10px]">
-              Real aggregate counts from a read-only Agent Mail SQLite export. Names, paths, messages, and replay events are synthetic public-demo details.
-            </p>
-          </div>
-        </div>
       </div>
 
-      <div className="border-t border-white/5 bg-black/45 px-4 py-3 sm:px-6">
+      <div
+        className={`border-t border-white/10 bg-[#050b15] px-3 py-3 sm:px-4 ${isFullscreen ? "shrink-0" : ""}`}
+        data-testid="hero-dashboard-controls"
+      >
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
@@ -98,6 +144,17 @@ export default function HeroMedia() {
             Interact
           </button>
 
+          <button
+            ref={fullscreenButtonRef}
+            type="button"
+            onClick={() => void toggleFullscreen()}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-bold text-blue-200 transition-colors hover:bg-blue-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+            aria-label={isFullscreen ? "Exit dashboard fullscreen" : "Open dashboard fullscreen"}
+          >
+            {isFullscreen ? <Minimize2 className="h-3 w-3" /> : <Maximize2 className="h-3 w-3" />}
+            {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+          </button>
+
           <a
             data-testid="hero-real-webapp-link"
             href="/showcase"
@@ -105,7 +162,7 @@ export default function HeroMedia() {
             aria-label="Open the Agent Mail visualization showcase"
           >
             <ExternalLink className="h-3 w-3" />
-            Full Showcase
+            Showcase
           </a>
 
           <span
@@ -123,7 +180,7 @@ export default function HeroMedia() {
           </span>
         </div>
 
-        <div className="mt-3 grid gap-2 text-[10px] text-slate-500 sm:grid-cols-3">
+        <div className="mt-3 grid gap-2 font-mono text-[9px] leading-relaxed text-slate-500 sm:grid-cols-3 sm:text-[10px]">
           <span className="inline-flex items-center gap-1.5">
             <Database className="h-3 w-3 text-blue-300" />
             {status
@@ -132,13 +189,14 @@ export default function HeroMedia() {
           </span>
           <span className="inline-flex items-center gap-1.5">
             <MousePointer2 className="h-3 w-3 text-cyan-300" />
-            Click the terminal, then use arrows, j/k, /, Enter, Esc, and number keys
+            Real aggregate counts from a read-only Agent Mail SQLite export. Names, paths, messages, and replay events are synthetic public-demo details.
           </span>
           <span className="inline-flex items-center gap-1.5 sm:justify-end">
             <ShieldCheck className="h-3 w-3 text-emerald-300" />
             {prefersReducedMotion ? "Reduced motion: deterministic static frame" : "18-second deterministic replay loop"}
           </span>
         </div>
+        <p className="sr-only" aria-live="polite">{fullscreenError}</p>
       </div>
     </div>
   );
