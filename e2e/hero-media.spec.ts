@@ -18,7 +18,7 @@ test.describe("Hero media module", () => {
     diagnostics.breadcrumb("Production Agent Mail shell and DashboardScreen rendered through FrankenTUI WASM");
   });
 
-  test("desktop embed starts in the native mega-density geometry without mascot overlap", async ({
+  test("desktop embed starts at a readable native density without mascot overlap", async ({
     page,
     diagnostics,
   }, testInfo) => {
@@ -30,22 +30,56 @@ test.describe("Hero media module", () => {
     const hero = page.locator("#home-hero");
     const terminal = hero.getByTestId("hero-agent-mail-terminal");
     await expect(terminal).toHaveAttribute("data-active-screen", "dashboard", { timeout: 30_000 });
-    await expect.poll(async () => Number(await terminal.getAttribute("data-terminal-cols"))).toBeGreaterThanOrEqual(220);
+    await expect.poll(async () => Number(await terminal.getAttribute("data-terminal-cols"))).toBeGreaterThanOrEqual(190);
 
     const mascotBox = await hero.getByTestId("hero-robot-mascot").boundingBox();
     const demoBox = await hero.getByTestId("hero-tui-demo").boundingBox();
+    const terminalBox = await terminal.boundingBox();
     const ctaBox = await hero.getByRole("link", { name: /see agent mail in action/i }).boundingBox();
-    const viewport = page.viewportSize();
     expect(mascotBox).not.toBeNull();
     expect(demoBox).not.toBeNull();
+    expect(terminalBox).not.toBeNull();
     expect(ctaBox).not.toBeNull();
-    expect(viewport).not.toBeNull();
-    expect(demoBox!.width).toBeGreaterThanOrEqual(viewport!.width * 0.92);
-    expect(demoBox!.width / demoBox!.height).toBeGreaterThanOrEqual(1.9);
-    expect(demoBox!.width / demoBox!.height).toBeLessThanOrEqual(2.1);
+    expect(demoBox!.width).toBeGreaterThanOrEqual(1_200);
+    expect(demoBox!.width).toBeLessThanOrEqual(1_300);
+    expect(terminalBox!.width / terminalBox!.height).toBeGreaterThanOrEqual(1.9);
+    expect(terminalBox!.width / terminalBox!.height).toBeLessThanOrEqual(2.1);
+    expect(demoBox!.height).toBeGreaterThan(terminalBox!.height);
     expect(demoBox!.y - (ctaBox!.y + ctaBox!.height)).toBeLessThanOrEqual(64);
     expect(mascotBox!.y + mascotBox!.height).toBeLessThanOrEqual(demoBox!.y);
-    diagnostics.breadcrumb("Full-bleed 2:1 shell opened at >=220 columns with <=64px CTA gap and zero mascot overlap");
+    await expect(hero.getByTestId("hero-tui-demo")).toHaveAttribute("data-zoom", "0.75");
+    diagnostics.breadcrumb("Bounded 2:1 shell opened at readable native density with <=64px CTA gap and zero mascot overlap");
+  });
+
+  test("zoom controls underneath refit the live native terminal", async ({ page, diagnostics }) => {
+    diagnostics.setRoute("/");
+    await page.setViewportSize({ width: 1600, height: 1000 });
+    await page.goto("/");
+
+    const hero = page.locator("#home-hero");
+    const demo = hero.getByTestId("hero-tui-demo");
+    const terminal = hero.getByTestId("hero-agent-mail-terminal");
+    await expect(terminal).toHaveAttribute("data-active-screen", "dashboard", { timeout: 30_000 });
+    const defaultCols = Number(await terminal.getAttribute("data-terminal-cols"));
+    await expect(demo).toHaveAttribute("data-zoom", "0.75");
+
+    await hero.getByRole("button", { name: "Zoom dashboard in" }).click();
+    await expect(demo).toHaveAttribute("data-zoom", "0.85");
+    await expect.poll(async () => Number(await terminal.getAttribute("data-terminal-cols")))
+      .toBeLessThan(defaultCols);
+    await expect(hero.getByRole("button", { name: "Reset dashboard zoom to 75 percent" }))
+      .toHaveText("85%");
+
+    await hero.getByRole("button", { name: "Reset dashboard zoom to 75 percent" }).click();
+    await expect(demo).toHaveAttribute("data-zoom", "0.75");
+    await expect.poll(async () => Number(await terminal.getAttribute("data-terminal-cols")))
+      .toBe(defaultCols);
+
+    await hero.getByRole("button", { name: "Zoom dashboard out" }).click();
+    await expect(demo).toHaveAttribute("data-zoom", "0.65");
+    await expect.poll(async () => Number(await terminal.getAttribute("data-terminal-cols")))
+      .toBeGreaterThan(defaultCols);
+    diagnostics.breadcrumb("Visible controls below the canvas changed zoom and refit the WASM grid in both directions");
   });
 
   test("verified artifacts are fetched once and JavaScript executes from verified bytes", async ({
@@ -89,9 +123,19 @@ test.describe("Hero media module", () => {
 
     const hero = page.locator("#home-hero");
     const runtime = hero.getByTestId("hero-dashboard-runtime-status");
+    const packResponse = await page.request.get("/agent-mail-dashboard/demo_pack.v1.json");
+    expect(packResponse.ok()).toBe(true);
+    const pack = await packResponse.json() as {
+      bootstrap: { db_stats: { projects: number; agents: number; messages: number } };
+    };
+    const { projects, agents, messages } = pack.bootstrap.db_stats;
+    const aggregateCounts = new RegExp(
+      `${projects} projects, ${agents} agents, (?:${messages}|${messages + 1}) messages`,
+      "i",
+    );
     await expect(runtime).toContainText(/aggregate counts come from a read-only Agent Mail SQLite export/i);
     await expect(runtime).toContainText(/names, paths, messages, and replay events are synthetic/i);
-    await expect(runtime).toContainText(/45 projects, 1554 agents, 8059 messages/i, {
+    await expect(runtime).toContainText(aggregateCounts, {
       timeout: 30_000,
     });
     await expect(page.getByText(/source db:/i)).toHaveCount(0);
@@ -196,7 +240,7 @@ test.describe("Hero media module", () => {
     const terminalBox = await page.getByTestId("hero-agent-mail-terminal").boundingBox();
     expect(terminalBox).not.toBeNull();
     expect(Math.abs(terminalBox!.width - viewport!.width)).toBeLessThanOrEqual(1);
-    expect(Math.abs(terminalBox!.height - viewport!.height)).toBeLessThanOrEqual(1);
+    expect(terminalBox!.height).toBeGreaterThanOrEqual(viewport!.height - 64);
 
     const exit = page.getByRole("button", { name: "Exit dashboard fullscreen" });
     await exit.click();
@@ -276,19 +320,24 @@ test.describe("Hero media module", () => {
     diagnostics.breadcrumb("A mutated WASM response failed closed at the SHA-256 gate");
   });
 
-  test("overlay controls do not consume terminal layout height", async ({ page, diagnostics }) => {
+  test("controls form a compact toolbar underneath the terminal", async ({ page, diagnostics }) => {
     diagnostics.setRoute("/");
     await page.goto("/");
 
     const demo = page.getByTestId("hero-tui-demo");
     const terminal = page.getByTestId("hero-agent-mail-terminal");
+    const controls = page.getByTestId("hero-dashboard-controls");
     await expect(terminal).toHaveAttribute("data-active-screen", "dashboard", { timeout: 30_000 });
     const demoBox = await demo.boundingBox();
     const terminalBox = await terminal.boundingBox();
+    const controlsBox = await controls.boundingBox();
     expect(demoBox).not.toBeNull();
     expect(terminalBox).not.toBeNull();
-    expect(Math.abs(demoBox!.height - terminalBox!.height)).toBeLessThanOrEqual(1);
-    diagnostics.breadcrumb("Pause/reset/fullscreen controls overlay the terminal without a framing tray");
+    expect(controlsBox).not.toBeNull();
+    expect(controlsBox!.y).toBeGreaterThanOrEqual(terminalBox!.y + terminalBox!.height - 1);
+    expect(controlsBox!.height).toBeLessThanOrEqual(64);
+    expect(Math.abs(demoBox!.height - terminalBox!.height - controlsBox!.height)).toBeLessThanOrEqual(2);
+    diagnostics.breadcrumb("Pause/reset/zoom/fullscreen controls sit in a compact toolbar below the live terminal");
   });
 });
 

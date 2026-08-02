@@ -1,12 +1,12 @@
 {
   "schema": "agent_mail.dashboard_artifacts.v1",
-  "built_at": "2026-08-02T11:10:55Z",
-  "source_revision": "1246b386dc27115fa327759e201bcd26d6b61f1c",
+  "built_at": "2026-08-02T15:23:39Z",
+  "source_revision": "d8ad1f76b8659cf356c5d185705aeafb1030aa4b",
   "artifacts": {
     "demo_pack": {
       "url": "/agent-mail-dashboard/demo_pack.v1.json",
-      "bytes": 1583848,
-      "sha256": "9331eb023016b42f32670276aae476e0b6d9de1d1cec182ba6e98069803e4c57"
+      "bytes": 334794,
+      "sha256": "57902440a61fd01047e265b34fef52e34dcc6f7e2a76ce2f0252e8dee8da0dde"
     },
     "dashboard_runner_js": {
       "url": "/agent-mail-dashboard/runner/agent_mail_dashboard.js",
@@ -15,8 +15,8 @@
     },
     "dashboard_runner_wasm": {
       "url": "/agent-mail-dashboard/runner/agent_mail_dashboard_bg.wasm",
-      "bytes": 2720191,
-      "sha256": "102de542ba8b4252bb55c759caf907c7bfb7ad9105ba7ffee55ee46c7d9f1184"
+      "bytes": 2880123,
+      "sha256": "65ba33bc9651ea43cb44a63c4f02a15107760863f8ff44e7750470ae40b834d6"
     },
     "renderer_js": {
       "url": "/agent-mail-dashboard/renderer/FrankenTerm.js",

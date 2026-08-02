@@ -26,6 +26,7 @@ export interface AgentMailTerminalHandle {
 interface AgentMailTerminalProps {
   paused: boolean;
   reducedMotion: boolean;
+  zoom?: number;
   onError?(error: Error): void;
   onReady?(status: DashboardRunnerStatus): void;
   onStatus?(status: DashboardRunnerStatus): void;
@@ -34,7 +35,7 @@ interface AgentMailTerminalProps {
 type LoadState = "loading" | "running" | "error";
 
 const POSTER_URL = "/images/agent-mail-dashboard-poster-placeholder.svg";
-const DEFAULT_TERMINAL_ZOOM = 0.6;
+const DEFAULT_TERMINAL_ZOOM = 0.75;
 const MAX_DEVICE_PIXEL_RATIO = 2;
 const MAX_BACKING_PIXELS = 8_500_000;
 
@@ -86,7 +87,7 @@ function parseStatus(runner: DashboardRunnerInstance): DashboardRunnerStatus {
 }
 
 const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalProps>(
-  function AgentMailTerminal({ paused, reducedMotion, onError, onReady, onStatus }, ref) {
+  function AgentMailTerminal({ paused, reducedMotion, zoom = DEFAULT_TERMINAL_ZOOM, onError, onReady, onStatus }, ref) {
     const [loadState, setLoadState] = useState<LoadState>("loading");
     const [loadingLabel, setLoadingLabel] = useState("Preparing the dashboard runtime…");
     const [error, setError] = useState<Error | null>(null);
@@ -105,6 +106,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
     const visibleRef = useRef(true);
     const pausedRef = useRef(paused || reducedMotion);
     const reducedMotionRef = useRef(reducedMotion);
+    const zoomRef = useRef(zoom);
     const callbacksRef = useRef({ onError, onReady, onStatus });
 
     useEffect(() => {
@@ -163,6 +165,14 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
       const status = parseStatus(runner);
       callbacksRef.current.onStatus?.(status);
     }, [paused, reducedMotion]);
+
+    useEffect(() => {
+      zoomRef.current = zoom;
+      const term = termRef.current;
+      if (!term) return;
+      term.setZoom(zoom);
+      refitRef.current();
+    }, [zoom]);
 
     useEffect(() => {
       const container = containerRef.current;
@@ -237,7 +247,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
             initializingTerm = null;
             return;
           }
-          term.setZoom(DEFAULT_TERMINAL_ZOOM);
+          term.setZoom(zoomRef.current);
           termRef.current = term;
           initializingTerm = null;
           term.setAccessibility({ reducedMotion: reducedMotionRef.current, screenReader: true });
@@ -447,12 +457,17 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
           };
           canvas.addEventListener("pointerdown", (event) => {
             event.preventDefault();
-            canvas.focus();
+            // Capture the terminal cell before focus can scroll a partly
+            // visible hero canvas and change its bounding rectangle. Without
+            // this, a click on row 0 can be remapped deep into the content
+            // pane when the browser brings the canvas into view.
+            const point = cellPoint(event);
+            canvas.focus({ preventScroll: true });
             container.dataset.lastInputAt = String(performance.now());
             activePointerId = event.pointerId;
             activePointerButton = event.button;
             canvas.setPointerCapture(event.pointerId);
-            safeInput({ kind: "mouse", phase: "down", button: event.button, ...cellPoint(event), mods: inputModifiers(event) });
+            safeInput({ kind: "mouse", phase: "down", button: event.button, ...point, mods: inputModifiers(event) });
           }, { signal });
           canvas.addEventListener("pointerup", (event) => {
             releasePointer(event, true);

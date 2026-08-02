@@ -141,8 +141,8 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Full-bleed production FrankenTUI shell; copy remains comfortably constrained. */}
-          <div className="relative left-1/2 mt-8 w-[96vw] -translate-x-1/2">
+          {/* Readable embedded production shell; fullscreen remains one click away. */}
+          <div className="relative left-1/2 mt-8 w-[calc(100vw-2rem)] max-w-7xl -translate-x-1/2 sm:w-[calc(100vw-3rem)]">
             {/* Decorative only: zero flow height and always fully above the terminal. */}
             <div
               className="pointer-events-none absolute right-[4%] bottom-[calc(100%+3rem)] hidden h-36 w-24 animate-float lg:block"

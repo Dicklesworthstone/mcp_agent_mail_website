@@ -12,10 +12,21 @@ import {
 import {
   Maximize2,
   Minimize2,
+  Minus,
   Pause,
   Play,
+  Plus,
   RotateCcw,
 } from "lucide-react";
+
+const DEFAULT_DASHBOARD_ZOOM = 0.75;
+const MIN_DASHBOARD_ZOOM = 0.55;
+const MAX_DASHBOARD_ZOOM = 1.15;
+const DASHBOARD_ZOOM_STEP = 0.1;
+
+function clampDashboardZoom(zoom: number): number {
+  return Math.min(MAX_DASHBOARD_ZOOM, Math.max(MIN_DASHBOARD_ZOOM, Number(zoom.toFixed(2))));
+}
 
 if (typeof window !== "undefined") {
   void loadDashboardArtifacts().catch(() => {
@@ -35,6 +46,7 @@ export default function HeroMedia() {
   const [loadError, setLoadError] = useState(false);
   const [fullscreenError, setFullscreenError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [zoom, setZoom] = useState(DEFAULT_DASHBOARD_ZOOM);
   const effectivePaused = paused || prefersReducedMotion;
 
   useEffect(() => {
@@ -88,33 +100,88 @@ export default function HeroMedia() {
       data-dashboard-filter={loadError ? "error" : status?.dashboard_filter ?? "loading"}
       data-frame-index={status?.frame_index ?? 0}
       data-reduced-motion={prefersReducedMotion ? "true" : "false"}
+      data-zoom={zoom.toFixed(2)}
     >
       <div
-        className={`absolute right-0 z-20 flex items-center gap-1 border border-white/10 bg-[#020611]/90 p-1 backdrop-blur-sm transition-opacity hover:opacity-100 focus-within:opacity-100 ${
-          isFullscreen ? "top-7 opacity-40" : "bottom-[calc(100%+0.25rem)] opacity-70"
+        className={`relative min-h-0 bg-black ${
+          isFullscreen ? "flex-1" : "aspect-[2/1] min-h-[340px] w-full sm:min-h-[440px]"
         }`}
+      >
+        <AgentMailTerminal
+          ref={terminalRef}
+          paused={effectivePaused}
+          reducedMotion={prefersReducedMotion}
+          zoom={zoom}
+          onError={() => {
+            setLoadError(true);
+            setStatus(null);
+          }}
+          onReady={(nextStatus) => {
+            setLoadError(false);
+            setStatus(nextStatus);
+          }}
+          onStatus={setStatus}
+        />
+      </div>
+
+      <div
+        className="flex min-h-12 shrink-0 flex-wrap items-center justify-between gap-2 border-t border-white/10 bg-[#050a14] px-2 py-1.5 sm:px-3"
         data-testid="hero-dashboard-controls"
       >
-        <button
-          type="button"
-          onClick={() => setPaused((current) => !current)}
-          className="grid h-9 w-9 place-items-center text-slate-300 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
-          aria-label={effectivePaused ? "Play dashboard replay" : "Pause dashboard replay"}
-          disabled={prefersReducedMotion}
-          title={effectivePaused ? "Play replay" : "Pause replay"}
-        >
-          {effectivePaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setPaused((current) => !current)}
+            className="grid h-9 w-9 place-items-center text-slate-300 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label={effectivePaused ? "Play dashboard replay" : "Pause dashboard replay"}
+            disabled={prefersReducedMotion}
+            title={effectivePaused ? "Play replay" : "Pause replay"}
+          >
+            {effectivePaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+          </button>
 
-        <button
-          type="button"
-          onClick={() => terminalRef.current?.reset()}
-          className="grid h-9 w-9 place-items-center text-slate-300 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-          aria-label="Reset dashboard replay"
-          title="Reset replay"
-        >
-          <RotateCcw className="h-4 w-4" />
-        </button>
+          <button
+            type="button"
+            onClick={() => terminalRef.current?.reset()}
+            className="grid h-9 w-9 place-items-center text-slate-300 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+            aria-label="Reset dashboard replay"
+            title="Reset replay"
+          >
+            <RotateCcw className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-1" aria-label="Dashboard zoom controls">
+          <button
+            type="button"
+            onClick={() => setZoom((current) => clampDashboardZoom(current - DASHBOARD_ZOOM_STEP))}
+            disabled={zoom <= MIN_DASHBOARD_ZOOM}
+            className="grid h-9 w-9 place-items-center text-slate-300 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-35"
+            aria-label="Zoom dashboard out"
+            title="Zoom out"
+          >
+            <Minus className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setZoom(DEFAULT_DASHBOARD_ZOOM)}
+            className="h-9 min-w-14 px-2 font-mono text-xs font-bold tabular-nums text-cyan-100 transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+            aria-label={`Reset dashboard zoom to ${Math.round(DEFAULT_DASHBOARD_ZOOM * 100)} percent`}
+            title="Reset zoom"
+          >
+            {Math.round(zoom * 100)}%
+          </button>
+          <button
+            type="button"
+            onClick={() => setZoom((current) => clampDashboardZoom(current + DASHBOARD_ZOOM_STEP))}
+            disabled={zoom >= MAX_DASHBOARD_ZOOM}
+            className="grid h-9 w-9 place-items-center text-slate-300 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-35"
+            aria-label="Zoom dashboard in"
+            title="Zoom in"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+        </div>
 
         <button
           ref={fullscreenButtonRef}
@@ -129,31 +196,8 @@ export default function HeroMedia() {
         </button>
       </div>
 
-      <div
-        className={`relative min-h-0 bg-black ${
-          isFullscreen ? "flex-1" : "aspect-[2/1] min-h-[340px] w-full sm:min-h-[440px]"
-        }`}
-      >
-        <AgentMailTerminal
-          ref={terminalRef}
-          paused={effectivePaused}
-          reducedMotion={prefersReducedMotion}
-          onError={() => {
-            setLoadError(true);
-            setStatus(null);
-          }}
-          onReady={(nextStatus) => {
-            setLoadError(false);
-            setStatus(nextStatus);
-          }}
-          onStatus={setStatus}
-        />
-      </div>
-
       <p
-        className={`pointer-events-none absolute z-10 bg-[#020611]/90 px-2 py-1 font-mono text-[9px] text-cyan-100 opacity-0 transition-opacity group-focus-within:opacity-100 ${
-          isFullscreen ? "bottom-2 left-2" : "bottom-[calc(100%+0.25rem)] left-0"
-        }`}
+        className="pointer-events-none absolute bottom-[3.25rem] left-2 z-10 bg-[#020611]/90 px-2 py-1 font-mono text-[9px] text-cyan-100 opacity-0 transition-opacity group-focus-within:opacity-100"
       >
         Ctrl+Esc returns keyboard focus to the page
       </p>
