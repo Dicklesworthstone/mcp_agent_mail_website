@@ -13,10 +13,20 @@ const nextConfig: NextConfig = {
   async headers() {
     const scriptSrc =
       process.env.NODE_ENV === "development"
-        ? "script-src 'self' 'unsafe-inline' 'unsafe-eval';"
-        : "script-src 'self' 'unsafe-inline';";
+        ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval';"
+        : "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval';";
 
     return [
+      {
+        source: "/agent-mail-dashboard/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800",
+          },
+          { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
+        ],
+      },
       {
         source: "/(.*)",
         headers: [

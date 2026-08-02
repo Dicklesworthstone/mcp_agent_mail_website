@@ -11,6 +11,8 @@ const eslintConfig = defineConfig([
     ".next_backup*/**",
     "out/**",
     "build/**",
+    "public/agent-mail-dashboard/renderer/**",
+    "public/agent-mail-dashboard/runner/**",
     "next-env.d.ts",
   ]),
 ]);

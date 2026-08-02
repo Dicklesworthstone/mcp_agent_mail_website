@@ -1,0 +1,24 @@
+{
+  "name": "mcp-agent-mail-dashboard-wasm",
+  "type": "module",
+  "collaborators": [
+    "Jeff Emanuel"
+  ],
+  "description": "Portable real Agent Mail dashboard runner for browser WASM",
+  "version": "0.3.24",
+  "license": "SEE LICENSE IN ../../LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Dicklesworthstone/mcp_agent_mail_rust"
+  },
+  "files": [
+    "agent_mail_dashboard_bg.wasm",
+    "agent_mail_dashboard.js",
+    "agent_mail_dashboard.d.ts"
+  ],
+  "main": "agent_mail_dashboard.js",
+  "types": "agent_mail_dashboard.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

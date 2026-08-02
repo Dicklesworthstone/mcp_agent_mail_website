@@ -1,0 +1,990 @@
+{
+  "schema": "agent_mail.demo_pack.v1",
+  "title": "Agent Mail coordination dashboard",
+  "replay_label": "Interactive sanitized snapshot replay",
+  "duration_ms": 18000,
+  "loop_replay": true,
+  "provenance": {
+    "source_label": "aggregate counts exported from Agent Mail SQLite; all details synthetic",
+    "captured_at": "2026-08-02T04:39:32Z",
+    "source_revision": "5efdb8b42819a45fbdd45fcc01099f7f3f39eaea",
+    "privacy_policy": "agent-mail-dashboard-public-demo-v1",
+    "content_sha256": "d26103545f8caaa18f042187356c55fd5ab2e9ad5c9a2a57364fd194d59333f7"
+  },
+  "bootstrap": {
+    "db_stats": {
+      "projects": 44,
+      "agents": 1550,
+      "messages": 7916,
+      "file_reservations": 12,
+      "contact_links": 535,
+      "ack_pending": 1516,
+      "agents_list": [
+        {
+          "project": "mcp-agent-mail-rust",
+          "name": "AmberDeer",
+          "program": "codex-cli",
+          "model": "gpt-5",
+          "last_active_ts": 1772668800000000,
+          "health": null
+        },
+        {
+          "project": "mcp-agent-mail-rust",
+          "name": "RubyPrairie",
+          "program": "claude-code",
+          "model": "opus",
+          "last_active_ts": 1772668782000000,
+          "health": null
+        },
+        {
+          "project": "mcp-agent-mail-rust",
+          "name": "GrayElk",
+          "program": "codex-cli",
+          "model": "gpt-5",
+          "last_active_ts": 1772668764000000,
+          "health": null
+        },
+        {
+          "project": "mcp-agent-mail-rust",
+          "name": "RedHarbor",
+          "program": "cursor",
+          "model": "composer",
+          "last_active_ts": 1772668746000000,
+          "health": null
+        },
+        {
+          "project": "mcp-agent-mail-rust",
+          "name": "CoralDog",
+          "program": "codex-cli",
+          "model": "gpt-5",
+          "last_active_ts": 1772668728000000,
+          "health": null
+        },
+        {
+          "project": "mcp-agent-mail-rust",
+          "name": "BrownGlacier",
+          "program": "claude-code",
+          "model": "sonnet",
+          "last_active_ts": 1772668710000000,
+          "health": null
+        },
+        {
+          "project": "mcp-agent-mail-rust",
+          "name": "WindyLynx",
+          "program": "codex-cli",
+          "model": "gpt-5",
+          "last_active_ts": 1772668692000000,
+          "health": null
+        },
+        {
+          "project": "mcp-agent-mail-rust",
+          "name": "JadePine",
+          "program": "claude-code",
+          "model": "opus",
+          "last_active_ts": 1772668674000000,
+          "health": null
+        }
+      ],
+      "projects_list": [
+        {
+          "id": 1,
+          "slug": "mcp-agent-mail-rust",
+          "human_key": "public-demo/mcp-agent-mail-rust",
+          "agent_count": 8,
+          "message_count": 1825,
+          "reservation_count": 3,
+          "created_at": 1772582400000000
+        },
+        {
+          "id": 2,
+          "slug": "frankentui",
+          "human_key": "public-demo/frankentui",
+          "agent_count": 8,
+          "message_count": 1971,
+          "reservation_count": 2,
+          "created_at": 1772582400000000
+        },
+        {
+          "id": 3,
+          "slug": "frankensqlite",
+          "human_key": "public-demo/frankensqlite",
+          "agent_count": 8,
+          "message_count": 1123,
+          "reservation_count": 1,
+          "created_at": 1772582400000000
+        },
+        {
+          "id": 4,
+          "slug": "agent-tooling",
+          "human_key": "public-demo/agent-tooling",
+          "agent_count": 8,
+          "message_count": 523,
+          "reservation_count": 0,
+          "created_at": 1772582400000000
+        },
+        {
+          "id": 5,
+          "slug": "edge-runtime",
+          "human_key": "public-demo/edge-runtime",
+          "agent_count": 8,
+          "message_count": 243,
+          "reservation_count": 0,
+          "created_at": 1772582400000000
+        },
+        {
+          "id": 6,
+          "slug": "skills-library",
+          "human_key": "public-demo/skills-library",
+          "agent_count": 8,
+          "message_count": 139,
+          "reservation_count": 0,
+          "created_at": 1772582400000000
+        }
+      ],
+      "contacts_list": [
+        {
+          "from_agent": "AmberDeer",
+          "to_agent": "RubyPrairie",
+          "from_project_slug": "mcp-agent-mail-rust",
+          "to_project_slug": "frankentui",
+          "status": "approved",
+          "reason": "public demo coordination",
+          "updated_ts": 1772668780000000,
+          "expires_ts": null
+        }
+      ],
+      "reservation_snapshots": [
+        {
+          "id": 101,
+          "project_slug": "mcp-agent-mail-rust",
+          "agent_name": "AmberDeer",
+          "path_pattern": "crates/dashboard/**",
+          "exclusive": true,
+          "granted_ts": 1772668760000000,
+          "expires_ts": 1772674800000000,
+          "released_ts": null
+        },
+        {
+          "id": 102,
+          "project_slug": "frankentui",
+          "agent_name": "RubyPrairie",
+          "path_pattern": "crates/ftui-web/**",
+          "exclusive": true,
+          "granted_ts": 1772668730000000,
+          "expires_ts": 1772673000000000,
+          "released_ts": null
+        },
+        {
+          "id": 103,
+          "project_slug": "mcp-agent-mail-rust",
+          "agent_name": "GrayElk",
+          "path_pattern": "docs/browser-dashboard.md",
+          "exclusive": false,
+          "granted_ts": 1772668775000000,
+          "expires_ts": 1772676000000000,
+          "released_ts": null
+        }
+      ],
+      "timestamp_micros": 1772668800000000
+    },
+    "requests": {
+      "total": 42000,
+      "status_2xx": 41790,
+      "status_4xx": 190,
+      "status_5xx": 20,
+      "latency_total_ms": 3402000
+    },
+    "latency_samples_ms": [
+      42.0,
+      58.0,
+      47.0,
+      86.0,
+      64.0,
+      51.0,
+      73.0,
+      49.0
+    ],
+    "console_lines": [
+      "demo pack verified; public replay is read-only",
+      "FrankenTUI browser renderer connected"
+    ]
+  },
+  "actions": [
+    {
+      "at_ms": 1000,
+      "type": "record_request",
+      "status": 200,
+      "duration_ms": 48
+    },
+    {
+      "at_ms": 2000,
+      "type": "publish_event",
+      "event": {
+        "kind": "message_sent",
+        "seq": 10001,
+        "timestamp_micros": 1772668802000000,
+        "source": "mail",
+        "redacted": true,
+        "id": 8001,
+        "from": "AmberDeer",
+        "to": [
+          "RubyPrairie"
+        ],
+        "subject": "WASM dashboard parity frame is ready",
+        "thread_id": "demo-browser-dashboard",
+        "project": "mcp-agent-mail-rust",
+        "body_md": "Synthetic public demo message: compare the deterministic frame hash."
+      }
+    },
+    {
+      "at_ms": 2000,
+      "type": "set_db_stats",
+      "snapshot": {
+        "projects": 44,
+        "agents": 1550,
+        "messages": 7917,
+        "file_reservations": 12,
+        "contact_links": 535,
+        "ack_pending": 1517,
+        "agents_list": [
+          {
+            "project": "mcp-agent-mail-rust",
+            "name": "AmberDeer",
+            "program": "codex-cli",
+            "model": "gpt-5",
+            "last_active_ts": 1772668800000000,
+            "health": null
+          },
+          {
+            "project": "mcp-agent-mail-rust",
+            "name": "RubyPrairie",
+            "program": "claude-code",
+            "model": "opus",
+            "last_active_ts": 1772668782000000,
+            "health": null
+          },
+          {
+            "project": "mcp-agent-mail-rust",
+            "name": "GrayElk",
+            "program": "codex-cli",
+            "model": "gpt-5",
+            "last_active_ts": 1772668764000000,
+            "health": null
+          },
+          {
+            "project": "mcp-agent-mail-rust",
+            "name": "RedHarbor",
+            "program": "cursor",
+            "model": "composer",
+            "last_active_ts": 1772668746000000,
+            "health": null
+          },
+          {
+            "project": "mcp-agent-mail-rust",
+            "name": "CoralDog",
+            "program": "codex-cli",
+            "model": "gpt-5",
+            "last_active_ts": 1772668728000000,
+            "health": null
+          },
+          {
+            "project": "mcp-agent-mail-rust",
+            "name": "BrownGlacier",
+            "program": "claude-code",
+            "model": "sonnet",
+            "last_active_ts": 1772668710000000,
+            "health": null
+          },
+          {
+            "project": "mcp-agent-mail-rust",
+            "name": "WindyLynx",
+            "program": "codex-cli",
+            "model": "gpt-5",
+            "last_active_ts": 1772668692000000,
+            "health": null
+          },
+          {
+            "project": "mcp-agent-mail-rust",
+            "name": "JadePine",
+            "program": "claude-code",
+            "model": "opus",
+            "last_active_ts": 1772668674000000,
+            "health": null
+          }
+        ],
+        "projects_list": [
+          {
+            "id": 1,
+            "slug": "mcp-agent-mail-rust",
+            "human_key": "public-demo/mcp-agent-mail-rust",
+            "agent_count": 8,
+            "message_count": 1825,
+            "reservation_count": 3,
+            "created_at": 1772582400000000
+          },
+          {
+            "id": 2,
+            "slug": "frankentui",
+            "human_key": "public-demo/frankentui",
+            "agent_count": 8,
+            "message_count": 1971,
+            "reservation_count": 2,
+            "created_at": 1772582400000000
+          },
+          {
+            "id": 3,
+            "slug": "frankensqlite",
+            "human_key": "public-demo/frankensqlite",
+            "agent_count": 8,
+            "message_count": 1123,
+            "reservation_count": 1,
+            "created_at": 1772582400000000
+          },
+          {
+            "id": 4,
+            "slug": "agent-tooling",
+            "human_key": "public-demo/agent-tooling",
+            "agent_count": 8,
+            "message_count": 523,
+            "reservation_count": 0,
+            "created_at": 1772582400000000
+          },
+          {
+            "id": 5,
+            "slug": "edge-runtime",
+            "human_key": "public-demo/edge-runtime",
+            "agent_count": 8,
+            "message_count": 243,
+            "reservation_count": 0,
+            "created_at": 1772582400000000
+          },
+          {
+            "id": 6,
+            "slug": "skills-library",
+            "human_key": "public-demo/skills-library",
+            "agent_count": 8,
+            "message_count": 139,
+            "reservation_count": 0,
+            "created_at": 1772582400000000
+          }
+        ],
+        "contacts_list": [
+          {
+            "from_agent": "AmberDeer",
+            "to_agent": "RubyPrairie",
+            "from_project_slug": "mcp-agent-mail-rust",
+            "to_project_slug": "frankentui",
+            "status": "approved",
+            "reason": "public demo coordination",
+            "updated_ts": 1772668780000000,
+            "expires_ts": null
+          }
+        ],
+        "reservation_snapshots": [
+          {
+            "id": 101,
+            "project_slug": "mcp-agent-mail-rust",
+            "agent_name": "AmberDeer",
+            "path_pattern": "crates/dashboard/**",
+            "exclusive": true,
+            "granted_ts": 1772668760000000,
+            "expires_ts": 1772674800000000,
+            "released_ts": null
+          },
+          {
+            "id": 102,
+            "project_slug": "frankentui",
+            "agent_name": "RubyPrairie",
+            "path_pattern": "crates/ftui-web/**",
+            "exclusive": true,
+            "granted_ts": 1772668730000000,
+            "expires_ts": 1772673000000000,
+            "released_ts": null
+          },
+          {
+            "id": 103,
+            "project_slug": "mcp-agent-mail-rust",
+            "agent_name": "GrayElk",
+            "path_pattern": "docs/browser-dashboard.md",
+            "exclusive": false,
+            "granted_ts": 1772668775000000,
+            "expires_ts": 1772676000000000,
+            "released_ts": null
+          }
+        ],
+        "timestamp_micros": 1772668802000000
+      }
+    },
+    {
+      "at_ms": 6000,
+      "type": "set_db_stats",
+      "snapshot": {
+        "projects": 44,
+        "agents": 1550,
+        "messages": 7917,
+        "file_reservations": 12,
+        "contact_links": 535,
+        "ack_pending": 1516,
+        "agents_list": [
+          {
+            "project": "mcp-agent-mail-rust",
+            "name": "AmberDeer",
+            "program": "codex-cli",
+            "model": "gpt-5",
+            "last_active_ts": 1772668800000000,
+            "health": null
+          },
+          {
+            "project": "mcp-agent-mail-rust",
+            "name": "RubyPrairie",
+            "program": "claude-code",
+            "model": "opus",
+            "last_active_ts": 1772668782000000,
+            "health": null
+          },
+          {
+            "project": "mcp-agent-mail-rust",
+            "name": "GrayElk",
+            "program": "codex-cli",
+            "model": "gpt-5",
+            "last_active_ts": 1772668764000000,
+            "health": null
+          },
+          {
+            "project": "mcp-agent-mail-rust",
+            "name": "RedHarbor",
+            "program": "cursor",
+            "model": "composer",
+            "last_active_ts": 1772668746000000,
+            "health": null
+          },
+          {
+            "project": "mcp-agent-mail-rust",
+            "name": "CoralDog",
+            "program": "codex-cli",
+            "model": "gpt-5",
+            "last_active_ts": 1772668728000000,
+            "health": null
+          },
+          {
+            "project": "mcp-agent-mail-rust",
+            "name": "BrownGlacier",
+            "program": "claude-code",
+            "model": "sonnet",
+            "last_active_ts": 1772668710000000,
+            "health": null
+          },
+          {
+            "project": "mcp-agent-mail-rust",
+            "name": "WindyLynx",
+            "program": "codex-cli",
+            "model": "gpt-5",
+            "last_active_ts": 1772668692000000,
+            "health": null
+          },
+          {
+            "project": "mcp-agent-mail-rust",
+            "name": "JadePine",
+            "program": "claude-code",
+            "model": "opus",
+            "last_active_ts": 1772668674000000,
+            "health": null
+          }
+        ],
+        "projects_list": [
+          {
+            "id": 1,
+            "slug": "mcp-agent-mail-rust",
+            "human_key": "public-demo/mcp-agent-mail-rust",
+            "agent_count": 8,
+            "message_count": 1825,
+            "reservation_count": 3,
+            "created_at": 1772582400000000
+          },
+          {
+            "id": 2,
+            "slug": "frankentui",
+            "human_key": "public-demo/frankentui",
+            "agent_count": 8,
+            "message_count": 1971,
+            "reservation_count": 2,
+            "created_at": 1772582400000000
+          },
+          {
+            "id": 3,
+            "slug": "frankensqlite",
+            "human_key": "public-demo/frankensqlite",
+            "agent_count": 8,
+            "message_count": 1123,
+            "reservation_count": 1,
+            "created_at": 1772582400000000
+          },
+          {
+            "id": 4,
+            "slug": "agent-tooling",
+            "human_key": "public-demo/agent-tooling",
+            "agent_count": 8,
+            "message_count": 523,
+            "reservation_count": 0,
+            "created_at": 1772582400000000
+          },
+          {
+            "id": 5,
+            "slug": "edge-runtime",
+            "human_key": "public-demo/edge-runtime",
+            "agent_count": 8,
+            "message_count": 243,
+            "reservation_count": 0,
+            "created_at": 1772582400000000
+          },
+          {
+            "id": 6,
+            "slug": "skills-library",
+            "human_key": "public-demo/skills-library",
+            "agent_count": 8,
+            "message_count": 139,
+            "reservation_count": 0,
+            "created_at": 1772582400000000
+          }
+        ],
+        "contacts_list": [
+          {
+            "from_agent": "AmberDeer",
+            "to_agent": "RubyPrairie",
+            "from_project_slug": "mcp-agent-mail-rust",
+            "to_project_slug": "frankentui",
+            "status": "approved",
+            "reason": "public demo coordination",
+            "updated_ts": 1772668780000000,
+            "expires_ts": null
+          }
+        ],
+        "reservation_snapshots": [
+          {
+            "id": 101,
+            "project_slug": "mcp-agent-mail-rust",
+            "agent_name": "AmberDeer",
+            "path_pattern": "crates/dashboard/**",
+            "exclusive": true,
+            "granted_ts": 1772668760000000,
+            "expires_ts": 1772674800000000,
+            "released_ts": null
+          },
+          {
+            "id": 102,
+            "project_slug": "frankentui",
+            "agent_name": "RubyPrairie",
+            "path_pattern": "crates/ftui-web/**",
+            "exclusive": true,
+            "granted_ts": 1772668730000000,
+            "expires_ts": 1772673000000000,
+            "released_ts": null
+          },
+          {
+            "id": 103,
+            "project_slug": "mcp-agent-mail-rust",
+            "agent_name": "GrayElk",
+            "path_pattern": "docs/browser-dashboard.md",
+            "exclusive": false,
+            "granted_ts": 1772668775000000,
+            "expires_ts": 1772676000000000,
+            "released_ts": null
+          }
+        ],
+        "timestamp_micros": 1772668806000000
+      }
+    },
+    {
+      "at_ms": 7000,
+      "type": "record_request",
+      "status": 409,
+      "duration_ms": 112
+    },
+    {
+      "at_ms": 10000,
+      "type": "publish_event",
+      "event": {
+        "kind": "reservation_released",
+        "seq": 10002,
+        "timestamp_micros": 1772668810000000,
+        "source": "reservations",
+        "redacted": true,
+        "agent": "RubyPrairie",
+        "paths": [
+          "crates/ftui-web/**"
+        ],
+        "project": "frankentui"
+      }
+    },
+    {
+      "at_ms": 10000,
+      "type": "set_db_stats",
+      "snapshot": {
+        "projects": 44,
+        "agents": 1550,
+        "messages": 7917,
+        "file_reservations": 11,
+        "contact_links": 535,
+        "ack_pending": 1516,
+        "agents_list": [
+          {
+            "project": "mcp-agent-mail-rust",
+            "name": "AmberDeer",
+            "program": "codex-cli",
+            "model": "gpt-5",
+            "last_active_ts": 1772668800000000,
+            "health": null
+          },
+          {
+            "project": "mcp-agent-mail-rust",
+            "name": "RubyPrairie",
+            "program": "claude-code",
+            "model": "opus",
+            "last_active_ts": 1772668782000000,
+            "health": null
+          },
+          {
+            "project": "mcp-agent-mail-rust",
+            "name": "GrayElk",
+            "program": "codex-cli",
+            "model": "gpt-5",
+            "last_active_ts": 1772668764000000,
+            "health": null
+          },
+          {
+            "project": "mcp-agent-mail-rust",
+            "name": "RedHarbor",
+            "program": "cursor",
+            "model": "composer",
+            "last_active_ts": 1772668746000000,
+            "health": null
+          },
+          {
+            "project": "mcp-agent-mail-rust",
+            "name": "CoralDog",
+            "program": "codex-cli",
+            "model": "gpt-5",
+            "last_active_ts": 1772668728000000,
+            "health": null
+          },
+          {
+            "project": "mcp-agent-mail-rust",
+            "name": "BrownGlacier",
+            "program": "claude-code",
+            "model": "sonnet",
+            "last_active_ts": 1772668710000000,
+            "health": null
+          },
+          {
+            "project": "mcp-agent-mail-rust",
+            "name": "WindyLynx",
+            "program": "codex-cli",
+            "model": "gpt-5",
+            "last_active_ts": 1772668692000000,
+            "health": null
+          },
+          {
+            "project": "mcp-agent-mail-rust",
+            "name": "JadePine",
+            "program": "claude-code",
+            "model": "opus",
+            "last_active_ts": 1772668674000000,
+            "health": null
+          }
+        ],
+        "projects_list": [
+          {
+            "id": 1,
+            "slug": "mcp-agent-mail-rust",
+            "human_key": "public-demo/mcp-agent-mail-rust",
+            "agent_count": 8,
+            "message_count": 1825,
+            "reservation_count": 3,
+            "created_at": 1772582400000000
+          },
+          {
+            "id": 2,
+            "slug": "frankentui",
+            "human_key": "public-demo/frankentui",
+            "agent_count": 8,
+            "message_count": 1971,
+            "reservation_count": 2,
+            "created_at": 1772582400000000
+          },
+          {
+            "id": 3,
+            "slug": "frankensqlite",
+            "human_key": "public-demo/frankensqlite",
+            "agent_count": 8,
+            "message_count": 1123,
+            "reservation_count": 1,
+            "created_at": 1772582400000000
+          },
+          {
+            "id": 4,
+            "slug": "agent-tooling",
+            "human_key": "public-demo/agent-tooling",
+            "agent_count": 8,
+            "message_count": 523,
+            "reservation_count": 0,
+            "created_at": 1772582400000000
+          },
+          {
+            "id": 5,
+            "slug": "edge-runtime",
+            "human_key": "public-demo/edge-runtime",
+            "agent_count": 8,
+            "message_count": 243,
+            "reservation_count": 0,
+            "created_at": 1772582400000000
+          },
+          {
+            "id": 6,
+            "slug": "skills-library",
+            "human_key": "public-demo/skills-library",
+            "agent_count": 8,
+            "message_count": 139,
+            "reservation_count": 0,
+            "created_at": 1772582400000000
+          }
+        ],
+        "contacts_list": [
+          {
+            "from_agent": "AmberDeer",
+            "to_agent": "RubyPrairie",
+            "from_project_slug": "mcp-agent-mail-rust",
+            "to_project_slug": "frankentui",
+            "status": "approved",
+            "reason": "public demo coordination",
+            "updated_ts": 1772668780000000,
+            "expires_ts": null
+          }
+        ],
+        "reservation_snapshots": [
+          {
+            "id": 101,
+            "project_slug": "mcp-agent-mail-rust",
+            "agent_name": "AmberDeer",
+            "path_pattern": "crates/dashboard/**",
+            "exclusive": true,
+            "granted_ts": 1772668760000000,
+            "expires_ts": 1772674800000000,
+            "released_ts": null
+          },
+          {
+            "id": 102,
+            "project_slug": "frankentui",
+            "agent_name": "RubyPrairie",
+            "path_pattern": "crates/ftui-web/**",
+            "exclusive": true,
+            "granted_ts": 1772668730000000,
+            "expires_ts": 1772673000000000,
+            "released_ts": 1772668810000000
+          },
+          {
+            "id": 103,
+            "project_slug": "mcp-agent-mail-rust",
+            "agent_name": "GrayElk",
+            "path_pattern": "docs/browser-dashboard.md",
+            "exclusive": false,
+            "granted_ts": 1772668775000000,
+            "expires_ts": 1772676000000000,
+            "released_ts": null
+          }
+        ],
+        "timestamp_micros": 1772668810000000
+      }
+    },
+    {
+      "at_ms": 14000,
+      "type": "publish_event",
+      "event": {
+        "kind": "health_pulse",
+        "seq": 10003,
+        "timestamp_micros": 1772668814000000,
+        "source": "lifecycle",
+        "redacted": true,
+        "db_stats": {
+          "projects": 44,
+          "agents": 1550,
+          "messages": 7917,
+          "file_reservations": 11,
+          "contact_links": 535,
+          "ack_pending": 1516,
+          "agents_list": [
+            {
+              "project": "mcp-agent-mail-rust",
+              "name": "AmberDeer",
+              "program": "codex-cli",
+              "model": "gpt-5",
+              "last_active_ts": 1772668800000000,
+              "health": null
+            },
+            {
+              "project": "mcp-agent-mail-rust",
+              "name": "RubyPrairie",
+              "program": "claude-code",
+              "model": "opus",
+              "last_active_ts": 1772668782000000,
+              "health": null
+            },
+            {
+              "project": "mcp-agent-mail-rust",
+              "name": "GrayElk",
+              "program": "codex-cli",
+              "model": "gpt-5",
+              "last_active_ts": 1772668764000000,
+              "health": null
+            },
+            {
+              "project": "mcp-agent-mail-rust",
+              "name": "RedHarbor",
+              "program": "cursor",
+              "model": "composer",
+              "last_active_ts": 1772668746000000,
+              "health": null
+            },
+            {
+              "project": "mcp-agent-mail-rust",
+              "name": "CoralDog",
+              "program": "codex-cli",
+              "model": "gpt-5",
+              "last_active_ts": 1772668728000000,
+              "health": null
+            },
+            {
+              "project": "mcp-agent-mail-rust",
+              "name": "BrownGlacier",
+              "program": "claude-code",
+              "model": "sonnet",
+              "last_active_ts": 1772668710000000,
+              "health": null
+            },
+            {
+              "project": "mcp-agent-mail-rust",
+              "name": "WindyLynx",
+              "program": "codex-cli",
+              "model": "gpt-5",
+              "last_active_ts": 1772668692000000,
+              "health": null
+            },
+            {
+              "project": "mcp-agent-mail-rust",
+              "name": "JadePine",
+              "program": "claude-code",
+              "model": "opus",
+              "last_active_ts": 1772668674000000,
+              "health": null
+            }
+          ],
+          "projects_list": [
+            {
+              "id": 1,
+              "slug": "mcp-agent-mail-rust",
+              "human_key": "public-demo/mcp-agent-mail-rust",
+              "agent_count": 8,
+              "message_count": 1825,
+              "reservation_count": 3,
+              "created_at": 1772582400000000
+            },
+            {
+              "id": 2,
+              "slug": "frankentui",
+              "human_key": "public-demo/frankentui",
+              "agent_count": 8,
+              "message_count": 1971,
+              "reservation_count": 2,
+              "created_at": 1772582400000000
+            },
+            {
+              "id": 3,
+              "slug": "frankensqlite",
+              "human_key": "public-demo/frankensqlite",
+              "agent_count": 8,
+              "message_count": 1123,
+              "reservation_count": 1,
+              "created_at": 1772582400000000
+            },
+            {
+              "id": 4,
+              "slug": "agent-tooling",
+              "human_key": "public-demo/agent-tooling",
+              "agent_count": 8,
+              "message_count": 523,
+              "reservation_count": 0,
+              "created_at": 1772582400000000
+            },
+            {
+              "id": 5,
+              "slug": "edge-runtime",
+              "human_key": "public-demo/edge-runtime",
+              "agent_count": 8,
+              "message_count": 243,
+              "reservation_count": 0,
+              "created_at": 1772582400000000
+            },
+            {
+              "id": 6,
+              "slug": "skills-library",
+              "human_key": "public-demo/skills-library",
+              "agent_count": 8,
+              "message_count": 139,
+              "reservation_count": 0,
+              "created_at": 1772582400000000
+            }
+          ],
+          "contacts_list": [
+            {
+              "from_agent": "AmberDeer",
+              "to_agent": "RubyPrairie",
+              "from_project_slug": "mcp-agent-mail-rust",
+              "to_project_slug": "frankentui",
+              "status": "approved",
+              "reason": "public demo coordination",
+              "updated_ts": 1772668780000000,
+              "expires_ts": null
+            }
+          ],
+          "reservation_snapshots": [
+            {
+              "id": 101,
+              "project_slug": "mcp-agent-mail-rust",
+              "agent_name": "AmberDeer",
+              "path_pattern": "crates/dashboard/**",
+              "exclusive": true,
+              "granted_ts": 1772668760000000,
+              "expires_ts": 1772674800000000,
+              "released_ts": null
+            },
+            {
+              "id": 102,
+              "project_slug": "frankentui",
+              "agent_name": "RubyPrairie",
+              "path_pattern": "crates/ftui-web/**",
+              "exclusive": true,
+              "granted_ts": 1772668730000000,
+              "expires_ts": 1772673000000000,
+              "released_ts": 1772668810000000
+            },
+            {
+              "id": 103,
+              "project_slug": "mcp-agent-mail-rust",
+              "agent_name": "GrayElk",
+              "path_pattern": "docs/browser-dashboard.md",
+              "exclusive": false,
+              "granted_ts": 1772668775000000,
+              "expires_ts": 1772676000000000,
+              "released_ts": null
+            }
+          ],
+          "timestamp_micros": 1772668810000000
+        }
+      }
+    },
+    {
+      "at_ms": 16000,
+      "type": "console_line",
+      "text": "replay loop complete; resetting to verified bootstrap"
+    }
+  ]
+}

@@ -49,7 +49,7 @@ import { Suspense } from "react";
 import { LazyViz } from "@/components/viz/viz-framework";
 
 const AgentFlywheel = dynamic(() => import("@/components/agent-flywheel"), { ssr: false });
-const HeroMedia = dynamic(() => import("@/components/hero-media"), { ssr: false });
+const HeroMedia = dynamic(() => import("@/components/hero-media"));
 const FileReservationViz = dynamic(() => import("@/components/viz/file-reservation-viz"), { ssr: false });
 const MessageLifecycleViz = dynamic(() => import("@/components/viz/message-lifecycle-viz"), { ssr: false });
 const AgentHandshakeViz = dynamic(() => import("@/components/viz/agent-handshake-viz"), { ssr: false });
@@ -142,7 +142,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Hero Visual — Robot Mascot + Dashboard Video Placeholder */}
+          {/* Hero Visual — Robot Mascot + production FrankenTUI WASM dashboard */}
           <div className="relative mt-16 w-full max-w-[1200px] mx-auto group">
             {/* Floating Robot Mascot */}
             <div className="absolute -top-8 right-4 md:top-[-60px] md:right-[8%] z-20 w-20 h-28 md:w-28 md:h-40 animate-float">
@@ -153,19 +153,11 @@ export default function HomePage() {
             <SyncContainer withNodes={false} className="relative glass-modern p-0 overflow-hidden shadow-2xl w-full">
               <BorderBeam />
 
-              {/* Simulated Agent Mail TUI with chapter nav + transcript panel */}
+              {/* Production Agent Mail DashboardScreen rendered by FrankenTUI in WASM */}
               <Suspense fallback={<div className="min-h-[300px] md:min-h-[420px] bg-black/60 animate-pulse" />}>
                 <HeroMedia />
               </Suspense>
             </SyncContainer>
-
-            {/* Embedded Stats Card */}
-            <div className="pointer-events-none absolute -bottom-6 left-4 md:-bottom-10 md:left-6 z-30 glass-modern p-4 md:p-6 rounded-2xl border border-blue-500/20 shadow-2xl animate-float flex">
-              <div className="flex flex-col text-left">
-                <span className="text-2xl md:text-4xl font-black text-blue-400 tabular-nums tracking-tighter">34</span>
-                <span className="text-[8px] md:text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">MCP Tools</span>
-              </div>
-            </div>
           </div>
         </div>
       </section>

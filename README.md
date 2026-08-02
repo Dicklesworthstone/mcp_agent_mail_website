@@ -590,15 +590,29 @@ The site uses a dark theme with animated glass-morphism effects:
 
 ### Hero Media System
 
-The hero section includes a video player with chapters and transcript:
+The hero embeds the actual Agent Mail `DashboardScreen`, compiled from Rust to
+WebAssembly and rendered to canvas by FrankenTUI. It is not the old DOM simulation and
+not a prerecorded video.
 
-- **Play/Pause controls** with accessible labels
-- **Chapter navigation** with seek functionality (7 chapters from Cold Start through Get Started)
-- **Searchable transcript** panel with full text of the 90-second walkthrough
-- **Reduced-motion fallback** that shows a static poster image instead of autoplay
-- **Accessible**, with aria-label describing demo content and WebVTT caption support
+- **Real TUI behavior:** production responsive layout, search/filter shortcuts,
+  navigation, event panels, sparklines, and keyboard/pointer input
+- **Verified assets:** the pack, runner, renderer, and font are checked against byte
+  counts and SHA-256 digests in `public/agent-mail-dashboard/manifest.v1.json`
+- **Privacy-bounded data:** project/agent/message/reservation/contact/ack counts come
+  from a count-only SQLite export; every name, path, message, subject, thread, and replay
+  event is synthetic
+- **Deterministic replay:** an 18-second loop drives the in-memory browser adapter; the
+  site never opens a visitor's database or calls a mailbox mutation API
+- **Play/Pause/Reset controls** plus a direct focus control for the terminal
+- **Responsive lifecycle:** resize events reflow the production TUI, device pixel ratio
+  is capped at 2, the logical loop runs at the native 100 ms tick, and off-screen frames
+  are suspended
+- **Accessible fallback:** a screen-reader mirror, live status, keyboard instructions,
+  static poster, and no-script/error fallback remain available
 
-The demo walkthrough covers: cold start (single `am` command), agent registration (auto-generated identities), file reservations (TTL-based advisory locks), targeted messaging (threaded inboxes with ack tracking), hybrid search (lexical/semantic/hybrid modes), and the scale dashboard (real-time metrics).
+The Rust boundary and offline exporter live in the engine repository at
+`crates/mcp-agent-mail-dashboard-wasm/`. Regenerated public packs must pass the Rust
+typed privacy validator and this site's artifact digest tests before publication.
 
 ### Lab Mode & Audio SFX
 
@@ -630,7 +644,7 @@ The viewer uses TanStack Query for data fetching, TanStack Table for the sidebar
 
 ### Accessibility
 
-**Reduced Motion.** The `useReducedMotion` hook (framer-motion) checks `prefers-reduced-motion: reduce` at the system level. GlowOrbits disables all orbital animations. Hero media shows a static poster instead of autoplaying video. All framer-motion animations are conditionally applied.
+**Reduced Motion.** The `useReducedMotion` hook (framer-motion) checks `prefers-reduced-motion: reduce` at the system level. GlowOrbits disables all orbital animations. The WASM dashboard disables chart transitions, pauses replay time, and renders a deterministic static frame. All framer-motion animations are conditionally applied.
 
 **Semantic HTML & ARIA.** Skip link at the top of every page for keyboard navigation. Aria-expanded on collapsible elements (chapters, transcript panels). Semantic heading hierarchy (h1 → h2 → h3). Alt text on images. Aria-labels on video and interactive elements.
 
@@ -753,7 +767,7 @@ Set `turbopack.root` in `next.config.ts` or remove unrelated lockfiles in parent
 |---|---|---|
 | Live backend APIs | Not used | Site is entirely static + client-side interactive modules |
 | Content authoring UI | Not supported | Edit `lib/content.ts` directly |
-| Real-time data | Not implemented | Visualizations use simulated data, not live Agent Mail instances |
+| Live mailbox data | Not implemented | The hero uses real aggregate snapshot counts plus synthetic details; it never connects to a visitor's Agent Mail instance |
 | Spec explorer SSR | Partial | Viewer is client-heavy by design (TanStack Query + Virtual) |
 
 ## FAQ

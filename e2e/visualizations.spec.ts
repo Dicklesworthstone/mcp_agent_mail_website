@@ -121,9 +121,12 @@ test.describe("Mobile visualization regressions", () => {
     await gotoAndWaitForMain(page, "/");
 
     const hero = page.getByTestId("hero-tui-demo");
+    await expect(hero.getByTestId("hero-dashboard-runtime-status")).toContainText(/WASM frame/i, {
+      timeout: 30_000,
+    });
     await hero.scrollIntoViewIfNeeded();
     await expect(hero).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByText(/sqlite snapshot replay/i)).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/Production DashboardScreen · Rust → WASM/i)).toBeVisible({ timeout: 30_000 });
 
     const widths = await expectNoHorizontalOverflow(page);
     const heroBox = await hero.boundingBox();

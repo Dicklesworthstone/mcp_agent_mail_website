@@ -1,0 +1,40 @@
+{
+  "schema": "agent_mail.dashboard_artifacts.v1",
+  "built_at": "2026-08-02T05:59:27Z",
+  "source_revision": "5efdb8b42819a45fbdd45fcc01099f7f3f39eaea",
+  "artifacts": {
+    "demo_pack": {
+      "url": "/agent-mail-dashboard/demo_pack.v1.json",
+      "bytes": 29961,
+      "sha256": "0345292fe60c2e7f905fbb64ee203765f72e6c0f910445c6d42207738490b258"
+    },
+    "dashboard_runner_js": {
+      "url": "/agent-mail-dashboard/runner/agent_mail_dashboard.js",
+      "bytes": 14706,
+      "sha256": "b87285a94bb335476bc3c2eb871dc93ffd8e2720cdd7bb4bb379866f8a3a2c84"
+    },
+    "dashboard_runner_wasm": {
+      "url": "/agent-mail-dashboard/runner/agent_mail_dashboard_bg.wasm",
+      "bytes": 2712380,
+      "sha256": "ea6100cdaacf8a7eb6020ccc12cf5be06797b3d1fd24956654482899e8197e74"
+    },
+    "renderer_js": {
+      "url": "/agent-mail-dashboard/renderer/FrankenTerm.js",
+      "bytes": 85668,
+      "sha256": "4cff5619ece81c0a2e6c25aa460c742451ef6a7892aecb081da5afb011f5e33b"
+    },
+    "renderer_wasm": {
+      "url": "/agent-mail-dashboard/renderer/FrankenTerm_bg.wasm",
+      "bytes": 394920,
+      "sha256": "26b84220acb8e192480480b40d64bbc30a3d760ce800f97659a37e92136fd64b"
+    },
+    "terminal_font": {
+      "url": "/agent-mail-dashboard/fonts/pragmasevka-nf-subset.woff2",
+      "bytes": 17896,
+      "sha256": "54bfc636093de7506c5785d9d08c7aa4b79bed672a2b5c9345d7b079d4f2cb00"
+    },
+    "poster": {
+      "url": "/images/agent-mail-dashboard-poster-placeholder.svg"
+    }
+  }
+}
