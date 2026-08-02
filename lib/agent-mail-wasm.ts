@@ -236,7 +236,10 @@ export function validateDashboardManifest(value: unknown): DashboardArtifactMani
   };
 }
 
-export function validateDashboardDemoPack(value: unknown): DashboardDemoPack {
+export function validateDashboardDemoPack(
+  value: unknown,
+  expectedSourceRevision?: string,
+): DashboardDemoPack {
   if (!isRecord(value) || value.schema !== "agent_mail.demo_pack.v1") {
     throw new Error("Unsupported Agent Mail dashboard demo pack");
   }
@@ -251,6 +254,13 @@ export function validateDashboardDemoPack(value: unknown): DashboardDemoPack {
   if (typeof value.provenance.content_sha256 !== "string" ||
       !/^[a-f0-9]{64}$/.test(value.provenance.content_sha256)) {
     throw new Error("Dashboard demo pack content digest is invalid");
+  }
+  if (typeof value.provenance.source_revision !== "string" ||
+      !/^[a-f0-9]{40}$/.test(value.provenance.source_revision)) {
+    throw new Error("Dashboard demo pack source revision is invalid");
+  }
+  if (expectedSourceRevision !== undefined && value.provenance.source_revision !== expectedSourceRevision) {
+    throw new Error("Dashboard demo pack source revision does not match its artifact manifest");
   }
   if (!Number.isSafeInteger(value.duration_ms) || (value.duration_ms as number) <= 0 ||
       (value.duration_ms as number) > 300_000) {
@@ -344,7 +354,7 @@ async function loadDashboardArtifactsUncached(loadToken: symbol): Promise<Loaded
     const json = new TextDecoder("utf-8", { fatal: true }).decode(packBytes);
     // JavaScript validates the public boundary, then drops the parsed object;
     // Rust remains the authoritative typed consumer of the original bytes.
-    validateDashboardDemoPack(JSON.parse(json));
+    validateDashboardDemoPack(JSON.parse(json), manifest.source_revision);
     return json;
   });
   const runnerModulePromise = fetchVerifiedArtifact(artifacts.dashboard_runner_js)

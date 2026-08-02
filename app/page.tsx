@@ -142,7 +142,7 @@ export default function HomePage() {
           </div>
 
           {/* Readable embedded production shell; fullscreen remains one click away. */}
-          <div className="relative left-1/2 mt-8 w-[calc(100vw-2rem)] max-w-7xl -translate-x-1/2 sm:w-[calc(100vw-3rem)]">
+          <div className="relative left-1/2 mt-6 w-[calc(100vw-2rem)] max-w-6xl -translate-x-1/2 sm:w-[calc(100vw-3rem)]">
             {/* Decorative only: zero flow height and always fully above the terminal. */}
             <div
               className="pointer-events-none absolute right-[4%] bottom-[calc(100%+3rem)] hidden h-36 w-24 animate-float xl:block"

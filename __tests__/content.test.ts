@@ -15,6 +15,8 @@ import {
   generalFaq,
   gettingStartedPillars,
   gettingStartedFaq,
+  tuiScreenCopy,
+  credibilityHighlights,
 } from "@/lib/content";
 import {
   specCategories,
@@ -59,6 +61,36 @@ describe("content arrays not covered in other test files", () => {
     expect(gettingStartedPillars.length).toBeGreaterThan(0));
   it("gettingStartedFaq", () =>
     expect(gettingStartedFaq.length).toBeGreaterThan(0));
+});
+
+describe("TUI screen registry copy", () => {
+  const sharedScreenNames = [
+    "Dashboard",
+    "Messages",
+    "Threads",
+    "Agents",
+    "Search",
+    "Reservations",
+    "Tool Metrics",
+    "System Health",
+    "Timeline",
+    "Projects",
+    "Contacts",
+    "Explorer",
+    "Analytics",
+    "Attachments",
+    "Archive Browser",
+    "ATC",
+  ];
+
+  it("matches the shared 16-screen shell order", () => {
+    expect(tuiScreenCopy.map((screen) => screen.screen)).toEqual(sharedScreenNames);
+  });
+
+  it("keeps the visible credibility count aligned with the registry", () => {
+    const highlight = credibilityHighlights.find((item) => item.id === "ch-tui-screens");
+    expect(highlight?.value).toBe(String(tuiScreenCopy.length));
+  });
 });
 
 // ─── Storyboard Scenes ──────────────────────────────────────────

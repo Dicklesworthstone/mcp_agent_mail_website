@@ -37,9 +37,13 @@ interface AgentMailTerminalProps {
 
 type LoadState = "loading" | "running" | "error";
 
-const DEFAULT_TERMINAL_ZOOM = 0.75;
+const DEFAULT_TERMINAL_ZOOM = 0.85;
 const MAX_DEVICE_PIXEL_RATIO = 2;
 const MAX_BACKING_PIXELS = 8_500_000;
+const REPLAY_HOST_CADENCE_MS = 100;
+const RAF_WAKE_AHEAD_MS = 16;
+const SCREEN_READER_MIRROR_THROTTLE_MS = 1_000;
+const SCREEN_READER_MIRROR_DEBOUNCE_MS = 100;
 
 export function dashboardRendererDpr(
   widthCss: number,
@@ -162,15 +166,25 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
     const [screenReaderText, setScreenReaderText] = useState(
       "Agent Mail dashboard is loading. The interactive terminal supports arrow keys, j and k navigation, number keys, slash search, Enter, and Escape.",
     );
+    const [screenReaderMirror, setScreenReaderMirror] = useState(
+      "Agent Mail terminal contents will appear when the verified dashboard is ready.",
+    );
     const containerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const termRef = useRef<FrankenTermInstance | null>(null);
     const runnerRef = useRef<DashboardRunnerInstance | null>(null);
     const frameRef = useRef(0);
+    const frameTimerRef = useRef(0);
+    const mirrorTimerRef = useRef(0);
     const lastFrameAtRef = useRef(0);
     const statusAtRef = useRef(0);
+    const mirrorAtRef = useRef(0);
+    const mirrorTextRef = useRef("");
     const refitRef = useRef<() => void>(() => undefined);
     const resetRef = useRef<() => void>(() => undefined);
+    const wakeFrameRef = useRef<() => void>(() => undefined);
+    const suspendFramesRef = useRef<() => void>(() => undefined);
+    const hostRefreshPendingRef = useRef(false);
     const initializedRef = useRef(false);
     const visibleRef = useRef(true);
     const pausedRef = useRef(paused || reducedMotion);
@@ -186,14 +200,22 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
 
     const cleanup = useCallback(() => {
       if (frameRef.current) cancelAnimationFrame(frameRef.current);
+      if (frameTimerRef.current) window.clearTimeout(frameTimerRef.current);
+      if (mirrorTimerRef.current) window.clearTimeout(mirrorTimerRef.current);
       frameRef.current = 0;
+      frameTimerRef.current = 0;
+      mirrorTimerRef.current = 0;
       lastFrameAtRef.current = 0;
+      mirrorAtRef.current = 0;
+      hostRefreshPendingRef.current = false;
       const runner = runnerRef.current;
       const term = termRef.current;
       runnerRef.current = null;
       termRef.current = null;
       refitRef.current = () => undefined;
       resetRef.current = () => undefined;
+      wakeFrameRef.current = () => undefined;
+      suspendFramesRef.current = () => undefined;
       releaseRunner(runner);
       releaseTerminal(term);
       initializedRef.current = false;
@@ -201,10 +223,13 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
     }, []);
 
     const retry = useCallback(() => {
+      const retryMirror = "Agent Mail terminal contents are loading again.";
       setError(null);
       setLoadState("loading");
       setLoadingLabel("Retrying the verified dashboard runtime…");
       setScreenReaderText("Retrying the interactive Agent Mail dashboard.");
+      mirrorTextRef.current = retryMirror;
+      setScreenReaderMirror(retryMirror);
       callbacksRef.current.onRetry?.();
       setLoadAttempt((attempt) => attempt + 1);
     }, []);
@@ -223,6 +248,8 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
         pausedRef.current = nextPaused || reducedMotionRef.current;
         try {
           runnerRef.current?.setPaused(pausedRef.current);
+          hostRefreshPendingRef.current = true;
+          wakeFrameRef.current();
         } catch (cause) {
           failRuntimeRef.current(cause);
         }
@@ -242,6 +269,8 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
         const status = parseStatus(runner);
         if (!status.running) throw stoppedRunnerError(runner, "Agent Mail dashboard runner stopped");
         callbacksRef.current.onStatus?.(status);
+        hostRefreshPendingRef.current = true;
+        wakeFrameRef.current();
       } catch (cause) {
         failRuntimeRef.current(cause);
       }
@@ -273,6 +302,11 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
       const observer = new IntersectionObserver(
         ([entry]) => {
           visibleRef.current = entry?.isIntersecting ?? true;
+          if (visibleRef.current) {
+            wakeFrameRef.current();
+          } else {
+            suspendFramesRef.current();
+          }
         },
         { rootMargin: "300px" },
       );
@@ -281,10 +315,23 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
     }, []);
 
     useEffect(() => {
+      const handleVisibilityChange = () => {
+        if (document.hidden) {
+          suspendFramesRef.current();
+        } else {
+          wakeFrameRef.current();
+        }
+      };
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+      return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+    }, []);
+
+    useEffect(() => {
       if (initializedRef.current) return;
       initializedRef.current = true;
       let cancelled = false;
       let resizeObserver: ResizeObserver | null = null;
+      let dprListenerCleanup: (() => void) | null = null;
       let inputController: AbortController | null = null;
       let initializingTerm: FrankenTermInstance | null = null;
       let pendingPointerMove: unknown | null = null;
@@ -303,6 +350,8 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
         failed = true;
         resizeObserver?.disconnect();
         resizeObserver = null;
+        dprListenerCleanup?.();
+        dprListenerCleanup = null;
         inputController?.abort();
         inputController = null;
         const currentContainer = containerRef.current;
@@ -313,9 +362,12 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
         }
         cleanup();
         const nextError = cause instanceof Error ? cause : new Error(String(cause));
+        const unavailableMirror = "Agent Mail terminal contents are unavailable because the interactive dashboard stopped.";
         setError(nextError);
         setLoadState("error");
         setScreenReaderText(`Interactive Agent Mail dashboard unavailable: ${nextError.message}`);
+        mirrorTextRef.current = unavailableMirror;
+        setScreenReaderMirror(unavailableMirror);
         callbacksRef.current.onError?.(nextError);
       };
       failRuntimeRef.current = failRuntime;
@@ -382,6 +434,36 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
           }
           term.render();
 
+          const publishScreenReaderMirrorNow = () => {
+            const now = performance.now();
+            const mirror = term.screenReaderMirrorText().slice(0, 32_000);
+            mirrorAtRef.current = now;
+            if (!mirror.trim() || mirror === mirrorTextRef.current) return;
+            mirrorTextRef.current = mirror;
+            setScreenReaderMirror(mirror);
+          };
+          const scheduleScreenReaderMirror = () => {
+            if (mirrorTimerRef.current) return;
+            mirrorTimerRef.current = window.setTimeout(() => {
+              mirrorTimerRef.current = 0;
+              try {
+                publishScreenReaderMirrorNow();
+              } catch (cause) {
+                failRuntime(cause);
+              }
+            }, SCREEN_READER_MIRROR_DEBOUNCE_MS);
+          };
+          const publishScreenReaderMirror = (interactive = false) => {
+            if (interactive) {
+              scheduleScreenReaderMirror();
+              return;
+            }
+            if (mirrorTimerRef.current) return;
+            if (performance.now() - mirrorAtRef.current < SCREEN_READER_MIRROR_THROTTLE_MS) return;
+            publishScreenReaderMirrorNow();
+          };
+          publishScreenReaderMirrorNow();
+
           setScreenReaderText(`Agent Mail dashboard ready at ${cols} columns by ${rows} rows.`);
           setLoadState("running");
           container.dataset.activeScreen = initialStatus.active_screen;
@@ -417,6 +499,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
           const renderRunnerStep = (
             currentTerm: FrankenTermInstance,
             currentRunner: DashboardRunnerInstance,
+            forceMirror = false,
           ) => {
             const result = currentRunner.step();
             if (!result.running) {
@@ -427,6 +510,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
             if (patches.cells.length === 0) return;
             currentTerm.applyPatchBatchFlat(patches.spans, patches.cells);
             currentTerm.render();
+            publishScreenReaderMirror(forceMirror);
           };
 
           const flushInteractiveInput = () => {
@@ -435,7 +519,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
             if (!currentRunner || !currentTerm) return;
             try {
               if (!drainRunnerInput(currentTerm, currentRunner)) return;
-              renderRunnerStep(currentTerm, currentRunner);
+              renderRunnerStep(currentTerm, currentRunner, true);
               statusAtRef.current = performance.now();
               publishStatus();
             } catch (cause) {
@@ -464,7 +548,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
               pendingPointerMove = null;
               pendingWheelInput = null;
               currentRunner.reset();
-              renderRunnerStep(currentTerm, currentRunner);
+              renderRunnerStep(currentTerm, currentRunner, true);
               lastFrameAtRef.current = 0;
               statusAtRef.current = performance.now();
               publishStatus();
@@ -473,7 +557,38 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
             }
           };
 
+          const suspendFrames = () => {
+            if (frameRef.current) cancelAnimationFrame(frameRef.current);
+            if (frameTimerRef.current) window.clearTimeout(frameTimerRef.current);
+            frameRef.current = 0;
+            frameTimerRef.current = 0;
+            lastFrameAtRef.current = 0;
+          };
+          suspendFramesRef.current = suspendFrames;
+
+          const scheduleFrame = (delayMs = 0) => {
+            if (cancelled || failed || !visibleRef.current || document.hidden) return;
+            const immediate = delayMs <= 0;
+            if (immediate && frameTimerRef.current) {
+              window.clearTimeout(frameTimerRef.current);
+              frameTimerRef.current = 0;
+            }
+            if (frameRef.current || frameTimerRef.current) return;
+            if (immediate) {
+              frameRef.current = requestAnimationFrame(frame);
+              return;
+            }
+            frameTimerRef.current = window.setTimeout(() => {
+              frameTimerRef.current = 0;
+              if (!cancelled && !failed && visibleRef.current && !document.hidden) {
+                frameRef.current = requestAnimationFrame(frame);
+              }
+            }, delayMs);
+          };
+          wakeFrameRef.current = () => scheduleFrame();
+
           function frame(timestamp: number) {
+            frameRef.current = 0;
             if (cancelled) return;
             const currentRunner = runnerRef.current;
             const currentTerm = termRef.current;
@@ -483,29 +598,43 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
               if (visibleRef.current && !document.hidden) {
                 flushContinuousInput(currentTerm);
                 const inputProcessed = drainRunnerInput(currentTerm, currentRunner);
-                const elapsed = lastFrameAtRef.current === 0 ? 100 : timestamp - lastFrameAtRef.current;
-                const replayDue = elapsed >= 100;
+                const elapsed = lastFrameAtRef.current === 0
+                  ? REPLAY_HOST_CADENCE_MS
+                  : timestamp - lastFrameAtRef.current;
+                const replayDue = !pausedRef.current && elapsed >= REPLAY_HOST_CADENCE_MS;
                 if (replayDue) {
                   lastFrameAtRef.current = timestamp;
                   currentRunner.advanceTime(Math.min(elapsed, 250));
+                } else if (pausedRef.current) {
+                  lastFrameAtRef.current = 0;
                 }
-                if (inputProcessed || replayDue) {
-                  renderRunnerStep(currentTerm, currentRunner);
+                const hostRefreshPending = hostRefreshPendingRef.current;
+                hostRefreshPendingRef.current = false;
+                if (inputProcessed || replayDue || hostRefreshPending) {
+                  renderRunnerStep(currentTerm, currentRunner, inputProcessed || hostRefreshPending);
                   if (inputProcessed || timestamp - statusAtRef.current >= 750) {
                     statusAtRef.current = timestamp;
                     publishStatus();
                   }
                 }
               } else {
-                lastFrameAtRef.current = 0;
+                suspendFrames();
               }
             } catch (cause) {
               failRuntime(cause);
               return;
             }
-            frameRef.current = requestAnimationFrame(frame);
+            if (!pausedRef.current) {
+              const elapsedSinceReplay = lastFrameAtRef.current === 0
+                ? REPLAY_HOST_CADENCE_MS
+                : Math.max(0, performance.now() - lastFrameAtRef.current);
+              scheduleFrame(Math.max(
+                0,
+                REPLAY_HOST_CADENCE_MS - elapsedSinceReplay - RAF_WAKE_AHEAD_MS,
+              ));
+            }
           }
-          frameRef.current = requestAnimationFrame(frame);
+          if (!pausedRef.current) scheduleFrame();
 
           const refit = () => {
             try {
@@ -541,6 +670,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
                 }
               }
               currentTerm.render();
+              publishScreenReaderMirror(true);
             } catch (cause) {
               failRuntime(cause);
             }
@@ -549,11 +679,40 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
           resizeObserver = new ResizeObserver(refit);
           resizeObserver.observe(container);
 
+          const visualViewport = window.visualViewport;
+          if (visualViewport && typeof visualViewport.addEventListener === "function") {
+            const handleVisualViewportResize = () => refit();
+            visualViewport.addEventListener("resize", handleVisualViewportResize);
+            dprListenerCleanup = () => {
+              visualViewport.removeEventListener("resize", handleVisualViewportResize);
+            };
+          } else if (typeof window.matchMedia === "function") {
+            let detachCurrentQuery: () => void = () => undefined;
+            const armDprQuery = () => {
+              detachCurrentQuery();
+              const query = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+              const handleDprChange = () => {
+                refit();
+                if (!cancelled && !failed) armDprQuery();
+              };
+              if (typeof query.addEventListener === "function") {
+                query.addEventListener("change", handleDprChange, { once: true });
+                detachCurrentQuery = () => query.removeEventListener("change", handleDprChange);
+              } else {
+                query.addListener(handleDprChange);
+                detachCurrentQuery = () => query.removeListener(handleDprChange);
+              }
+            };
+            armDprQuery();
+            dprListenerCleanup = () => detachCurrentQuery();
+          }
+
           inputController = new AbortController();
           const signal = inputController.signal;
           const safeInput = (value: unknown, coalescePointerMove = false) => {
             if (coalescePointerMove) {
               pendingPointerMove = value;
+              scheduleFrame();
               return;
             }
             try {
@@ -738,6 +897,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
               dy: Math.sign(event.deltaY),
               mods: inputModifiers(event),
             };
+            scheduleFrame();
           }, { signal, passive: false });
           canvas.addEventListener("focus", () => safeInput({ kind: "focus", focused: true }), { signal });
           canvas.addEventListener("blur", () => safeInput({ kind: "focus", focused: false }), { signal });
@@ -754,6 +914,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
       return () => {
         cancelled = true;
         resizeObserver?.disconnect();
+        dprListenerCleanup?.();
         inputController?.abort();
         cleanup();
       };
@@ -768,7 +929,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
         className="group relative h-full w-full overflow-hidden bg-[#020611]"
         role="region"
         aria-label="Interactive Agent Mail FrankenTUI dashboard"
-        aria-describedby="agent-mail-terminal-help agent-mail-terminal-screen-reader"
+        aria-describedby="agent-mail-terminal-help agent-mail-terminal-screen-reader-status"
         aria-busy={loadState === "loading"}
       >
         <canvas
@@ -816,8 +977,15 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
         <p id="agent-mail-terminal-help" className="sr-only">
           This is the real Agent Mail shell and DashboardScreen compiled to WebAssembly and rendered by FrankenTUI. It replays a privacy-checked public pack. Click tabs, filters, and rows, or use Tab, Shift Tab, arrows, j and k, slash, Enter, Escape, and the number keys shown in the terminal. Control Escape returns focus to the webpage.
         </p>
-        <pre id="agent-mail-terminal-screen-reader" className="sr-only" aria-live="polite" aria-atomic="true">
+        <pre id="agent-mail-terminal-screen-reader-status" className="sr-only" aria-live="polite" aria-atomic="true">
           {screenReaderText}
+        </pre>
+        <pre
+          id="agent-mail-terminal-screen-reader-mirror"
+          className="sr-only"
+          aria-label="Current Agent Mail terminal contents"
+        >
+          {screenReaderMirror}
         </pre>
         <noscript>
           <Image src={DASHBOARD_POSTER_URL} alt="Agent Mail operations dashboard preview" width={1600} height={800} />

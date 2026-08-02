@@ -19,7 +19,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 
-const DEFAULT_DASHBOARD_ZOOM = 0.75;
+const DEFAULT_DASHBOARD_ZOOM = 0.85;
 const MIN_DASHBOARD_ZOOM = 0.55;
 const MAX_DASHBOARD_ZOOM = 1.15;
 const DASHBOARD_ZOOM_STEP = 0.1;
@@ -225,7 +225,9 @@ export default function HeroMedia() {
         {status
           ? `${status.projects} projects, ${status.agents} agents, ${status.messages} messages. `
           : ""}
-        Aggregate counts come from a read-only Agent Mail SQLite export; names, paths, messages, and replay events are synthetic public-demo details.
+        Current replay counters start from a read-only Agent Mail SQLite aggregate export and may
+        change as synthetic events run; names, paths, messages, and replay events are synthetic
+        public-demo details.
       </p>
     </div>
   );

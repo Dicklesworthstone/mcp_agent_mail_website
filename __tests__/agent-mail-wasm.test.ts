@@ -24,7 +24,7 @@ function readJson(path: string): unknown {
 describe("Agent Mail browser dashboard artifacts", () => {
   it("accepts the checked-in manifest and public demo pack", () => {
     const manifest = validateDashboardManifest(readJson(manifestPath));
-    const pack = validateDashboardDemoPack(readJson(packPath));
+    const pack = validateDashboardDemoPack(readJson(packPath), manifest.source_revision);
 
     expect(manifest.schema).toBe("agent_mail.dashboard_artifacts.v1");
     expect(manifest.artifacts.poster.url).toBe(DASHBOARD_POSTER_URL);
@@ -99,10 +99,32 @@ describe("Agent Mail browser dashboard artifacts", () => {
     expect(() => validateDashboardDemoPack(changed)).toThrow(/aggregate and synthetic/i);
   });
 
+  it("rejects packs whose provenance revision diverges from the manifest", () => {
+    const manifest = validateDashboardManifest(readJson(manifestPath));
+    const pack = readJson(packPath) as { provenance: { source_revision: string } };
+    expect(() => validateDashboardDemoPack(pack, "0".repeat(40))).toThrow(/does not match/i);
+    expect(() => validateDashboardDemoPack(pack, manifest.source_revision)).not.toThrow();
+  });
+
   it("contains no home directories, database paths, or common credential markers", () => {
     const raw = readFileSync(packPath, "utf8");
     expect(raw).not.toMatch(/\/Users\/|\/home\/|storage\.sqlite|agent_mail\.db/i);
     expect(raw).not.toMatch(/BEGIN (?:RSA |OPENSSH )?PRIVATE KEY|api[_-]?key|bearer\s+[a-z0-9._-]+/i);
+  });
+
+  it("contains no developer home paths in either published WASM binary", () => {
+    const wasmArtifacts = [
+      "public/agent-mail-dashboard/runner/agent_mail_dashboard_bg.wasm",
+      "public/agent-mail-dashboard/renderer/FrankenTerm_bg.wasm",
+    ];
+    for (const relativePath of wasmArtifacts) {
+      const raw = readFileSync(join(projectRoot, relativePath)).toString("latin1");
+      // Match a full home-root + username component. The runner intentionally
+      // contains validator literals such as `/home/`; those are policy data,
+      // not an embedded compiler filesystem path.
+      expect(/(?:\/Users|\/home)\/[^/\0]{1,64}\//.test(raw), relativePath).toBe(false);
+      expect(/[A-Za-z]:\\Users\\[^\\\0]{1,64}\\/i.test(raw), relativePath).toBe(false);
+    }
   });
 });
 
@@ -186,6 +208,22 @@ class TestResizeObserver {
   }
 }
 
+class TestIntersectionObserver {
+  static instances: TestIntersectionObserver[] = [];
+
+  readonly root = null;
+  readonly rootMargin = "0px";
+  readonly thresholds = [0];
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+  takeRecords = vi.fn((): IntersectionObserverEntry[] => []);
+
+  constructor(readonly callback: IntersectionObserverCallback) {
+    TestIntersectionObserver.instances.push(this);
+  }
+}
+
 function testArtifacts(
   Terminal: typeof TestTerminal = TestTerminal,
   Runner: typeof TestRunner = TestRunner,
@@ -206,17 +244,21 @@ function installAnimationEnvironment(callbacks?: FrameRequestCallback[]) {
   const originalRequestAnimationFrame = window.requestAnimationFrame;
   const originalCancelAnimationFrame = window.cancelAnimationFrame;
   const originalResizeObserver = window.ResizeObserver;
+  const originalIntersectionObserver = window.IntersectionObserver;
   TestResizeObserver.instances = [];
+  TestIntersectionObserver.instances = [];
   window.requestAnimationFrame = vi.fn((callback: FrameRequestCallback) => {
     callbacks?.push(callback);
     return callbacks?.length ?? 1;
   });
   window.cancelAnimationFrame = vi.fn();
   window.ResizeObserver = TestResizeObserver as unknown as typeof ResizeObserver;
+  window.IntersectionObserver = TestIntersectionObserver as unknown as typeof IntersectionObserver;
   return () => {
     window.requestAnimationFrame = originalRequestAnimationFrame;
     window.cancelAnimationFrame = originalCancelAnimationFrame;
     window.ResizeObserver = originalResizeObserver;
+    window.IntersectionObserver = originalIntersectionObserver;
   };
 }
 
@@ -279,24 +321,24 @@ describe("AgentMailTerminal lifecycle", () => {
         view = render(createElement(AgentMailTerminal, {
           paused: false,
           reducedMotion: false,
-          zoom: 0.75,
+          zoom: 0.85,
         }));
         await flushMicrotasks();
       });
       const [terminal] = TestTerminal.instances;
-      expect(terminal.setZoom).toHaveBeenCalledWith(0.75);
+      expect(terminal.setZoom).toHaveBeenCalledWith(0.85);
       const initialFitCalls = terminal.fitToContainer.mock.calls.length;
 
       await act(async () => {
         view.rerender(createElement(AgentMailTerminal, {
           paused: false,
           reducedMotion: false,
-          zoom: 0.85,
+          zoom: 0.95,
         }));
         await flushMicrotasks();
       });
 
-      expect(terminal.setZoom).toHaveBeenLastCalledWith(0.85);
+      expect(terminal.setZoom).toHaveBeenLastCalledWith(0.95);
       expect(terminal.fitToContainer.mock.calls.length).toBeGreaterThan(initialFitCalls);
 
       const canvas = screen.getByTestId("hero-agent-mail-canvas");
@@ -306,11 +348,186 @@ describe("AgentMailTerminal lifecycle", () => {
           paused: false,
           reducedMotion: false,
           fullscreen: true,
-          zoom: 0.85,
+          zoom: 0.95,
         }));
         await flushMicrotasks();
       });
       expect(canvas).toHaveClass("touch-none");
+      view.unmount();
+    } finally {
+      load.mockRestore();
+      restoreEnvironment();
+    }
+  });
+
+  it("refits when display density changes without a CSS container resize", async () => {
+    TestTerminal.instances = [];
+    TestRunner.instances = [];
+    const restoreEnvironment = installAnimationEnvironment();
+    const originalVisualViewport = Object.getOwnPropertyDescriptor(window, "visualViewport");
+    let resizeListener: EventListener | null = null;
+    const addEventListener = vi.fn((type: string, listener: EventListenerOrEventListenerObject) => {
+      if (type === "resize" && typeof listener === "function") resizeListener = listener;
+    });
+    const removeEventListener = vi.fn((type: string, listener: EventListenerOrEventListenerObject) => {
+      if (type === "resize" && resizeListener === listener) resizeListener = null;
+    });
+    Object.defineProperty(window, "visualViewport", {
+      configurable: true,
+      value: { addEventListener, removeEventListener },
+    });
+    const load = vi.spyOn(dashboardRuntime, "loadDashboardArtifacts").mockResolvedValue(testArtifacts());
+
+    try {
+      const { default: AgentMailTerminal } = await import("@/components/agent-mail-terminal");
+      let view!: ReturnType<typeof render>;
+      await act(async () => {
+        view = render(createElement(AgentMailTerminal, {
+          paused: false,
+          reducedMotion: false,
+          zoom: 0.85,
+        }));
+        await flushMicrotasks();
+      });
+      const [terminal] = TestTerminal.instances;
+      const initialFitCalls = terminal.fitToContainer.mock.calls.length;
+      expect(resizeListener).not.toBeNull();
+
+      await act(async () => {
+        resizeListener?.(new Event("resize"));
+        await flushMicrotasks();
+      });
+      expect(terminal.fitToContainer.mock.calls.length).toBeGreaterThan(initialFitCalls);
+
+      view.unmount();
+      expect(removeEventListener).toHaveBeenCalledWith("resize", expect.any(Function));
+      expect(resizeListener).toBeNull();
+    } finally {
+      load.mockRestore();
+      if (originalVisualViewport) {
+        Object.defineProperty(window, "visualViewport", originalVisualViewport);
+      } else {
+        Object.defineProperty(window, "visualViewport", { configurable: true, value: undefined });
+      }
+      restoreEnvironment();
+    }
+  });
+
+  it("publishes a browsable terminal mirror for screen readers", async () => {
+    TestTerminal.instances = [];
+    TestRunner.instances = [];
+    const restoreEnvironment = installAnimationEnvironment();
+    const load = vi.spyOn(dashboardRuntime, "loadDashboardArtifacts").mockResolvedValue(testArtifacts());
+
+    try {
+      const { default: AgentMailTerminal } = await import("@/components/agent-mail-terminal");
+      let view!: ReturnType<typeof render>;
+      await act(async () => {
+        view = render(createElement(AgentMailTerminal, { paused: true, reducedMotion: false }));
+        await flushMicrotasks();
+      });
+
+      expect(TestTerminal.instances[0]?.screenReaderMirrorText).toHaveBeenCalled();
+      expect(screen.getByLabelText("Current Agent Mail terminal contents")).toHaveTextContent("test screen");
+      expect(screen.getByText(/dashboard ready at 220 columns by 74 rows/i)).toHaveAttribute(
+        "aria-live",
+        "polite",
+      );
+      view.unmount();
+    } finally {
+      load.mockRestore();
+      restoreEnvironment();
+    }
+  });
+
+  it("debounces accessibility mirror extraction off the visual input path", async () => {
+    vi.useFakeTimers();
+    TestTerminal.instances = [];
+    TestRunner.instances = [];
+    const restoreEnvironment = installAnimationEnvironment();
+    const load = vi.spyOn(dashboardRuntime, "loadDashboardArtifacts").mockResolvedValue(testArtifacts());
+
+    try {
+      const { default: AgentMailTerminal } = await import("@/components/agent-mail-terminal");
+      let view!: ReturnType<typeof render>;
+      await act(async () => {
+        view = render(createElement(AgentMailTerminal, { paused: true, reducedMotion: false }));
+        await flushMicrotasks();
+      });
+      const [terminal] = TestTerminal.instances;
+      const [runner] = TestRunner.instances;
+      terminal.drainEncodedInputs.mockReturnValue(["key"]);
+      runner.step.mockReturnValue({ running: true, rendered: true, events_processed: 1, frame_idx: 2 });
+      runner.takeFlatPatches.mockReturnValue({ spans: new Uint32Array([0]), cells: new Uint32Array([1]) });
+
+      fireEvent.keyDown(screen.getByTestId("hero-agent-mail-canvas"), {
+        key: "2",
+        code: "Digit2",
+      });
+      expect(terminal.screenReaderMirrorText).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        vi.advanceTimersByTime(100);
+        await flushMicrotasks();
+      });
+      expect(terminal.screenReaderMirrorText).toHaveBeenCalledTimes(2);
+      view.unmount();
+    } finally {
+      load.mockRestore();
+      restoreEnvironment();
+      vi.useRealTimers();
+    }
+  });
+
+  it("suspends scheduled replay work off-screen and while paused", async () => {
+    TestTerminal.instances = [];
+    TestRunner.instances = [];
+    const frameCallbacks: FrameRequestCallback[] = [];
+    const restoreEnvironment = installAnimationEnvironment(frameCallbacks);
+    const load = vi.spyOn(dashboardRuntime, "loadDashboardArtifacts").mockResolvedValue(testArtifacts());
+
+    try {
+      const { default: AgentMailTerminal } = await import("@/components/agent-mail-terminal");
+      let view!: ReturnType<typeof render>;
+      await act(async () => {
+        view = render(createElement(AgentMailTerminal, { paused: false, reducedMotion: false }));
+        await flushMicrotasks();
+      });
+      const [runner] = TestRunner.instances;
+      const [observer] = TestIntersectionObserver.instances;
+      expect(frameCallbacks).toHaveLength(1);
+
+      act(() => {
+        observer.callback(
+          [{ isIntersecting: false } as IntersectionObserverEntry],
+          observer as unknown as IntersectionObserver,
+        );
+      });
+      await act(async () => {
+        frameCallbacks[0]?.(100);
+        await flushMicrotasks();
+      });
+      expect(runner.advanceTime).not.toHaveBeenCalled();
+      expect(frameCallbacks).toHaveLength(1);
+
+      act(() => {
+        observer.callback(
+          [{ isIntersecting: true } as IntersectionObserverEntry],
+          observer as unknown as IntersectionObserver,
+        );
+      });
+      expect(frameCallbacks).toHaveLength(2);
+
+      await act(async () => {
+        view.rerender(createElement(AgentMailTerminal, { paused: true, reducedMotion: false }));
+        await flushMicrotasks();
+      });
+      await act(async () => {
+        frameCallbacks[1]?.(200);
+        await flushMicrotasks();
+      });
+      expect(runner.advanceTime).not.toHaveBeenCalled();
+      expect(frameCallbacks).toHaveLength(2);
       view.unmount();
     } finally {
       load.mockRestore();
@@ -588,6 +805,9 @@ describe("AgentMailTerminal lifecycle", () => {
       expect(screen.getByText(/Interactive Agent Mail dashboard unavailable:/i)).toHaveTextContent(
         "temporary manifest outage",
       );
+      expect(screen.getByLabelText("Current Agent Mail terminal contents")).toHaveTextContent(
+        "terminal contents are unavailable",
+      );
 
       await act(async () => {
         fireEvent.click(screen.getByRole("button", { name: "Retry interactive dashboard" }));
@@ -598,6 +818,7 @@ describe("AgentMailTerminal lifecycle", () => {
       expect(region).toHaveAttribute("data-active-screen", "dashboard");
       expect(region).toHaveAttribute("aria-busy", "false");
       expect(screen.queryByRole("button", { name: "Retry interactive dashboard" })).not.toBeInTheDocument();
+      expect(screen.getByLabelText("Current Agent Mail terminal contents")).toHaveTextContent("test screen");
       expect(TestTerminal.instances).toHaveLength(1);
       expect(TestRunner.instances).toHaveLength(1);
       view.unmount();

@@ -315,27 +315,28 @@ Over 20 read-only resource surfaces let agents inspect system state without tool
 | `resource://metrics/{project_key}` | Throughput/error/latency telemetry | Supports triage decisions |
 | `resource://health` | Service readiness + degraded-mode signals | Early warning for operators |
 
-## 15-Screen Operations TUI
+## 16-Screen Operations TUI
 
 The terminal dashboard answers the core operational questions that arise during multi-agent sessions:
 
 | Screen | Question It Answers | Key Signals |
 |---|---|---|
 | **Dashboard** | Is the system healthy and active? | Inbound message rate, reservation conflicts, service health |
-| **Inbox Browser** | What requires my immediate response? | Importance, ack_required, thread continuity |
-| **Thread Explorer** | How did this decision evolve? | Participants, open action items, decision checkpoints |
-| **Agent Roster** | Who is online and what are they doing? | Last active, task description, program/model |
-| **Reservation Manager** | Where are file conflicts emerging? | Path overlaps, exclusive holders, TTL expiration |
-| **Unified Search** | Where is the prior context for this topic? | Query relevance, thread_id, sender filters |
-| **Contact Graph** | Can this agent message that agent? | Approval state, policy mode, cross-project links |
-| **Macro Inspector** | Which workflows are available and safe? | Macro preconditions, side effects, result shape |
-| **Build Slots** | Are builds saturating shared infrastructure? | Active holders, expiry, exclusive contention |
-| **Product Bus** | How are projects linked under shared products? | Linked repos, cross-project traffic, search scope |
-| **Audit Timeline** | What happened and when? | Message lifecycle, reservation changes, identity updates |
-| **System Health** | Which subsystem is degraded? | DB pool pressure, search fallback, transport status |
-| **Human Overseer** | How can an operator redirect execution? | Compose path, recipient targeting, importance overrides |
-| **Tool Metrics** | Which tools are hot or failing? | Call volume, error rate, tail latency |
-| **Theme + Session** | Is this session readable and context-aligned? | Active theme (5 options including Cyberpunk Aurora), connection status |
+| **Messages** | Which coordination messages need attention? | Importance, ack required, sender and project |
+| **Threads** | How did this decision evolve over time? | Participants, open action items, decision checkpoints |
+| **Agents** | Who is online and what are they doing? | Last active, task description, program/model |
+| **Search** | Which messages, agents, or projects match these facets? | Cross-surface results, facet filters, thread/date scope |
+| **Reservations** | Where are file ownership conflicts emerging? | Path overlaps, exclusive holders, TTL expiration |
+| **Tool Metrics** | Which tools and transports are hot or failing? | Call volume, error rate, tail latency |
+| **System Health** | Are the database, queues, and connections healthy? | Database health, queue pressure, connection probes |
+| **Timeline** | What happened, and in what order? | Message lifecycle, reservation changes, event timestamps |
+| **Projects** | Which projects are carrying the coordination load? | Message counts, agent counts, reservation counts |
+| **Contacts** | Can this agent message that agent right now? | Approval state, policy mode, cross-project links |
+| **Explorer** | Which inbound or outbound messages match this operational slice? | Direction, grouping, ack status |
+| **Analytics** | Which anomalies deserve investigation next? | Confidence score, actionable next step, deep-linked evidence |
+| **Attachments** | Which attachment should I inspect, and where did it come from? | Inline preview, source provenance, sender context |
+| **Archive Browser** | What does the canonical Git archive contain? | Directory tree, file preview, audit trail |
+| **ATC** | Are agents live, conflicting, and backed by decision evidence? | Agent liveness, conflict decisions, evidence ledger |
 
 ## Robot Mode CLI
 
@@ -556,7 +557,7 @@ All site content lives in `lib/content.ts` (3200+ lines) as typed TypeScript exp
 | `codeExample` / `codeExampleRobot` / `codeExampleCrossProject` | Three code blocks demonstrating core workflows |
 | `toolClusterCopy` | 9 MCP tool clusters with representative tools |
 | `resourceSurfaceCopy` | 20+ MCP resource URI patterns |
-| `tuiScreenCopy` | 15 TUI screen descriptions |
+| `tuiScreenCopy` | 16 TUI screen descriptions |
 | `robotCommandTrackCopy` | 5 CLI command tracks |
 | `glossaryTerms` | Full glossary index |
 | `faq` | Frequently asked questions |
@@ -600,20 +601,21 @@ old DOM simulation and not a prerecorded video.
   read-only views derived from the same validated public replay state
 - **Verified assets:** the pack, runner, renderer, and font are checked against byte
   counts and SHA-256 digests in `public/agent-mail-dashboard/manifest.v1.json`
-- **Privacy-bounded data:** project/agent/message/reservation/contact/ack counts come
-  from a count-only SQLite export; every name, path, message, subject, thread, and replay
-  event is synthetic
+- **Privacy-bounded data:** opening project/agent/message/reservation/contact/ack baseline
+  counts come from a count-only SQLite export; every name, path, message, subject, thread,
+  and replay event is synthetic
 - **Deterministic replay:** an 18-second loop drives the in-memory browser adapter; the
   site never opens a visitor's database or calls a mailbox mutation API
 - **Production-density opening frame:** 192 varied privacy-safe startup events, 500
   synthetic agents, 41 synthetic projects, 200 synthetic contacts, and populated
   reservation, latency, throughput, activity, and message-preview panels make the first
   frame resemble a busy real Agent Mail session without shipping a megabyte of repeated
-  snapshot rows; the visible aggregate counters still come from the count-only export
+  snapshot rows; deterministic synthetic replay operations then evolve the visible counters
+  in browser memory
 - **Interactive by default:** the first click both focuses and operates the terminal;
   native tabs, dashboard filters, replay rows, scrolling, Tab/Shift+Tab, direct number
   jumps, and slash search work without an extra interaction gate
-- **Compact controls underneath:** Play/Pause, Reset, zoom out, 75% reset, zoom in,
+- **Compact controls underneath:** Play/Pause, Reset, zoom out, 85% reset, zoom in,
   and one-click browser fullscreen refit the native terminal without decorative device
   chrome; the native screen-tab row remains visible and directly clickable
 - **Fast, sharp startup:** a dense native-structure shell poster is preloaded for
@@ -621,7 +623,7 @@ old DOM simulation and not a prerecorded video.
   parallel, JavaScript executes directly from verified bytes, and digest-keyed immutable
   artifact requests prevent an older browser cache from crossing deployments
 - **Readable bounded raster cost:** the embedded terminal is capped to a comfortable
-  landing-page width and starts at 75% zoom, while controls expose a 55%-115% range;
+  landing-page width and starts at 85% zoom, while controls expose a 55%-115% range;
   rendering caps device density at 2x and enforces an adaptive 8.5-million-pixel backing
   budget for large and fullscreen canvases
 - **Responsive lifecycle:** resize events reflow the production TUI, pointer moves and

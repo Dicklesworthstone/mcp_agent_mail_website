@@ -30,7 +30,7 @@ test.describe("Hero media module", () => {
     const hero = page.locator("#home-hero");
     const terminal = hero.getByTestId("hero-agent-mail-terminal");
     await expect(terminal).toHaveAttribute("data-active-screen", "dashboard", { timeout: 30_000 });
-    await expect.poll(async () => Number(await terminal.getAttribute("data-terminal-cols"))).toBeGreaterThanOrEqual(190);
+    await expect.poll(async () => Number(await terminal.getAttribute("data-terminal-cols"))).toBeGreaterThanOrEqual(165);
 
     const mascotBox = await hero.getByTestId("hero-robot-mascot").boundingBox();
     const demoBox = await hero.getByTestId("hero-tui-demo").boundingBox();
@@ -40,15 +40,15 @@ test.describe("Hero media module", () => {
     expect(demoBox).not.toBeNull();
     expect(terminalBox).not.toBeNull();
     expect(ctaBox).not.toBeNull();
-    expect(demoBox!.width).toBeGreaterThanOrEqual(1_200);
-    expect(demoBox!.width).toBeLessThanOrEqual(1_300);
+    expect(demoBox!.width).toBeGreaterThanOrEqual(1_100);
+    expect(demoBox!.width).toBeLessThanOrEqual(1_170);
     expect(terminalBox!.width / terminalBox!.height).toBeGreaterThanOrEqual(1.9);
     expect(terminalBox!.width / terminalBox!.height).toBeLessThanOrEqual(2.1);
     expect(demoBox!.height).toBeGreaterThan(terminalBox!.height);
     expect(demoBox!.y - (ctaBox!.y + ctaBox!.height)).toBeLessThanOrEqual(64);
     expect(mascotBox!.y + mascotBox!.height).toBeLessThanOrEqual(demoBox!.y);
-    await expect(hero.getByTestId("hero-tui-demo")).toHaveAttribute("data-zoom", "0.75");
-    diagnostics.breadcrumb("Bounded 2:1 shell opened at readable native density with <=64px CTA gap and zero mascot overlap");
+    await expect(hero.getByTestId("hero-tui-demo")).toHaveAttribute("data-zoom", "0.85");
+    diagnostics.breadcrumb("Narrow 2:1 shell opened at readable native density with <=64px CTA gap and zero mascot overlap");
   });
 
   test("zoom controls underneath refit the live native terminal", async ({ page, diagnostics }) => {
@@ -61,22 +61,22 @@ test.describe("Hero media module", () => {
     const terminal = hero.getByTestId("hero-agent-mail-terminal");
     await expect(terminal).toHaveAttribute("data-active-screen", "dashboard", { timeout: 30_000 });
     const defaultCols = Number(await terminal.getAttribute("data-terminal-cols"));
-    await expect(demo).toHaveAttribute("data-zoom", "0.75");
+    await expect(demo).toHaveAttribute("data-zoom", "0.85");
 
     await hero.getByRole("button", { name: "Zoom dashboard in" }).click();
-    await expect(demo).toHaveAttribute("data-zoom", "0.85");
+    await expect(demo).toHaveAttribute("data-zoom", "0.95");
     await expect.poll(async () => Number(await terminal.getAttribute("data-terminal-cols")))
       .toBeLessThan(defaultCols);
-    await expect(hero.getByRole("button", { name: "Reset dashboard zoom to 75 percent" }))
-      .toHaveText("85%");
+    await expect(hero.getByRole("button", { name: "Reset dashboard zoom to 85 percent" }))
+      .toHaveText("95%");
 
-    await hero.getByRole("button", { name: "Reset dashboard zoom to 75 percent" }).click();
-    await expect(demo).toHaveAttribute("data-zoom", "0.75");
+    await hero.getByRole("button", { name: "Reset dashboard zoom to 85 percent" }).click();
+    await expect(demo).toHaveAttribute("data-zoom", "0.85");
     await expect.poll(async () => Number(await terminal.getAttribute("data-terminal-cols")))
       .toBe(defaultCols);
 
     await hero.getByRole("button", { name: "Zoom dashboard out" }).click();
-    await expect(demo).toHaveAttribute("data-zoom", "0.65");
+    await expect(demo).toHaveAttribute("data-zoom", "0.75");
     await expect.poll(async () => Number(await terminal.getAttribute("data-terminal-cols")))
       .toBeGreaterThan(defaultCols);
     diagnostics.breadcrumb("Visible controls below the canvas changed zoom and refit the WASM grid in both directions");
@@ -133,7 +133,8 @@ test.describe("Hero media module", () => {
       `${projects} projects, ${agents} agents, (?:${messages}|${messages + 1}) messages`,
       "i",
     );
-    await expect(summary).toContainText(/aggregate counts come from a read-only Agent Mail SQLite export/i);
+    await expect(summary).toContainText(/counters start from a read-only Agent Mail SQLite aggregate export/i);
+    await expect(summary).toContainText(/may change as synthetic events run/i);
     await expect(summary).toContainText(/names, paths, messages, and replay events are synthetic/i);
     await expect(summary).toContainText(aggregateCounts, {
       timeout: 30_000,
@@ -169,9 +170,12 @@ test.describe("Hero media module", () => {
     await expect(demo).toHaveAttribute("data-active-screen", "messages");
     await expect(canvas).toBeFocused();
 
-    const liveUpdate = hero.locator("#agent-mail-terminal-screen-reader");
+    const liveUpdate = hero.locator("#agent-mail-terminal-screen-reader-status");
     await expect(liveUpdate).not.toBeEmpty();
     expect((await liveUpdate.textContent())?.length ?? Number.POSITIVE_INFINITY).toBeLessThan(500);
+    await expect(hero.getByLabel("Current Agent Mail terminal contents")).toContainText(
+      /Messages\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i,
+    );
 
     await page.waitForTimeout(900);
     const pausedFrame = await demo.getAttribute("data-frame-index");
@@ -191,29 +195,36 @@ test.describe("Hero media module", () => {
     await page.keyboard.press("2");
     await expect(terminal).toHaveAttribute("data-active-screen", "messages");
 
+    const mirror = page.getByLabel("Current Agent Mail terminal contents");
     const shortcuts = [
-      ["1", "dashboard"],
-      ["2", "messages"],
-      ["3", "threads"],
-      ["4", "agents"],
-      ["5", "search"],
-      ["6", "reservations"],
-      ["7", "tool_metrics"],
-      ["8", "system_health"],
-      ["9", "timeline"],
-      ["0", "projects"],
-      ["Shift+Digit1", "contacts"],
-      ["Shift+Digit2", "explorer"],
-      ["Shift+Digit3", "analytics"],
-      ["Shift+Digit4", "attachments"],
-      ["Shift+Digit5", "archive_browser"],
-      ["Shift+Digit6", "atc"],
+      ["1", "dashboard", /Events\s*\(/i],
+      ["2", "messages", /Messages\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i],
+      ["3", "threads", /Threads\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i],
+      ["4", "agents", /Agents\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i],
+      ["5", "search", /Search\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i],
+      ["6", "reservations", /Reservations\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i],
+      ["7", "tool_metrics", /Tool Metrics\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i],
+      ["8", "system_health", /System Health\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i],
+      ["9", "timeline", /Timeline\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i],
+      ["0", "projects", /Projects\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i],
+      ["Shift+Digit1", "contacts", /Contacts\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i],
+      ["Shift+Digit2", "explorer", /Explorer\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i],
+      ["Shift+Digit3", "analytics", /Analytics\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i],
+      ["Shift+Digit4", "attachments", /Attachments\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i],
+      ["Shift+Digit5", "archive_browser", /Archive Browser\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i],
+      ["Shift+Digit6", "atc", /ATC\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i],
     ] as const;
-    for (const [shortcut, screenName] of shortcuts) {
+    for (const [shortcut, screenName, renderedContent] of shortcuts) {
       await page.keyboard.press(shortcut);
       await expect(terminal, shortcut).toHaveAttribute("data-active-screen", screenName);
+      await expect(mirror, `${shortcut} rendered ${screenName}`).toContainText(renderedContent);
+      if (screenName !== "dashboard") {
+        await expect(mirror, `${shortcut} populated ${screenName}`).toContainText(
+          /\b[1-9]\d* records?\b/i,
+        );
+      }
     }
-    diagnostics.breadcrumb("Every shared-shell number-row and shifted-number-row shortcut changed the WASM screen");
+    diagnostics.breadcrumb("Every shared-shell shortcut changed the WASM screen and rendered screen-specific content");
   });
 
   test("mouse clicks switch native tabs and select public replay rows", async ({ page, diagnostics }) => {
@@ -239,6 +250,9 @@ test.describe("Hero media module", () => {
     };
     await clickCell(18, 0);
     await expect(terminal).toHaveAttribute("data-active-screen", "messages");
+    await expect(page.getByLabel("Current Agent Mail terminal contents")).toContainText(
+      /Messages\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i,
+    );
     const pointerLatencyMs = await terminal.evaluate((element) => {
       const host = element as HTMLElement;
       return Number(host.dataset.statusPublishedAt) - Number(host.dataset.lastInputAt);
@@ -246,13 +260,33 @@ test.describe("Hero media module", () => {
     expect(pointerLatencyMs).toBeGreaterThanOrEqual(0);
     expect(pointerLatencyMs).toBeLessThan(50);
 
+    await clickCell(34, 0);
+    await expect(terminal).toHaveAttribute("data-active-screen", "threads");
+    await expect(page.getByLabel("Current Agent Mail terminal contents")).toContainText(
+      /Threads\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i,
+    );
+
+    await clickCell(46, 0);
+    await expect(terminal).toHaveAttribute("data-active-screen", "agents");
+    await expect(page.getByLabel("Current Agent Mail terminal contents")).toContainText(
+      /Agents\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i,
+    );
+
+    await page.keyboard.press("1");
+    await expect(terminal).toHaveAttribute("data-active-screen", "dashboard");
+    await clickCell(cols - 1, 0);
+    await expect(terminal).toHaveAttribute("data-active-screen", "explorer");
+    await expect(page.getByLabel("Current Agent Mail terminal contents")).toContainText(
+      /Explorer\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i,
+    );
+
     const beforeRevision = Number(await terminal.getAttribute("data-interaction-revision"));
     // Row 6 is the already-selected first record; choose a later visible row
     // so this assertion proves that list selection actually changed.
     await clickCell(8, 8);
     await expect.poll(async () => Number(await terminal.getAttribute("data-interaction-revision")))
       .toBeGreaterThan(beforeRevision);
-    diagnostics.breadcrumb("Canvas pointer input switched a native shell tab and selected a replay row");
+    diagnostics.breadcrumb("Canvas pointer input switched native tabs, paged tab overflow, and selected a replay row");
   });
 
   test("one-click fullscreen fills the browser and exits back to the trigger", async ({
