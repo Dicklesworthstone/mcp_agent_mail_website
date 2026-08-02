@@ -314,29 +314,33 @@ async function loadDashboardArtifactsUncached(): Promise<LoadedDashboardArtifact
   const manifest = validateDashboardManifest(await manifestResponse.json());
   const artifacts = manifest.artifacts;
 
-  const [packBytes, runnerJs, runnerWasm, rendererJs, rendererWasm, fontBytes] = await Promise.all([
-    fetchVerifiedArtifact(artifacts.demo_pack),
-    fetchVerifiedArtifact(artifacts.dashboard_runner_js),
-    fetchVerifiedArtifact(artifacts.dashboard_runner_wasm),
-    fetchVerifiedArtifact(artifacts.renderer_js),
-    fetchVerifiedArtifact(artifacts.renderer_wasm),
-    fetchVerifiedArtifact(artifacts.terminal_font),
-  ]);
-
-  const packPromise = Promise.resolve().then(() => {
+  // Start each consumer as soon as its own verified bytes arrive. This keeps a
+  // slower artifact from unnecessarily blocking module import, WASM compile,
+  // pack validation, or font loading for every other artifact.
+  const packPromise = fetchVerifiedArtifact(artifacts.demo_pack).then((packBytes) => {
     const json = new TextDecoder("utf-8", { fatal: true }).decode(packBytes);
     // JavaScript validates the public boundary, then drops the parsed object;
     // Rust remains the authoritative typed consumer of the original bytes.
     validateDashboardDemoPack(JSON.parse(json));
     return json;
   });
+  const runnerModulePromise = fetchVerifiedArtifact(artifacts.dashboard_runner_js)
+    .then((bytes) => importVerifiedModule<RunnerModule>(bytes));
+  const runnerCompiledPromise = fetchVerifiedArtifact(artifacts.dashboard_runner_wasm)
+    .then((bytes) => WebAssembly.compile(bytes));
+  const rendererModulePromise = fetchVerifiedArtifact(artifacts.renderer_js)
+    .then((bytes) => importVerifiedModule<RendererModule>(bytes));
+  const rendererCompiledPromise = fetchVerifiedArtifact(artifacts.renderer_wasm)
+    .then((bytes) => WebAssembly.compile(bytes));
+  const fontPromise = fetchVerifiedArtifact(artifacts.terminal_font).then(loadFont);
+
   const [runnerModule, rendererModule, runnerCompiled, rendererCompiled, packJson] = await Promise.all([
-    importVerifiedModule<RunnerModule>(runnerJs),
-    importVerifiedModule<RendererModule>(rendererJs),
-    WebAssembly.compile(runnerWasm),
-    WebAssembly.compile(rendererWasm),
+    runnerModulePromise,
+    rendererModulePromise,
+    runnerCompiledPromise,
+    rendererCompiledPromise,
     packPromise,
-    loadFont(fontBytes),
+    fontPromise,
   ]);
   await Promise.all([
     runnerModule.default({ module_or_path: runnerCompiled }),

@@ -151,7 +151,7 @@ export default function HeroMedia() {
           </button>
         </div>
 
-        <div className="flex items-center gap-1" aria-label="Dashboard zoom controls">
+        <div className="flex items-center gap-1" role="group" aria-label="Dashboard zoom controls">
           <button
             type="button"
             onClick={() => setZoom((current) => clampDashboardZoom(current - DASHBOARD_ZOOM_STEP))}

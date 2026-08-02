@@ -624,10 +624,10 @@ old DOM simulation and not a prerecorded video.
   landing-page width and starts at 75% zoom, while controls expose a 55%-115% range;
   rendering caps device density at 2x and enforces an adaptive 8.5-million-pixel backing
   budget for large and fullscreen canvases
-- **Responsive lifecycle:** resize events reflow the production TUI, pointer moves are
-  coalesced and input is drained every animation frame, replay time uses the native
-  100 ms cadence, empty patch batches do not repaint the canvas, and off-screen frames
-  are suspended
+- **Responsive lifecycle:** resize events reflow the production TUI, pointer moves and
+  wheel bursts are coalesced per animation frame while discrete clicks and keys are
+  applied synchronously, replay time uses the native 100 ms cadence, empty patch batches
+  do not repaint the canvas, and off-screen frames are suspended
 - **Accessible fallback:** a screen-reader mirror, live status, keyboard instructions,
   static poster, and no-script/error fallback remain available
 

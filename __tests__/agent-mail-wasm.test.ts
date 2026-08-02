@@ -1,10 +1,11 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { createElement, StrictMode } from "react";
-import { act, render, screen } from "@testing-library/react";
+import { createElement, createRef, StrictMode } from "react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import * as dashboardRuntime from "@/lib/agent-mail-wasm";
+import type { AgentMailTerminalHandle } from "@/components/agent-mail-terminal";
 
 const { validateDashboardDemoPack, validateDashboardManifest } = dashboardRuntime;
 
@@ -123,7 +124,7 @@ class TestTerminal {
   init = vi.fn(async (): Promise<void> => undefined);
   fitToContainer = vi.fn(() => ({ cols: 220, rows: 74 }));
   input = vi.fn();
-  drainEncodedInputs = vi.fn(() => []);
+  drainEncodedInputs = vi.fn<() => unknown[]>(() => []);
   applyPatchBatchFlat = vi.fn();
   render = vi.fn();
   resize = vi.fn();
@@ -279,6 +280,89 @@ describe("AgentMailTerminal lifecycle", () => {
       expect(runner.takeFlatPatches).toHaveBeenCalled();
       expect(terminal.applyPatchBatchFlat).not.toHaveBeenCalled();
       expect(terminal.render).toHaveBeenCalledTimes(initialRenderCount);
+      view.unmount();
+    } finally {
+      load.mockRestore();
+      restoreEnvironment();
+    }
+  });
+
+  it("renders reset immediately instead of waiting for the replay cadence", async () => {
+    TestTerminal.instances = [];
+    TestRunner.instances = [];
+    const restoreEnvironment = installAnimationEnvironment();
+    const load = vi.spyOn(dashboardRuntime, "loadDashboardArtifacts").mockResolvedValue(testArtifacts());
+
+    try {
+      const { default: AgentMailTerminal } = await import("@/components/agent-mail-terminal");
+      const terminalRef = createRef<AgentMailTerminalHandle>();
+      let view!: ReturnType<typeof render>;
+      await act(async () => {
+        view = render(createElement(AgentMailTerminal, {
+          ref: terminalRef,
+          paused: false,
+          reducedMotion: false,
+        }));
+        await flushMicrotasks();
+      });
+      const [terminal] = TestTerminal.instances;
+      const [runner] = TestRunner.instances;
+      runner.step.mockReturnValue({
+        running: true,
+        rendered: true,
+        events_processed: 1,
+        frame_idx: 2,
+      });
+      runner.takeFlatPatches.mockReturnValue({
+        spans: new Uint32Array([0, 1]),
+        cells: new Uint32Array([1]),
+      });
+      const initialRenderCount = terminal.render.mock.calls.length;
+
+      act(() => terminalRef.current?.reset());
+
+      expect(runner.reset).toHaveBeenCalledTimes(1);
+      expect(runner.step).toHaveBeenCalledTimes(1);
+      expect(terminal.applyPatchBatchFlat).toHaveBeenCalledTimes(1);
+      expect(terminal.render).toHaveBeenCalledTimes(initialRenderCount + 1);
+      view.unmount();
+    } finally {
+      load.mockRestore();
+      restoreEnvironment();
+    }
+  });
+
+  it("coalesces wheel bursts to one terminal input per animation frame", async () => {
+    TestTerminal.instances = [];
+    TestRunner.instances = [];
+    const frameCallbacks: FrameRequestCallback[] = [];
+    const restoreEnvironment = installAnimationEnvironment(frameCallbacks);
+    const load = vi.spyOn(dashboardRuntime, "loadDashboardArtifacts").mockResolvedValue(testArtifacts());
+
+    try {
+      const { default: AgentMailTerminal } = await import("@/components/agent-mail-terminal");
+      let view!: ReturnType<typeof render>;
+      await act(async () => {
+        view = render(createElement(AgentMailTerminal, { paused: false, reducedMotion: false }));
+        await flushMicrotasks();
+      });
+      const [terminal] = TestTerminal.instances;
+      const canvas = screen.getByTestId("hero-agent-mail-canvas");
+      terminal.input.mockClear();
+      terminal.drainEncodedInputs.mockReturnValue(["wheel"]);
+
+      fireEvent.wheel(canvas, { deltaY: 1 });
+      fireEvent.wheel(canvas, { deltaY: 1 });
+      fireEvent.wheel(canvas, { deltaY: 1 });
+      expect(terminal.input).not.toHaveBeenCalled();
+
+      await act(async () => {
+        frameCallbacks[0]?.(16);
+        await flushMicrotasks();
+      });
+
+      expect(terminal.input).toHaveBeenCalledTimes(1);
+      expect(terminal.input).toHaveBeenCalledWith(expect.objectContaining({ kind: "wheel", dy: 1 }));
       view.unmount();
     } finally {
       load.mockRestore();

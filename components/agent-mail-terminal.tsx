@@ -102,6 +102,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
     const lastFrameAtRef = useRef(0);
     const statusAtRef = useRef(0);
     const refitRef = useRef<() => void>(() => undefined);
+    const resetRef = useRef<() => void>(() => undefined);
     const initializedRef = useRef(false);
     const visibleRef = useRef(true);
     const pausedRef = useRef(paused || reducedMotion);
@@ -122,6 +123,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
       runnerRef.current = null;
       termRef.current = null;
       refitRef.current = () => undefined;
+      resetRef.current = () => undefined;
       releaseRunner(runner);
       releaseTerminal(term);
       initializedRef.current = false;
@@ -135,17 +137,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
         refitRef.current();
       },
       reset() {
-        const runner = runnerRef.current;
-        if (!runner) return;
-        runner.reset();
-        const status = parseStatus(runner);
-        const container = containerRef.current;
-        if (container) {
-          container.dataset.activeScreen = status.active_screen;
-          container.dataset.dashboardFilter = status.dashboard_filter;
-          container.dataset.interactionRevision = String(status.interaction_revision);
-        }
-        callbacksRef.current.onStatus?.(status);
+        resetRef.current();
       },
       setPaused(nextPaused: boolean) {
         pausedRef.current = nextPaused || reducedMotionRef.current;
@@ -199,6 +191,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
       let inputController: AbortController | null = null;
       let initializingTerm: FrankenTermInstance | null = null;
       let pendingPointerMove: unknown | null = null;
+      let pendingWheelInput: unknown | null = null;
 
       const failRuntime = (cause: unknown) => {
         resizeObserver?.disconnect();
@@ -295,6 +288,71 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
             if (announcement) setScreenReaderText(announcement);
           };
 
+          const drainRunnerInput = (
+            currentTerm: FrankenTermInstance,
+            currentRunner: DashboardRunnerInstance,
+          ) => {
+            let inputProcessed = false;
+            for (const encoded of currentTerm.drainEncodedInputs()) {
+              if (typeof encoded === "string" && currentRunner.pushEncodedInput(encoded)) {
+                inputProcessed = true;
+              }
+            }
+            return inputProcessed;
+          };
+
+          const renderRunnerStep = (
+            currentTerm: FrankenTermInstance,
+            currentRunner: DashboardRunnerInstance,
+          ) => {
+            const result = currentRunner.step();
+            if (!result.rendered) return;
+            const patches = currentRunner.takeFlatPatches();
+            if (patches.cells.length === 0) return;
+            currentTerm.applyPatchBatchFlat(patches.spans, patches.cells);
+            currentTerm.render();
+          };
+
+          const flushInteractiveInput = () => {
+            const currentRunner = runnerRef.current;
+            const currentTerm = termRef.current;
+            if (!currentRunner || !currentTerm) return;
+            try {
+              if (!drainRunnerInput(currentTerm, currentRunner)) return;
+              renderRunnerStep(currentTerm, currentRunner);
+              statusAtRef.current = performance.now();
+              publishStatus();
+            } catch (cause) {
+              failRuntime(cause);
+            }
+          };
+
+          const flushContinuousInput = (currentTerm: FrankenTermInstance) => {
+            if (pendingPointerMove !== null) {
+              currentTerm.input(pendingPointerMove);
+              pendingPointerMove = null;
+            }
+            if (pendingWheelInput !== null) {
+              currentTerm.input(pendingWheelInput);
+              pendingWheelInput = null;
+            }
+          };
+
+          resetRef.current = () => {
+            const currentRunner = runnerRef.current;
+            const currentTerm = termRef.current;
+            if (!currentRunner || !currentTerm) return;
+            try {
+              currentRunner.reset();
+              renderRunnerStep(currentTerm, currentRunner);
+              lastFrameAtRef.current = 0;
+              statusAtRef.current = performance.now();
+              publishStatus();
+            } catch (cause) {
+              failRuntime(cause);
+            }
+          };
+
           function frame(timestamp: number) {
             if (cancelled) return;
             const currentRunner = runnerRef.current;
@@ -303,16 +361,8 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
 
             try {
               if (visibleRef.current && !document.hidden) {
-                if (pendingPointerMove !== null) {
-                  currentTerm.input(pendingPointerMove);
-                  pendingPointerMove = null;
-                }
-                let inputProcessed = false;
-                for (const encoded of currentTerm.drainEncodedInputs()) {
-                  if (typeof encoded === "string" && currentRunner.pushEncodedInput(encoded)) {
-                    inputProcessed = true;
-                  }
-                }
+                flushContinuousInput(currentTerm);
+                const inputProcessed = drainRunnerInput(currentTerm, currentRunner);
                 const elapsed = lastFrameAtRef.current === 0 ? 100 : timestamp - lastFrameAtRef.current;
                 const replayDue = elapsed >= 100;
                 if (replayDue) {
@@ -320,14 +370,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
                   currentRunner.advanceTime(Math.min(elapsed, 250));
                 }
                 if (inputProcessed || replayDue) {
-                  const result = currentRunner.step();
-                  if (result.rendered) {
-                    const patches = currentRunner.takeFlatPatches();
-                    if (patches.cells.length > 0) {
-                      currentTerm.applyPatchBatchFlat(patches.spans, patches.cells);
-                      currentTerm.render();
-                    }
-                  }
+                  renderRunnerStep(currentTerm, currentRunner);
                   if (inputProcessed || timestamp - statusAtRef.current >= 750) {
                     statusAtRef.current = timestamp;
                     publishStatus();
@@ -392,11 +435,9 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
             }
             try {
               const currentTerm = termRef.current;
-              if (pendingPointerMove !== null) {
-                currentTerm?.input(pendingPointerMove);
-                pendingPointerMove = null;
-              }
+              if (currentTerm) flushContinuousInput(currentTerm);
               currentTerm?.input(value);
+              flushInteractiveInput();
             } catch { /* malformed browser event is ignored */ }
           };
           const cellPoint = (event: PointerEvent | WheelEvent) => {
@@ -489,13 +530,13 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
           window.addEventListener("pointerup", (event) => releasePointer(event, true), { signal });
           canvas.addEventListener("wheel", (event) => {
             event.preventDefault();
-            safeInput({
+            pendingWheelInput = {
               kind: "wheel",
               ...cellPoint(event),
               dx: Math.sign(event.deltaX),
               dy: Math.sign(event.deltaY),
               mods: inputModifiers(event),
-            });
+            };
           }, { signal, passive: false });
           canvas.addEventListener("focus", () => safeInput({ kind: "focus", focused: true }), { signal });
           canvas.addEventListener("blur", () => safeInput({ kind: "focus", focused: false }), { signal });

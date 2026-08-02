@@ -211,7 +211,9 @@ test.describe("Hero media module", () => {
     expect(pointerLatencyMs).toBeLessThan(50);
 
     const beforeRevision = Number(await terminal.getAttribute("data-interaction-revision"));
-    await clickCell(8, 6);
+    // Row 6 is the already-selected first record; choose a later visible row
+    // so this assertion proves that list selection actually changed.
+    await clickCell(8, 8);
     await expect.poll(async () => Number(await terminal.getAttribute("data-interaction-revision")))
       .toBeGreaterThan(beforeRevision);
     diagnostics.breadcrumb("Canvas pointer input switched a native shell tab and selected a replay row");
