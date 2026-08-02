@@ -46,8 +46,13 @@ export function dashboardRendererDpr(
   heightCss: number,
   devicePixelRatio = typeof window === "undefined" ? 1 : window.devicePixelRatio || 1,
 ): number {
-  const deviceDpr = Math.min(Math.max(devicePixelRatio, 1), MAX_DEVICE_PIXEL_RATIO);
-  const cssPixels = Math.max(widthCss, 1) * Math.max(heightCss, 1);
+  const normalizedDeviceDpr = Number.isFinite(devicePixelRatio) && devicePixelRatio > 0
+    ? devicePixelRatio
+    : 1;
+  const deviceDpr = Math.min(normalizedDeviceDpr, MAX_DEVICE_PIXEL_RATIO);
+  const width = Number.isFinite(widthCss) && widthCss > 0 ? widthCss : 1;
+  const height = Number.isFinite(heightCss) && heightCss > 0 ? heightCss : 1;
+  const cssPixels = width * height;
   const budgetDpr = Math.sqrt(MAX_BACKING_PIXELS / cssPixels);
   // A render scale below 1 is intentional on unusually large fullscreen
   // surfaces. FrankenTerm accepts any positive DPR, and allowing downsampling
@@ -572,20 +577,27 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
 
           canvas.addEventListener("keydown", (event) => {
             if (event.isComposing || event.key === "Process") return;
-            if (event.key === "Escape" && event.ctrlKey) {
-              canvas.blur();
-              return;
-            }
-            // Browsers conventionally reserve plain Escape for leaving
-            // fullscreen. Do not cancel it merely because the canvas owns
-            // keyboard focus.
-            if (event.key === "Escape" && document.fullscreenElement) {
-              suppressFullscreenEscapeKeyUp = true;
-              void document.exitFullscreen().catch(() => {
-                // The browser may already have processed its native Escape
-                // action. Fullscreen state is reconciled by fullscreenchange.
-              });
-              return;
+            if (event.key === "Escape") {
+              if (event.ctrlKey) {
+                suppressFullscreenEscapeKeyUp = false;
+                canvas.blur();
+                return;
+              }
+              // Browsers conventionally reserve plain Escape for leaving
+              // fullscreen. Do not cancel it merely because the canvas owns
+              // keyboard focus.
+              if (document.fullscreenElement) {
+                suppressFullscreenEscapeKeyUp = true;
+                void document.exitFullscreen().catch(() => {
+                  // The browser may already have processed its native Escape
+                  // action. Fullscreen state is reconciled by fullscreenchange.
+                });
+                return;
+              }
+              // Fullscreen exit commonly moves focus before keyup, leaving the
+              // one-shot suppression flag set. A later embedded Escape is a
+              // new key sequence and must reach the terminal normally.
+              suppressFullscreenEscapeKeyUp = false;
             }
             event.preventDefault();
             safeInput({
@@ -615,36 +627,39 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
           }, { signal, capture: true });
           const releasePointer = (event: PointerEvent, sendRelease: boolean) => {
             if (activePointerId !== event.pointerId) return;
-            if (activePointerIsEmbeddedTouch) {
-              if (sendRelease && !activeTouchMoved) {
+            const wasEmbeddedTouch = activePointerIsEmbeddedTouch;
+            const wasTouchMoved = activeTouchMoved;
+            const button = activePointerButton;
+            activePointerId = null;
+            activePointerIsEmbeddedTouch = false;
+            activeTouchMoved = false;
+            if (wasEmbeddedTouch) {
+              if (sendRelease && !wasTouchMoved) {
                 const point = cellPoint(event);
                 canvas.focus({ preventScroll: true });
                 container.dataset.lastInputAt = String(performance.now());
                 safeInput({
                   kind: "mouse",
                   phase: "down",
-                  button: activePointerButton,
+                  button,
                   ...point,
                   mods: inputModifiers(event),
                 });
                 safeInput({
                   kind: "mouse",
                   phase: "up",
-                  button: activePointerButton,
+                  button,
                   ...point,
                   mods: inputModifiers(event),
                 });
               }
-              activePointerId = null;
-              activePointerIsEmbeddedTouch = false;
-              activeTouchMoved = false;
               return;
             }
             if (sendRelease) {
               safeInput({
                 kind: "mouse",
                 phase: "up",
-                button: activePointerButton,
+                button,
                 ...cellPoint(event),
                 mods: inputModifiers(event),
               });
@@ -652,11 +667,17 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
             if (canvas.hasPointerCapture(event.pointerId)) {
               canvas.releasePointerCapture(event.pointerId);
             }
-            activePointerId = null;
           };
           canvas.addEventListener("pointerdown", (event) => {
             const allowEmbeddedTouchPan = event.pointerType === "touch" && !fullscreenRef.current;
             if (!allowEmbeddedTouchPan) event.preventDefault();
+            if (activePointerId !== null && activePointerId !== event.pointerId) {
+              // A second finger turns an embedded touch into a page gesture,
+              // never a terminal tap. Fullscreen also keeps one coherent
+              // pointer sequence instead of overwriting the held button.
+              if (activePointerIsEmbeddedTouch) activeTouchMoved = true;
+              return;
+            }
             // Capture the terminal cell before focus can scroll a partly
             // visible hero canvas and change its bounding rectangle. Without
             // this, a click on row 0 can be remapped deep into the content
@@ -702,7 +723,10 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
             releasePointer(event, !activePointerIsEmbeddedTouch);
           }, { signal });
           canvas.addEventListener("lostpointercapture", (event) => {
-            if (activePointerId === event.pointerId) activePointerId = null;
+            // Unexpected capture loss must balance a terminal mouse-down. The
+            // normal release path clears activePointerId before relinquishing
+            // capture, so it cannot emit a duplicate mouse-up here.
+            releasePointer(event, true);
           }, { signal });
           window.addEventListener("pointerup", (event) => releasePointer(event, true), { signal });
           canvas.addEventListener("wheel", (event) => {

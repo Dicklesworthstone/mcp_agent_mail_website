@@ -180,7 +180,7 @@ test.describe("Hero media module", () => {
     diagnostics.breadcrumb("Keyboard input rendered and pause held the deterministic frame");
   });
 
-  test("all sixteen production screen shortcuts are live in the browser", async ({ page, diagnostics }) => {
+  test("all sixteen shared shell screen shortcuts are live in the browser", async ({ page, diagnostics }) => {
     diagnostics.setRoute("/");
     await page.goto("/");
 
@@ -213,7 +213,7 @@ test.describe("Hero media module", () => {
       await page.keyboard.press(shortcut);
       await expect(terminal, shortcut).toHaveAttribute("data-active-screen", screenName);
     }
-    diagnostics.breadcrumb("Every native number-row and shifted-number-row screen shortcut changed the WASM shell");
+    diagnostics.breadcrumb("Every shared-shell number-row and shifted-number-row shortcut changed the WASM screen");
   });
 
   test("mouse clicks switch native tabs and select public replay rows", async ({ page, diagnostics }) => {

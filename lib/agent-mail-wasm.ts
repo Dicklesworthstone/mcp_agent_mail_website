@@ -142,6 +142,7 @@ const EXPECTED_PRIVACY_POLICY = "agent-mail-dashboard-public-demo-v1";
 export const DASHBOARD_POSTER_URL = "/images/agent-mail-dashboard-poster-placeholder.svg";
 
 let cachedLoad: Promise<LoadedDashboardArtifacts> | null = null;
+let activeLoadToken: symbol | null = null;
 let installedDashboardFont: { digest: string; face: FontFace } | null = null;
 let desiredDashboardFontDigest: string | null = null;
 
@@ -300,10 +301,10 @@ async function importVerifiedModule<T>(bytes: ArrayBuffer): Promise<T> {
   }
 }
 
-async function loadFont(bytes: ArrayBuffer, digest: string): Promise<void> {
+async function loadFont(bytes: ArrayBuffer, digest: string, loadToken: symbol): Promise<void> {
   if (typeof document === "undefined" || typeof FontFace === "undefined") return;
+  if (activeLoadToken !== loadToken) return;
   if (installedDashboardFont?.digest === digest) return;
-  desiredDashboardFontDigest = digest;
   const font = new FontFace("Pragmasevka NF", bytes, {
     display: "block",
     style: "normal",
@@ -313,14 +314,14 @@ async function loadFont(bytes: ArrayBuffer, digest: string): Promise<void> {
   // Register only a successfully decoded face. Failed retries must not leave
   // a broken face in the document set, and repeated partial loads of the same
   // manifest should not accumulate duplicates.
-  if (desiredDashboardFontDigest !== digest) return;
+  if (activeLoadToken !== loadToken || desiredDashboardFontDigest !== digest) return;
   if (installedDashboardFont?.digest === digest) return;
   if (installedDashboardFont) document.fonts.delete(installedDashboardFont.face);
   document.fonts.add(loaded);
   installedDashboardFont = { digest, face: loaded };
 }
 
-async function loadDashboardArtifactsUncached(): Promise<LoadedDashboardArtifacts> {
+async function loadDashboardArtifactsUncached(loadToken: symbol): Promise<LoadedDashboardArtifacts> {
   const manifestResponse = await fetch(MANIFEST_URL, {
     credentials: "omit",
     cache: "no-cache",
@@ -329,6 +330,12 @@ async function loadDashboardArtifactsUncached(): Promise<LoadedDashboardArtifact
   if (!manifestResponse.ok) throw new Error(`GET ${MANIFEST_URL} returned ${manifestResponse.status}`);
   const manifest = validateDashboardManifest(await manifestResponse.json());
   const artifacts = manifest.artifacts;
+  if (activeLoadToken === loadToken) {
+    // Claim the desired face as soon as the current manifest is known. A
+    // slower, invalidated load must not replace a newer deployment's font
+    // merely because its font response happens to arrive last.
+    desiredDashboardFontDigest = artifacts.terminal_font.sha256;
+  }
 
   // Start each consumer as soon as its own verified bytes arrive. This keeps a
   // slower artifact from unnecessarily blocking module import, WASM compile,
@@ -349,7 +356,7 @@ async function loadDashboardArtifactsUncached(): Promise<LoadedDashboardArtifact
   const rendererCompiledPromise = fetchVerifiedArtifact(artifacts.renderer_wasm)
     .then((bytes) => WebAssembly.compile(bytes));
   const fontPromise = fetchVerifiedArtifact(artifacts.terminal_font)
-    .then((bytes) => loadFont(bytes, artifacts.terminal_font.sha256));
+    .then((bytes) => loadFont(bytes, artifacts.terminal_font.sha256, loadToken));
 
   const [runnerModule, rendererModule, runnerCompiled, rendererCompiled, packJson] = await Promise.all([
     runnerModulePromise,
@@ -374,12 +381,20 @@ async function loadDashboardArtifactsUncached(): Promise<LoadedDashboardArtifact
 
 export function loadDashboardArtifacts(): Promise<LoadedDashboardArtifacts> {
   if (!cachedLoad) {
-    const pending = loadDashboardArtifactsUncached();
+    const loadToken = Symbol("dashboard-artifact-load");
+    activeLoadToken = loadToken;
+    const pending = loadDashboardArtifactsUncached(loadToken);
     cachedLoad = pending;
     void pending.catch(() => {
       // A stale rejection must not erase a newer load installed after an
       // explicit cache reset.
-      if (cachedLoad === pending) cachedLoad = null;
+      if (cachedLoad === pending) {
+        cachedLoad = null;
+        if (activeLoadToken === loadToken) {
+          activeLoadToken = null;
+          desiredDashboardFontDigest = null;
+        }
+      }
     });
   }
   return cachedLoad;
@@ -387,4 +402,6 @@ export function loadDashboardArtifacts(): Promise<LoadedDashboardArtifacts> {
 
 export function resetDashboardArtifactCache(): void {
   cachedLoad = null;
+  activeLoadToken = null;
+  desiredDashboardFontDigest = null;
 }

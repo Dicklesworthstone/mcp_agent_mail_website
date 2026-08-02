@@ -233,6 +233,8 @@ describe("AgentMailTerminal lifecycle", () => {
     }
 
     expect(dashboardRendererDpr(1_280, 640, 3)).toBe(2);
+    expect(dashboardRendererDpr(1_280, 640, 0.75)).toBe(0.75);
+    expect(dashboardRendererDpr(Number.NaN, Number.POSITIVE_INFINITY, Number.NaN)).toBe(1);
   });
 
   it("keeps a newer in-flight artifact load when an older reset load rejects", async () => {
@@ -741,8 +743,31 @@ describe("AgentMailTerminal lifecycle", () => {
         clientX: 20,
         clientY: 20,
       });
+      fireEvent.pointerDown(canvas, {
+        pointerId: 4,
+        pointerType: "touch",
+        button: 0,
+        clientX: 40,
+        clientY: 20,
+      });
       fireEvent.pointerUp(canvas, {
         pointerId: 3,
+        pointerType: "touch",
+        button: 0,
+        clientX: 20,
+        clientY: 20,
+      });
+      expect(terminal.input).not.toHaveBeenCalled();
+
+      fireEvent.pointerDown(canvas, {
+        pointerId: 5,
+        pointerType: "touch",
+        button: 0,
+        clientX: 20,
+        clientY: 20,
+      });
+      fireEvent.pointerUp(canvas, {
+        pointerId: 5,
         pointerType: "touch",
         button: 0,
         clientX: 20,
