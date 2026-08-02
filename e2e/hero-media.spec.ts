@@ -49,6 +49,7 @@ test.describe("Hero media module", () => {
   }) => {
     diagnostics.setRoute("/");
     const artifactRequests = new Map<string, number>();
+    const artifactRequestUrls = new Map<string, URL>();
     const checkedArtifacts = new Set([
       "/agent-mail-dashboard/demo_pack.v1.json",
       "/agent-mail-dashboard/runner/agent_mail_dashboard.js",
@@ -61,6 +62,7 @@ test.describe("Hero media module", () => {
       const pathname = new URL(request.url()).pathname;
       if (checkedArtifacts.has(pathname)) {
         artifactRequests.set(pathname, (artifactRequests.get(pathname) ?? 0) + 1);
+        artifactRequestUrls.set(pathname, new URL(request.url()));
       }
     });
     await page.goto("/");
@@ -69,8 +71,10 @@ test.describe("Hero media module", () => {
     });
     for (const pathname of checkedArtifacts) {
       expect(artifactRequests.get(pathname), pathname).toBe(1);
+      expect(artifactRequestUrls.get(pathname)?.searchParams.get("sha256"), pathname)
+        .toMatch(/^[a-f0-9]{64}$/);
     }
-    diagnostics.breadcrumb("Each verified artifact crossed the network exactly once");
+    diagnostics.breadcrumb("Each digest-keyed verified artifact crossed the network exactly once");
   });
 
   test("verified replay exposes real aggregate counts and synthetic-detail boundary", async ({
@@ -221,7 +225,7 @@ test.describe("Hero media module", () => {
     diagnostics,
   }) => {
     diagnostics.setRoute("/");
-    await page.route("**/agent-mail-dashboard/runner/agent_mail_dashboard_bg.wasm", async (route) => {
+    await page.route("**/agent-mail-dashboard/runner/agent_mail_dashboard_bg.wasm?**", async (route) => {
       const response = await route.fetch();
       const body = await response.body();
       body[0] ^= 0xff;

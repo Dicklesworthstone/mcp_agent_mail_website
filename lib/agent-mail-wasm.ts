@@ -260,9 +260,13 @@ async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
 }
 
 async function fetchVerifiedArtifact(artifact: Required<DashboardArtifact>): Promise<ArrayBuffer> {
-  const response = await fetch(artifact.url, {
+  // The digest participates in the browser cache key. A visitor who loaded an
+  // older deployment can therefore never pair its unversioned artifact body
+  // with a freshly revalidated manifest from a newer deployment.
+  const requestUrl = `${artifact.url}?sha256=${artifact.sha256}`;
+  const response = await fetch(requestUrl, {
     credentials: "omit",
-    cache: "default",
+    cache: "force-cache",
     signal: AbortSignal.timeout(15_000),
   });
   if (!response.ok) throw new Error(`GET ${artifact.url} returned ${response.status}`);

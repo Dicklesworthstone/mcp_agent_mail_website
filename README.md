@@ -610,7 +610,8 @@ not a prerecorded video.
   that refits the native terminal and restores keyboard focus on exit
 - **Fast, sharp startup:** verified artifact fetching begins when the client module is
   evaluated, JavaScript executes directly from the already-verified bytes, the terminal
-  starts at 68% zoom for the production mega layout, and renderer density is capped at 3x
+  starts at 68% zoom for the production mega layout, and renderer density is capped at 3x;
+  digest-keyed request URLs prevent an older browser cache from crossing deployments
 - **Responsive lifecycle:** resize events reflow the production TUI, the logical loop
   runs at the native 100 ms tick, and off-screen frames are suspended
 - **Accessible fallback:** a screen-reader mirror, live status, keyboard instructions,
