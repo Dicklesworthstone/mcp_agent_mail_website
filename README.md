@@ -605,7 +605,7 @@ old DOM simulation and not a prerecorded video.
   event is synthetic
 - **Deterministic replay:** an 18-second loop drives the in-memory browser adapter; the
   site never opens a visitor's database or calls a mailbox mutation API
-- **Production-density opening frame:** 192 varied privacy-safe startup events, 500
+- **Production-density opening frame:** 195 varied privacy-safe startup events, 500
   synthetic agents, 41 synthetic projects, 200 synthetic contacts, and populated
   reservation, latency, throughput, activity, and message-preview panels make the first
   frame resemble a busy real Agent Mail session without shipping a megabyte of repeated
@@ -613,14 +613,16 @@ old DOM simulation and not a prerecorded video.
 - **Interactive by default:** the first click both focuses and operates the terminal;
   native tabs, dashboard filters, replay rows, scrolling, Tab/Shift+Tab, direct number
   jumps, and slash search work without an extra interaction gate
-- **Overlay Play/Pause/Reset controls** and one-click browser fullscreen refit the native
-  terminal without adding a decorative frame or consuming terminal height
+- **Compact controls underneath:** Play/Pause, Reset, zoom out, 75% reset, zoom in,
+  and one-click browser fullscreen refit the native terminal without decorative device
+  chrome; the native screen-tab row remains visible and directly clickable
 - **Fast, sharp startup:** a dense native-structure shell poster is preloaded for
   immediate paint; verified pack/font/module loading and WebAssembly compilation run in
   parallel, JavaScript executes directly from verified bytes, and digest-keyed immutable
   artifact requests prevent an older browser cache from crossing deployments
-- **Bounded raster cost:** the terminal starts at 60% zoom for the production mega
-  layout, caps device density at 2x, and enforces an adaptive 8.5-million-pixel backing
+- **Readable bounded raster cost:** the embedded terminal is capped to a comfortable
+  landing-page width and starts at 75% zoom, while controls expose a 55%-115% range;
+  rendering caps device density at 2x and enforces an adaptive 8.5-million-pixel backing
   budget for large and fullscreen canvases
 - **Responsive lifecycle:** resize events reflow the production TUI, pointer moves are
   coalesced and input is drained every animation frame, replay time uses the native

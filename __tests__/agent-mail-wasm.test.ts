@@ -208,6 +208,45 @@ function installAnimationEnvironment(callbacks?: FrameRequestCallback[]) {
 }
 
 describe("AgentMailTerminal lifecycle", () => {
+  it("starts at readable zoom and refits when the zoom prop changes", async () => {
+    TestTerminal.instances = [];
+    TestRunner.instances = [];
+    const restoreEnvironment = installAnimationEnvironment();
+    const load = vi.spyOn(dashboardRuntime, "loadDashboardArtifacts").mockResolvedValue(testArtifacts());
+
+    try {
+      const { default: AgentMailTerminal } = await import("@/components/agent-mail-terminal");
+      let view!: ReturnType<typeof render>;
+      await act(async () => {
+        view = render(createElement(AgentMailTerminal, {
+          paused: false,
+          reducedMotion: false,
+          zoom: 0.75,
+        }));
+        await flushMicrotasks();
+      });
+      const [terminal] = TestTerminal.instances;
+      expect(terminal.setZoom).toHaveBeenCalledWith(0.75);
+      const initialFitCalls = terminal.fitToContainer.mock.calls.length;
+
+      await act(async () => {
+        view.rerender(createElement(AgentMailTerminal, {
+          paused: false,
+          reducedMotion: false,
+          zoom: 0.85,
+        }));
+        await flushMicrotasks();
+      });
+
+      expect(terminal.setZoom).toHaveBeenLastCalledWith(0.85);
+      expect(terminal.fitToContainer.mock.calls.length).toBeGreaterThan(initialFitCalls);
+      view.unmount();
+    } finally {
+      load.mockRestore();
+      restoreEnvironment();
+    }
+  });
+
   it("does not repaint the full canvas when a rendered step has an empty patch", async () => {
     TestTerminal.instances = [];
     TestRunner.instances = [];
