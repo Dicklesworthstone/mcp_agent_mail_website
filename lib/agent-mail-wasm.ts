@@ -139,8 +139,11 @@ export interface LoadedDashboardArtifacts {
 const MANIFEST_URL = "/agent-mail-dashboard/manifest.v1.json";
 const ARTIFACT_ROOT = "/agent-mail-dashboard/";
 const EXPECTED_PRIVACY_POLICY = "agent-mail-dashboard-public-demo-v1";
+export const DASHBOARD_POSTER_URL = "/images/agent-mail-dashboard-poster-placeholder.svg";
 
 let cachedLoad: Promise<LoadedDashboardArtifacts> | null = null;
+let installedDashboardFont: { digest: string; face: FontFace } | null = null;
+let desiredDashboardFontDigest: string | null = null;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -181,7 +184,11 @@ function requirePublicArtifactUrl(value: unknown, label: string): string {
 }
 
 function requirePosterUrl(value: unknown): string {
-  return requireLocalAssetUrl(value, "poster.url", "/images/");
+  const url = requireLocalAssetUrl(value, "poster.url", "/images/");
+  if (url !== DASHBOARD_POSTER_URL) {
+    throw new Error(`poster.url must match the dashboard fallback ${DASHBOARD_POSTER_URL}`);
+  }
+  return url;
 }
 
 function requireArtifact(value: unknown, label: string): Required<DashboardArtifact> {
@@ -293,15 +300,24 @@ async function importVerifiedModule<T>(bytes: ArrayBuffer): Promise<T> {
   }
 }
 
-async function loadFont(bytes: ArrayBuffer): Promise<void> {
+async function loadFont(bytes: ArrayBuffer, digest: string): Promise<void> {
   if (typeof document === "undefined" || typeof FontFace === "undefined") return;
+  if (installedDashboardFont?.digest === digest) return;
+  desiredDashboardFontDigest = digest;
   const font = new FontFace("Pragmasevka NF", bytes, {
     display: "block",
     style: "normal",
     weight: "400",
   });
-  document.fonts.add(font);
-  await font.load();
+  const loaded = await font.load();
+  // Register only a successfully decoded face. Failed retries must not leave
+  // a broken face in the document set, and repeated partial loads of the same
+  // manifest should not accumulate duplicates.
+  if (desiredDashboardFontDigest !== digest) return;
+  if (installedDashboardFont?.digest === digest) return;
+  if (installedDashboardFont) document.fonts.delete(installedDashboardFont.face);
+  document.fonts.add(loaded);
+  installedDashboardFont = { digest, face: loaded };
 }
 
 async function loadDashboardArtifactsUncached(): Promise<LoadedDashboardArtifacts> {
@@ -332,7 +348,8 @@ async function loadDashboardArtifactsUncached(): Promise<LoadedDashboardArtifact
     .then((bytes) => importVerifiedModule<RendererModule>(bytes));
   const rendererCompiledPromise = fetchVerifiedArtifact(artifacts.renderer_wasm)
     .then((bytes) => WebAssembly.compile(bytes));
-  const fontPromise = fetchVerifiedArtifact(artifacts.terminal_font).then(loadFont);
+  const fontPromise = fetchVerifiedArtifact(artifacts.terminal_font)
+    .then((bytes) => loadFont(bytes, artifacts.terminal_font.sha256));
 
   const [runnerModule, rendererModule, runnerCompiled, rendererCompiled, packJson] = await Promise.all([
     runnerModulePromise,
@@ -357,9 +374,12 @@ async function loadDashboardArtifactsUncached(): Promise<LoadedDashboardArtifact
 
 export function loadDashboardArtifacts(): Promise<LoadedDashboardArtifacts> {
   if (!cachedLoad) {
-    cachedLoad = loadDashboardArtifactsUncached();
-    cachedLoad.catch(() => {
-      cachedLoad = null;
+    const pending = loadDashboardArtifactsUncached();
+    cachedLoad = pending;
+    void pending.catch(() => {
+      // A stale rejection must not erase a newer load installed after an
+      // explicit cache reset.
+      if (cachedLoad === pending) cachedLoad = null;
     });
   }
   return cachedLoad;

@@ -111,6 +111,7 @@ export default function HeroMedia() {
           ref={terminalRef}
           paused={effectivePaused}
           reducedMotion={prefersReducedMotion}
+          fullscreen={isFullscreen}
           zoom={zoom}
           onError={() => {
             setLoadError(true);
@@ -119,6 +120,10 @@ export default function HeroMedia() {
           onReady={(nextStatus) => {
             setLoadError(false);
             setStatus(nextStatus);
+          }}
+          onRetry={() => {
+            setLoadError(false);
+            setStatus(null);
           }}
           onStatus={setStatus}
         />
@@ -183,17 +188,24 @@ export default function HeroMedia() {
           </button>
         </div>
 
-        <button
-          ref={fullscreenButtonRef}
-          type="button"
-          onClick={() => void toggleFullscreen()}
-          className="inline-flex h-9 items-center gap-1.5 bg-blue-500/15 px-2.5 text-xs font-bold text-blue-100 transition-colors hover:bg-blue-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
-          aria-label={isFullscreen ? "Exit dashboard fullscreen" : "Open dashboard fullscreen"}
-          title={isFullscreen ? "Exit fullscreen" : "Fill browser window"}
-        >
-          {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-          <span className="hidden sm:inline">{isFullscreen ? "Exit" : "Fullscreen"}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {fullscreenError && (
+            <p role="status" className="max-w-52 text-right text-[10px] font-medium leading-tight text-rose-300">
+              {fullscreenError}
+            </p>
+          )}
+          <button
+            ref={fullscreenButtonRef}
+            type="button"
+            onClick={() => void toggleFullscreen()}
+            className="inline-flex h-9 items-center gap-1.5 bg-blue-500/15 px-2.5 text-xs font-bold text-blue-100 transition-colors hover:bg-blue-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+            aria-label={isFullscreen ? "Exit dashboard fullscreen" : "Open dashboard fullscreen"}
+            title={isFullscreen ? "Exit fullscreen" : "Fill browser window"}
+          >
+            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            <span className="hidden sm:inline">{isFullscreen ? "Exit" : "Fullscreen"}</span>
+          </button>
+        </div>
       </div>
 
       <p
@@ -206,10 +218,14 @@ export default function HeroMedia() {
         {loadError
           ? "Interactive terminal unavailable; static preview shown."
           : status
-            ? `Agent Mail ${status.active_screen} screen ready. ${status.projects} projects, ${status.agents} agents, ${status.messages} messages.`
+            ? `Agent Mail ${status.active_screen} screen ready.`
             : "Verifying Agent Mail browser assets."}
-        {" Aggregate counts come from a read-only Agent Mail SQLite export; names, paths, messages, and replay events are synthetic public-demo details."}
-        {fullscreenError ? ` ${fullscreenError}` : ""}
+      </p>
+      <p data-testid="hero-dashboard-data-summary" className="sr-only">
+        {status
+          ? `${status.projects} projects, ${status.agents} agents, ${status.messages} messages. `
+          : ""}
+        Aggregate counts come from a read-only Agent Mail SQLite export; names, paths, messages, and replay events are synthetic public-demo details.
       </p>
     </div>
   );

@@ -89,7 +89,7 @@ export default function HomePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="text-[clamp(3.5rem,10vw,7rem)] font-black tracking-tight leading-[0.85] text-white mb-10 text-left"
+              className="text-[clamp(2.75rem,10vw,7rem)] font-black tracking-tight leading-[0.85] text-white mb-10 text-left"
             >
               Agent <br />
               <span className="text-blue-500">
@@ -145,7 +145,7 @@ export default function HomePage() {
           <div className="relative left-1/2 mt-8 w-[calc(100vw-2rem)] max-w-7xl -translate-x-1/2 sm:w-[calc(100vw-3rem)]">
             {/* Decorative only: zero flow height and always fully above the terminal. */}
             <div
-              className="pointer-events-none absolute right-[4%] bottom-[calc(100%+3rem)] hidden h-36 w-24 animate-float lg:block"
+              className="pointer-events-none absolute right-[4%] bottom-[calc(100%+3rem)] hidden h-36 w-24 animate-float xl:block"
               data-testid="hero-robot-mascot"
             >
               <RobotMascot className="h-full w-full" />

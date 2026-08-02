@@ -10,6 +10,7 @@ import {
 } from "react";
 import Image from "next/image";
 import {
+  DASHBOARD_POSTER_URL,
   loadDashboardArtifacts,
   type DashboardRunnerInstance,
   type DashboardRunnerStatus,
@@ -26,24 +27,33 @@ export interface AgentMailTerminalHandle {
 interface AgentMailTerminalProps {
   paused: boolean;
   reducedMotion: boolean;
+  fullscreen?: boolean;
   zoom?: number;
   onError?(error: Error): void;
   onReady?(status: DashboardRunnerStatus): void;
+  onRetry?(): void;
   onStatus?(status: DashboardRunnerStatus): void;
 }
 
 type LoadState = "loading" | "running" | "error";
 
-const POSTER_URL = "/images/agent-mail-dashboard-poster-placeholder.svg";
 const DEFAULT_TERMINAL_ZOOM = 0.75;
 const MAX_DEVICE_PIXEL_RATIO = 2;
 const MAX_BACKING_PIXELS = 8_500_000;
 
-function rendererDpr(widthCss: number, heightCss: number): number {
-  const deviceDpr = Math.min(Math.max(window.devicePixelRatio || 1, 1), MAX_DEVICE_PIXEL_RATIO);
+export function dashboardRendererDpr(
+  widthCss: number,
+  heightCss: number,
+  devicePixelRatio = typeof window === "undefined" ? 1 : window.devicePixelRatio || 1,
+): number {
+  const deviceDpr = Math.min(Math.max(devicePixelRatio, 1), MAX_DEVICE_PIXEL_RATIO);
   const cssPixels = Math.max(widthCss, 1) * Math.max(heightCss, 1);
   const budgetDpr = Math.sqrt(MAX_BACKING_PIXELS / cssPixels);
-  return Math.max(1, Math.min(deviceDpr, budgetDpr));
+  // A render scale below 1 is intentional on unusually large fullscreen
+  // surfaces. FrankenTerm accepts any positive DPR, and allowing downsampling
+  // here keeps the backing store inside the advertised pixel budget instead
+  // of allocating 5K/8K canvases at an unconditional 1x minimum.
+  return Math.min(deviceDpr, budgetDpr);
 }
 
 function releaseRunner(runner: DashboardRunnerInstance | null): void {
@@ -80,15 +90,68 @@ function inputModifiers(event: Pick<KeyboardEvent | MouseEvent, "shiftKey" | "al
 
 function parseStatus(runner: DashboardRunnerInstance): DashboardRunnerStatus {
   const value: unknown = JSON.parse(runner.statusJson());
-  if (typeof value !== "object" || value === null || !("frame_index" in value)) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new Error("Agent Mail dashboard runner returned an invalid status snapshot");
+  }
+  const status = value as Record<string, unknown>;
+  const booleanFields = ["running", "paused", "reduced_motion", "help_visible"];
+  const numberFields = [
+    "frame_index",
+    "elapsed_ms",
+    "duration_ms",
+    "projects",
+    "agents",
+    "messages",
+    "active_reservations",
+    "pending_acknowledgements",
+    "interaction_revision",
+    "selected_row",
+  ];
+  const stringFields = [
+    "replay_label",
+    "source_label",
+    "content_sha256",
+    "active_screen",
+    "dashboard_filter",
+  ];
+  if (
+    booleanFields.some((field) => typeof status[field] !== "boolean") ||
+    numberFields.some((field) => typeof status[field] !== "number" || !Number.isFinite(status[field])) ||
+    stringFields.some((field) => typeof status[field] !== "string") ||
+    !(status.last_deep_link === null || typeof status.last_deep_link === "string")
+  ) {
     throw new Error("Agent Mail dashboard runner returned an invalid status snapshot");
   }
   return value as DashboardRunnerStatus;
 }
 
+function stoppedRunnerError(runner: DashboardRunnerInstance, context: string): Error {
+  let detail = "";
+  try {
+    detail = runner.takeLogs()
+      .filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
+      .slice(-3)
+      .join(" | ")
+      .slice(0, 800);
+  } catch {
+    // The liveness signal is authoritative even if diagnostic draining fails.
+  }
+  return new Error(detail ? `${context}: ${detail}` : context);
+}
+
 const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalProps>(
-  function AgentMailTerminal({ paused, reducedMotion, zoom = DEFAULT_TERMINAL_ZOOM, onError, onReady, onStatus }, ref) {
+  function AgentMailTerminal({
+    paused,
+    reducedMotion,
+    fullscreen = false,
+    zoom = DEFAULT_TERMINAL_ZOOM,
+    onError,
+    onReady,
+    onRetry,
+    onStatus,
+  }, ref) {
     const [loadState, setLoadState] = useState<LoadState>("loading");
+    const [loadAttempt, setLoadAttempt] = useState(0);
     const [loadingLabel, setLoadingLabel] = useState("Preparing the dashboard runtime…");
     const [error, setError] = useState<Error | null>(null);
     const [screenReaderText, setScreenReaderText] = useState(
@@ -107,12 +170,14 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
     const visibleRef = useRef(true);
     const pausedRef = useRef(paused || reducedMotion);
     const reducedMotionRef = useRef(reducedMotion);
+    const fullscreenRef = useRef(fullscreen);
     const zoomRef = useRef(zoom);
-    const callbacksRef = useRef({ onError, onReady, onStatus });
+    const failRuntimeRef = useRef<(cause: unknown) => void>(() => undefined);
+    const callbacksRef = useRef({ onError, onReady, onRetry, onStatus });
 
     useEffect(() => {
-      callbacksRef.current = { onError, onReady, onStatus };
-    }, [onError, onReady, onStatus]);
+      callbacksRef.current = { onError, onReady, onRetry, onStatus };
+    }, [onError, onReady, onRetry, onStatus]);
 
     const cleanup = useCallback(() => {
       if (frameRef.current) cancelAnimationFrame(frameRef.current);
@@ -127,6 +192,16 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
       releaseRunner(runner);
       releaseTerminal(term);
       initializedRef.current = false;
+      failRuntimeRef.current = () => undefined;
+    }, []);
+
+    const retry = useCallback(() => {
+      setError(null);
+      setLoadState("loading");
+      setLoadingLabel("Retrying the verified dashboard runtime…");
+      setScreenReaderText("Retrying the interactive Agent Mail dashboard.");
+      callbacksRef.current.onRetry?.();
+      setLoadAttempt((attempt) => attempt + 1);
     }, []);
 
     useImperativeHandle(ref, () => ({
@@ -141,7 +216,11 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
       },
       setPaused(nextPaused: boolean) {
         pausedRef.current = nextPaused || reducedMotionRef.current;
-        runnerRef.current?.setPaused(pausedRef.current);
+        try {
+          runnerRef.current?.setPaused(pausedRef.current);
+        } catch (cause) {
+          failRuntimeRef.current(cause);
+        }
       },
     }), []);
 
@@ -151,19 +230,32 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
       const runner = runnerRef.current;
       const term = termRef.current;
       if (!runner) return;
-      runner.setReducedMotion(reducedMotion);
-      runner.setPaused(pausedRef.current);
-      term?.setAccessibility({ reducedMotion, screenReader: true });
-      const status = parseStatus(runner);
-      callbacksRef.current.onStatus?.(status);
+      try {
+        runner.setReducedMotion(reducedMotion);
+        runner.setPaused(pausedRef.current);
+        term?.setAccessibility({ reducedMotion, screenReader: true });
+        const status = parseStatus(runner);
+        if (!status.running) throw stoppedRunnerError(runner, "Agent Mail dashboard runner stopped");
+        callbacksRef.current.onStatus?.(status);
+      } catch (cause) {
+        failRuntimeRef.current(cause);
+      }
     }, [paused, reducedMotion]);
+
+    useEffect(() => {
+      fullscreenRef.current = fullscreen;
+    }, [fullscreen]);
 
     useEffect(() => {
       zoomRef.current = zoom;
       const term = termRef.current;
       if (!term) return;
-      term.setZoom(zoom);
-      refitRef.current();
+      try {
+        term.setZoom(zoom);
+        refitRef.current();
+      } catch (cause) {
+        failRuntimeRef.current(cause);
+      }
     }, [zoom]);
 
     useEffect(() => {
@@ -192,8 +284,18 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
       let initializingTerm: FrankenTermInstance | null = null;
       let pendingPointerMove: unknown | null = null;
       let pendingWheelInput: unknown | null = null;
+      let activePointerId: number | null = null;
+      let activePointerButton = 0;
+      let activePointerIsEmbeddedTouch = false;
+      let activeTouchStartX = 0;
+      let activeTouchStartY = 0;
+      let activeTouchMoved = false;
+      let suppressFullscreenEscapeKeyUp = false;
+      let failed = false;
 
       const failRuntime = (cause: unknown) => {
+        if (cancelled || failed) return;
+        failed = true;
         resizeObserver?.disconnect();
         resizeObserver = null;
         inputController?.abort();
@@ -208,8 +310,10 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
         const nextError = cause instanceof Error ? cause : new Error(String(cause));
         setError(nextError);
         setLoadState("error");
+        setScreenReaderText(`Interactive Agent Mail dashboard unavailable: ${nextError.message}`);
         callbacksRef.current.onError?.(nextError);
       };
+      failRuntimeRef.current = failRuntime;
 
       async function initialize() {
         try {
@@ -226,7 +330,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
           initializingTerm = term;
           const initialWidth = Math.max(container.clientWidth, 320);
           const initialHeight = Math.max(container.clientHeight, 300);
-          const dpr = rendererDpr(initialWidth, initialHeight);
+          const dpr = dashboardRendererDpr(initialWidth, initialHeight);
           await term.init(canvas, {
             cols: 220,
             rows: 48,
@@ -262,13 +366,17 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
           runner.setPaused(pausedRef.current);
           runner.init();
 
+          const initialStatus = parseStatus(runner);
+          if (!initialStatus.running) {
+            throw stoppedRunnerError(runner, "Agent Mail dashboard runner failed to initialize");
+          }
+
           const initialPatches = runner.takeFlatPatches();
           if (initialPatches.cells.length > 0) {
             term.applyPatchBatchFlat(initialPatches.spans, initialPatches.cells);
           }
           term.render();
 
-          const initialStatus = parseStatus(runner);
           setScreenReaderText(`Agent Mail dashboard ready at ${cols} columns by ${rows} rows.`);
           setLoadState("running");
           container.dataset.activeScreen = initialStatus.active_screen;
@@ -306,6 +414,9 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
             currentRunner: DashboardRunnerInstance,
           ) => {
             const result = currentRunner.step();
+            if (!result.running) {
+              throw stoppedRunnerError(currentRunner, "Agent Mail dashboard runner stopped unexpectedly");
+            }
             if (!result.rendered) return;
             const patches = currentRunner.takeFlatPatches();
             if (patches.cells.length === 0) return;
@@ -343,6 +454,10 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
             const currentTerm = termRef.current;
             if (!currentRunner || !currentTerm) return;
             try {
+              // Reset is a semantic boundary: pre-reset drag/wheel input must
+              // never leak into the fresh replay on the next animation frame.
+              pendingPointerMove = null;
+              pendingWheelInput = null;
               currentRunner.reset();
               renderRunnerStep(currentTerm, currentRunner);
               lastFrameAtRef.current = 0;
@@ -395,7 +510,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
               if (!currentTerm || !currentRunner || !currentContainer) return;
               const width = Math.max(currentContainer.clientWidth, 1);
               const height = Math.max(currentContainer.clientHeight, 1);
-              const currentDpr = rendererDpr(width, height);
+              const currentDpr = dashboardRendererDpr(width, height);
               geometry = currentTerm.fitToContainer(
                 width,
                 height,
@@ -410,6 +525,9 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
                 rows = nextRows;
                 currentRunner.resize(cols, rows);
                 const result = currentRunner.step();
+                if (!result.running) {
+                  throw stoppedRunnerError(currentRunner, "Agent Mail dashboard runner stopped during resize");
+                }
                 if (result.rendered) {
                   const patches = currentRunner.takeFlatPatches();
                   if (patches.cells.length > 0) {
@@ -438,7 +556,9 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
               if (currentTerm) flushContinuousInput(currentTerm);
               currentTerm?.input(value);
               flushInteractiveInput();
-            } catch { /* malformed browser event is ignored */ }
+            } catch (cause) {
+              failRuntime(cause);
+            }
           };
           const cellPoint = (event: PointerEvent | WheelEvent) => {
             const rect = canvas.getBoundingClientRect();
@@ -456,6 +576,17 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
               canvas.blur();
               return;
             }
+            // Browsers conventionally reserve plain Escape for leaving
+            // fullscreen. Do not cancel it merely because the canvas owns
+            // keyboard focus.
+            if (event.key === "Escape" && document.fullscreenElement) {
+              suppressFullscreenEscapeKeyUp = true;
+              void document.exitFullscreen().catch(() => {
+                // The browser may already have processed its native Escape
+                // action. Fullscreen state is reconciled by fullscreenchange.
+              });
+              return;
+            }
             event.preventDefault();
             safeInput({
               kind: "key",
@@ -468,6 +599,10 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
           }, { signal, capture: true });
           canvas.addEventListener("keyup", (event) => {
             if (event.isComposing || event.key === "Process") return;
+            if (event.key === "Escape" && suppressFullscreenEscapeKeyUp) {
+              suppressFullscreenEscapeKeyUp = false;
+              return;
+            }
             event.preventDefault();
             safeInput({
               kind: "key",
@@ -478,10 +613,33 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
               repeat: event.repeat,
             });
           }, { signal, capture: true });
-          let activePointerId: number | null = null;
-          let activePointerButton = 0;
           const releasePointer = (event: PointerEvent, sendRelease: boolean) => {
             if (activePointerId !== event.pointerId) return;
+            if (activePointerIsEmbeddedTouch) {
+              if (sendRelease && !activeTouchMoved) {
+                const point = cellPoint(event);
+                canvas.focus({ preventScroll: true });
+                container.dataset.lastInputAt = String(performance.now());
+                safeInput({
+                  kind: "mouse",
+                  phase: "down",
+                  button: activePointerButton,
+                  ...point,
+                  mods: inputModifiers(event),
+                });
+                safeInput({
+                  kind: "mouse",
+                  phase: "up",
+                  button: activePointerButton,
+                  ...point,
+                  mods: inputModifiers(event),
+                });
+              }
+              activePointerId = null;
+              activePointerIsEmbeddedTouch = false;
+              activeTouchMoved = false;
+              return;
+            }
             if (sendRelease) {
               safeInput({
                 kind: "mouse",
@@ -497,16 +655,24 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
             activePointerId = null;
           };
           canvas.addEventListener("pointerdown", (event) => {
-            event.preventDefault();
+            const allowEmbeddedTouchPan = event.pointerType === "touch" && !fullscreenRef.current;
+            if (!allowEmbeddedTouchPan) event.preventDefault();
             // Capture the terminal cell before focus can scroll a partly
             // visible hero canvas and change its bounding rectangle. Without
             // this, a click on row 0 can be remapped deep into the content
             // pane when the browser brings the canvas into view.
+            activePointerId = event.pointerId;
+            activePointerButton = event.button;
+            activePointerIsEmbeddedTouch = allowEmbeddedTouchPan;
+            if (allowEmbeddedTouchPan) {
+              activeTouchStartX = event.clientX;
+              activeTouchStartY = event.clientY;
+              activeTouchMoved = false;
+              return;
+            }
             const point = cellPoint(event);
             canvas.focus({ preventScroll: true });
             container.dataset.lastInputAt = String(performance.now());
-            activePointerId = event.pointerId;
-            activePointerButton = event.button;
             canvas.setPointerCapture(event.pointerId);
             safeInput({ kind: "mouse", phase: "down", button: event.button, ...point, mods: inputModifiers(event) });
           }, { signal });
@@ -515,6 +681,12 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
           }, { signal });
           canvas.addEventListener("pointermove", (event) => {
             if (activePointerId !== event.pointerId) return;
+            if (activePointerIsEmbeddedTouch) {
+              if (Math.hypot(event.clientX - activeTouchStartX, event.clientY - activeTouchStartY) > 8) {
+                activeTouchMoved = true;
+              }
+              return;
+            }
             safeInput({
               kind: "mouse",
               phase: "drag",
@@ -523,7 +695,12 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
               mods: inputModifiers(event),
             }, true);
           }, { signal });
-          canvas.addEventListener("pointercancel", (event) => releasePointer(event, true), { signal });
+          canvas.addEventListener("pointercancel", (event) => {
+            // A browser cancellation is never a completed touch tap. Sending a
+            // synthetic click here made interrupted page gestures activate a
+            // terminal control, even though the user never released normally.
+            releasePointer(event, !activePointerIsEmbeddedTouch);
+          }, { signal });
           canvas.addEventListener("lostpointercapture", (event) => {
             if (activePointerId === event.pointerId) activePointerId = null;
           }, { signal });
@@ -556,7 +733,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
         inputController?.abort();
         cleanup();
       };
-    }, [cleanup]);
+    }, [cleanup, loadAttempt]);
 
     const showCanvas = loadState === "running";
 
@@ -568,7 +745,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
         role="region"
         aria-label="Interactive Agent Mail FrankenTUI dashboard"
         aria-describedby="agent-mail-terminal-help agent-mail-terminal-screen-reader"
-        aria-busy={!showCanvas}
+        aria-busy={loadState === "loading"}
       >
         <canvas
           ref={canvasRef}
@@ -576,14 +753,14 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
           tabIndex={showCanvas ? 0 : -1}
           aria-disabled={!showCanvas}
           aria-label="Agent Mail terminal. Click tabs, filters, and rows, or use Tab, number keys, arrows, j and k. Press Control Escape to return focus to the webpage."
-          className={`block h-full w-full touch-none select-none outline-none ring-inset focus-visible:ring-2 focus-visible:ring-cyan-300 ${showCanvas ? "pointer-events-auto" : "pointer-events-none"}`}
+          className={`block h-full w-full ${fullscreen ? "touch-none" : "touch-pan-y"} select-none outline-none ring-inset focus-visible:ring-2 focus-visible:ring-cyan-300 ${showCanvas ? "pointer-events-auto" : "pointer-events-none"}`}
           style={{ imageRendering: "auto" }}
         />
 
         {!showCanvas && (
-          <div className="pointer-events-none absolute inset-0 bg-[#020611]">
+          <div className="absolute inset-0 bg-[#020611]">
             <Image
-              src={POSTER_URL}
+              src={DASHBOARD_POSTER_URL}
               alt="Preview of the Agent Mail operations dashboard"
               className="absolute inset-0 h-full w-full object-cover opacity-100"
               width={1600}
@@ -597,6 +774,13 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
                   <p className="font-bold text-rose-300">Interactive dashboard unavailable</p>
                   <p className="mt-2 text-slate-400">{error?.message ?? "The browser renderer could not start."}</p>
                   <p className="mt-2 text-[10px] text-slate-500">The static preview remains available; no private data was requested.</p>
+                  <button
+                    type="button"
+                    onClick={retry}
+                    className="mt-3 inline-flex h-8 items-center border border-cyan-400/40 bg-cyan-400/10 px-3 font-sans text-[11px] font-bold text-cyan-100 transition-colors hover:bg-cyan-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+                  >
+                    Retry interactive dashboard
+                  </button>
                 </>
               ) : (
                 <p>{loadingLabel}</p>
@@ -612,7 +796,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
           {screenReaderText}
         </pre>
         <noscript>
-          <Image src={POSTER_URL} alt="Agent Mail operations dashboard preview" width={1600} height={800} />
+          <Image src={DASHBOARD_POSTER_URL} alt="Agent Mail operations dashboard preview" width={1600} height={800} />
         </noscript>
       </div>
     );

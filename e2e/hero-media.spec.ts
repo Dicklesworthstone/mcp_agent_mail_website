@@ -122,7 +122,7 @@ test.describe("Hero media module", () => {
     await page.goto("/");
 
     const hero = page.locator("#home-hero");
-    const runtime = hero.getByTestId("hero-dashboard-runtime-status");
+    const summary = hero.getByTestId("hero-dashboard-data-summary");
     const packResponse = await page.request.get("/agent-mail-dashboard/demo_pack.v1.json");
     expect(packResponse.ok()).toBe(true);
     const pack = await packResponse.json() as {
@@ -133,9 +133,9 @@ test.describe("Hero media module", () => {
       `${projects} projects, ${agents} agents, (?:${messages}|${messages + 1}) messages`,
       "i",
     );
-    await expect(runtime).toContainText(/aggregate counts come from a read-only Agent Mail SQLite export/i);
-    await expect(runtime).toContainText(/names, paths, messages, and replay events are synthetic/i);
-    await expect(runtime).toContainText(aggregateCounts, {
+    await expect(summary).toContainText(/aggregate counts come from a read-only Agent Mail SQLite export/i);
+    await expect(summary).toContainText(/names, paths, messages, and replay events are synthetic/i);
+    await expect(summary).toContainText(aggregateCounts, {
       timeout: 30_000,
     });
     await expect(page.getByText(/source db:/i)).toHaveCount(0);
@@ -178,6 +178,42 @@ test.describe("Hero media module", () => {
     await page.waitForTimeout(900);
     expect(await demo.getAttribute("data-frame-index")).toBe(pausedFrame);
     diagnostics.breadcrumb("Keyboard input rendered and pause held the deterministic frame");
+  });
+
+  test("all sixteen production screen shortcuts are live in the browser", async ({ page, diagnostics }) => {
+    diagnostics.setRoute("/");
+    await page.goto("/");
+
+    const terminal = page.getByTestId("hero-agent-mail-terminal");
+    const canvas = page.getByTestId("hero-agent-mail-canvas");
+    await expect(terminal).toHaveAttribute("data-active-screen", "dashboard", { timeout: 30_000 });
+    await canvas.focus();
+    await page.keyboard.press("2");
+    await expect(terminal).toHaveAttribute("data-active-screen", "messages");
+
+    const shortcuts = [
+      ["1", "dashboard"],
+      ["2", "messages"],
+      ["3", "threads"],
+      ["4", "agents"],
+      ["5", "search"],
+      ["6", "reservations"],
+      ["7", "tool_metrics"],
+      ["8", "system_health"],
+      ["9", "timeline"],
+      ["0", "projects"],
+      ["Shift+Digit1", "contacts"],
+      ["Shift+Digit2", "explorer"],
+      ["Shift+Digit3", "analytics"],
+      ["Shift+Digit4", "attachments"],
+      ["Shift+Digit5", "archive_browser"],
+      ["Shift+Digit6", "atc"],
+    ] as const;
+    for (const [shortcut, screenName] of shortcuts) {
+      await page.keyboard.press(shortcut);
+      await expect(terminal, shortcut).toHaveAttribute("data-active-screen", screenName);
+    }
+    diagnostics.breadcrumb("Every native number-row and shifted-number-row screen shortcut changed the WASM shell");
   });
 
   test("mouse clicks switch native tabs and select public replay rows", async ({ page, diagnostics }) => {
@@ -244,8 +280,8 @@ test.describe("Hero media module", () => {
     expect(Math.abs(terminalBox!.width - viewport!.width)).toBeLessThanOrEqual(1);
     expect(terminalBox!.height).toBeGreaterThanOrEqual(viewport!.height - 64);
 
-    const exit = page.getByRole("button", { name: "Exit dashboard fullscreen" });
-    await exit.click();
+    await page.getByTestId("hero-agent-mail-canvas").focus();
+    await page.keyboard.press("Escape");
     await expect(demo).toHaveAttribute("data-fullscreen", "false");
     await expect(page.getByRole("button", { name: "Open dashboard fullscreen" })).toBeFocused();
     diagnostics.breadcrumb("Fullscreen entered at viewport bounds and restored focus on exit");
@@ -294,10 +330,73 @@ test.describe("Hero media module", () => {
     await expect(hero.getByTestId("hero-dashboard-runtime-status")).toContainText(/interactive terminal unavailable/i, {
       timeout: 30_000,
     });
+    await expect(hero.getByTestId("hero-agent-mail-terminal")).toHaveAttribute("aria-busy", "false");
     await expect(hero.getByText(/Interactive dashboard unavailable/i)).toBeVisible();
     await expect(hero.getByText(/no private data was requested/i)).toBeVisible();
     await expect(hero.getByAltText(/Preview of the Agent Mail operations dashboard/i)).toBeVisible();
     diagnostics.breadcrumb("Manifest failure rendered a local poster and privacy-safe error state");
+  });
+
+  test("a transient loader failure can be retried without reloading the page", async ({ page, diagnostics }) => {
+    diagnostics.setRoute("/");
+    let manifestRequests = 0;
+    let recoveryEnabled = false;
+    await page.route("**/agent-mail-dashboard/manifest.v1.json", async (route) => {
+      manifestRequests += 1;
+      if (!recoveryEnabled) {
+        await route.fulfill({ status: 503, contentType: "application/json", body: "{}" });
+      } else {
+        await route.continue();
+      }
+    });
+    await page.goto("/");
+
+    const terminal = page.getByTestId("hero-agent-mail-terminal");
+    const retry = page.getByRole("button", { name: "Retry interactive dashboard" });
+    await expect(retry).toBeVisible({ timeout: 30_000 });
+    await expect(terminal).toHaveAttribute("aria-busy", "false");
+    recoveryEnabled = true;
+    await retry.click();
+    await expect(terminal).toHaveAttribute("data-active-screen", "dashboard", { timeout: 30_000 });
+    expect(manifestRequests).toBeGreaterThanOrEqual(2);
+    diagnostics.breadcrumb("Transient manifest failure recovered through the in-place Retry action");
+  });
+
+  test("fullscreen API failures are visibly actionable", async ({ page, diagnostics }, testInfo) => {
+    test.skip(testInfo.project.name === "mobile-chrome", "Desktop fullscreen error contract");
+    diagnostics.setRoute("/");
+    await page.goto("/");
+    await expect(page.getByTestId("hero-agent-mail-terminal")).toHaveAttribute("data-active-screen", "dashboard", {
+      timeout: 30_000,
+    });
+    await page.getByTestId("hero-tui-demo").evaluate((element) => {
+      Object.defineProperty(element, "requestFullscreen", {
+        configurable: true,
+        value: () => Promise.reject(new Error("blocked for test")),
+      });
+    });
+
+    await page.getByRole("button", { name: "Open dashboard fullscreen" }).click();
+    await expect(page.getByTestId("hero-tui-demo").getByRole("status")).toHaveText(/fullscreen is unavailable/i);
+    diagnostics.breadcrumb("A rejected fullscreen request produced visible status text beside the trigger");
+  });
+
+  test("intermediate and narrow viewports do not overlap or clip the hero", async ({ page, diagnostics }, testInfo) => {
+    test.skip(testInfo.project.name === "mobile-chrome", "Explicit responsive viewport contract");
+    diagnostics.setRoute("/");
+    await page.setViewportSize({ width: 1_050, height: 900 });
+    await page.goto("/");
+    await expect(page.getByTestId("hero-robot-mascot")).toBeHidden();
+
+    await page.setViewportSize({ width: 320, height: 740 });
+    const heading = page.locator("#home-hero h1");
+    const headingBox = await heading.boundingBox();
+    expect(headingBox).not.toBeNull();
+    expect(headingBox!.x).toBeGreaterThanOrEqual(-1);
+    expect(headingBox!.x + headingBox!.width).toBeLessThanOrEqual(321);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(overflow).toBeLessThanOrEqual(1);
+    diagnostics.breadcrumb("Mascot stayed out of the 1050px CTA rail and the 320px headline stayed inside the viewport");
   });
 
   test("artifact-integrity failure stops before WASM execution and uses the safe fallback", async ({
@@ -317,8 +416,9 @@ test.describe("Hero media module", () => {
     await expect(hero.getByTestId("hero-dashboard-runtime-status")).toContainText(/interactive terminal unavailable/i, {
       timeout: 30_000,
     });
-    await expect(hero.getByText(/failed SHA-256 verification/i)).toBeVisible();
-    await expect(hero.getByText(/no private data was requested/i)).toBeVisible();
+    const fallback = hero.getByText("Interactive dashboard unavailable").locator("..");
+    await expect(fallback.getByText(/failed SHA-256 verification/i)).toBeVisible();
+    await expect(fallback.getByText(/no private data was requested/i)).toBeVisible();
     diagnostics.breadcrumb("A mutated WASM response failed closed at the SHA-256 gate");
   });
 

@@ -7,7 +7,11 @@ import { describe, expect, it, vi } from "vitest";
 import * as dashboardRuntime from "@/lib/agent-mail-wasm";
 import type { AgentMailTerminalHandle } from "@/components/agent-mail-terminal";
 
-const { validateDashboardDemoPack, validateDashboardManifest } = dashboardRuntime;
+const {
+  DASHBOARD_POSTER_URL,
+  validateDashboardDemoPack,
+  validateDashboardManifest,
+} = dashboardRuntime;
 
 const projectRoot = process.cwd();
 const manifestPath = join(projectRoot, "public/agent-mail-dashboard/manifest.v1.json");
@@ -23,6 +27,7 @@ describe("Agent Mail browser dashboard artifacts", () => {
     const pack = validateDashboardDemoPack(readJson(packPath));
 
     expect(manifest.schema).toBe("agent_mail.dashboard_artifacts.v1");
+    expect(manifest.artifacts.poster.url).toBe(DASHBOARD_POSTER_URL);
     expect(pack.schema).toBe("agent_mail.demo_pack.v1");
     expect(pack.provenance.privacy_policy).toBe("agent-mail-dashboard-public-demo-v1");
     expect(pack.provenance.source_label).toMatch(/aggregate counts.*details synthetic/i);
@@ -67,6 +72,12 @@ describe("Agent Mail browser dashboard artifacts", () => {
     };
     encodedPosterTraversal.artifacts.poster.url = "/images/%25252e%25252e/secret.svg";
     expect(() => validateDashboardManifest(encodedPosterTraversal)).toThrow(/local.*images/i);
+
+    const disconnectedPoster = structuredClone(manifest) as {
+      artifacts: { poster: { url: string } };
+    };
+    disconnectedPoster.artifacts.poster.url = "/images/a-different-local-poster.svg";
+    expect(() => validateDashboardManifest(disconnectedPoster)).toThrow(/must match the dashboard fallback/i);
 
     const queried = structuredClone(manifest) as {
       artifacts: { renderer_js: { url: string } };
@@ -148,6 +159,7 @@ class TestRunner {
   setPaused = vi.fn();
   init = vi.fn();
   takeFlatPatches = vi.fn(() => ({ spans: new Uint32Array(), cells: new Uint32Array() }));
+  takeLogs = vi.fn<() => unknown[]>(() => []);
   statusJson = vi.fn(() => RUNNER_STATUS);
   advanceTime = vi.fn();
   pushEncodedInput = vi.fn(() => true);
@@ -209,6 +221,49 @@ function installAnimationEnvironment(callbacks?: FrameRequestCallback[]) {
 }
 
 describe("AgentMailTerminal lifecycle", () => {
+  it("keeps 5K and 8K fullscreen backing stores inside the pixel budget", async () => {
+    const { dashboardRendererDpr } = await import("@/components/agent-mail-terminal");
+    const maxBackingPixels = 8_500_000;
+
+    for (const [width, height] of [[5_120, 2_880], [7_680, 4_320]]) {
+      const dpr = dashboardRendererDpr(width, height, 2);
+      expect(dpr).toBeGreaterThan(0);
+      expect(dpr).toBeLessThan(1);
+      expect(width * height * dpr * dpr).toBeLessThanOrEqual(maxBackingPixels + 0.001);
+    }
+
+    expect(dashboardRendererDpr(1_280, 640, 3)).toBe(2);
+  });
+
+  it("keeps a newer in-flight artifact load when an older reset load rejects", async () => {
+    let rejectFirst!: (reason?: unknown) => void;
+    let rejectSecond!: (reason?: unknown) => void;
+    const fetch = vi.spyOn(globalThis, "fetch")
+      .mockImplementationOnce(() => new Promise<Response>((_resolve, reject) => {
+        rejectFirst = reject;
+      }))
+      .mockImplementationOnce(() => new Promise<Response>((_resolve, reject) => {
+        rejectSecond = reject;
+      }));
+
+    try {
+      dashboardRuntime.resetDashboardArtifactCache();
+      const first = dashboardRuntime.loadDashboardArtifacts();
+      dashboardRuntime.resetDashboardArtifactCache();
+      const second = dashboardRuntime.loadDashboardArtifacts();
+
+      rejectFirst(new Error("stale load failed"));
+      await expect(first).rejects.toThrow("stale load failed");
+      expect(dashboardRuntime.loadDashboardArtifacts()).toBe(second);
+
+      rejectSecond(new Error("current load failed"));
+      await expect(second).rejects.toThrow("current load failed");
+    } finally {
+      dashboardRuntime.resetDashboardArtifactCache();
+      fetch.mockRestore();
+    }
+  });
+
   it("starts at readable zoom and refits when the zoom prop changes", async () => {
     TestTerminal.instances = [];
     TestRunner.instances = [];
@@ -241,6 +296,19 @@ describe("AgentMailTerminal lifecycle", () => {
 
       expect(terminal.setZoom).toHaveBeenLastCalledWith(0.85);
       expect(terminal.fitToContainer.mock.calls.length).toBeGreaterThan(initialFitCalls);
+
+      const canvas = screen.getByTestId("hero-agent-mail-canvas");
+      expect(canvas).toHaveClass("touch-pan-y");
+      await act(async () => {
+        view.rerender(createElement(AgentMailTerminal, {
+          paused: false,
+          reducedMotion: false,
+          fullscreen: true,
+          zoom: 0.85,
+        }));
+        await flushMicrotasks();
+      });
+      expect(canvas).toHaveClass("touch-none");
       view.unmount();
     } finally {
       load.mockRestore();
@@ -290,7 +358,8 @@ describe("AgentMailTerminal lifecycle", () => {
   it("renders reset immediately instead of waiting for the replay cadence", async () => {
     TestTerminal.instances = [];
     TestRunner.instances = [];
-    const restoreEnvironment = installAnimationEnvironment();
+    const frameCallbacks: FrameRequestCallback[] = [];
+    const restoreEnvironment = installAnimationEnvironment(frameCallbacks);
     const load = vi.spyOn(dashboardRuntime, "loadDashboardArtifacts").mockResolvedValue(testArtifacts());
 
     try {
@@ -319,12 +388,23 @@ describe("AgentMailTerminal lifecycle", () => {
       });
       const initialRenderCount = terminal.render.mock.calls.length;
 
+      const canvas = screen.getByTestId("hero-agent-mail-canvas");
+      terminal.input.mockClear();
+      fireEvent.wheel(canvas, { deltaY: 1 });
+      expect(terminal.input).not.toHaveBeenCalled();
+
       act(() => terminalRef.current?.reset());
 
       expect(runner.reset).toHaveBeenCalledTimes(1);
       expect(runner.step).toHaveBeenCalledTimes(1);
       expect(terminal.applyPatchBatchFlat).toHaveBeenCalledTimes(1);
       expect(terminal.render).toHaveBeenCalledTimes(initialRenderCount + 1);
+
+      await act(async () => {
+        frameCallbacks[0]?.(16);
+        await flushMicrotasks();
+      });
+      expect(terminal.input).not.toHaveBeenCalled();
       view.unmount();
     } finally {
       load.mockRestore();
@@ -478,6 +558,248 @@ describe("AgentMailTerminal lifecycle", () => {
       view.unmount();
       expect(terminal.destroy).toHaveBeenCalledTimes(1);
       expect(terminal.free).toHaveBeenCalledTimes(1);
+    } finally {
+      load.mockRestore();
+      restoreEnvironment();
+    }
+  });
+
+  it("offers a working retry after a transient artifact failure", async () => {
+    TestTerminal.instances = [];
+    TestRunner.instances = [];
+    const restoreEnvironment = installAnimationEnvironment();
+    const load = vi.spyOn(dashboardRuntime, "loadDashboardArtifacts")
+      .mockRejectedValueOnce(new Error("temporary manifest outage"))
+      .mockResolvedValueOnce(testArtifacts());
+
+    try {
+      const { default: AgentMailTerminal } = await import("@/components/agent-mail-terminal");
+      let view!: ReturnType<typeof render>;
+      await act(async () => {
+        view = render(createElement(AgentMailTerminal, { paused: false, reducedMotion: false }));
+        await flushMicrotasks();
+      });
+
+      const region = screen.getByTestId("hero-agent-mail-terminal");
+      expect(region).toHaveAttribute("aria-busy", "false");
+      expect(screen.getByText("temporary manifest outage")).toBeVisible();
+      expect(screen.getByText(/Interactive Agent Mail dashboard unavailable:/i)).toHaveTextContent(
+        "temporary manifest outage",
+      );
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Retry interactive dashboard" }));
+        await flushMicrotasks();
+      });
+
+      expect(load).toHaveBeenCalledTimes(2);
+      expect(region).toHaveAttribute("data-active-screen", "dashboard");
+      expect(region).toHaveAttribute("aria-busy", "false");
+      expect(screen.queryByRole("button", { name: "Retry interactive dashboard" })).not.toBeInTheDocument();
+      expect(TestTerminal.instances).toHaveLength(1);
+      expect(TestRunner.instances).toHaveLength(1);
+      view.unmount();
+    } finally {
+      load.mockRestore();
+      restoreEnvironment();
+    }
+  });
+
+  it("fails closed when the Rust runner reports that initialization stopped", async () => {
+    class StoppedRunner extends TestRunner {
+      override statusJson = vi.fn(() => JSON.stringify({
+        ...JSON.parse(RUNNER_STATUS),
+        running: false,
+      }));
+      override takeLogs = vi.fn<() => unknown[]>(() => ["runner_init_error: synthetic failure"]);
+    }
+    TestTerminal.instances = [];
+    TestRunner.instances = [];
+    const restoreEnvironment = installAnimationEnvironment();
+    const load = vi.spyOn(dashboardRuntime, "loadDashboardArtifacts")
+      .mockResolvedValue(testArtifacts(TestTerminal, StoppedRunner));
+
+    try {
+      const { default: AgentMailTerminal } = await import("@/components/agent-mail-terminal");
+      let view!: ReturnType<typeof render>;
+      await act(async () => {
+        view = render(createElement(AgentMailTerminal, { paused: false, reducedMotion: false }));
+        await flushMicrotasks();
+      });
+
+      expect(screen.getByText(
+        "Agent Mail dashboard runner failed to initialize: runner_init_error: synthetic failure",
+      )).toBeVisible();
+      const [runner] = TestRunner.instances;
+      const [terminal] = TestTerminal.instances;
+      expect(runner.free).toHaveBeenCalledTimes(1);
+      expect(terminal.free).toHaveBeenCalledTimes(1);
+      view.unmount();
+    } finally {
+      load.mockRestore();
+      restoreEnvironment();
+    }
+  });
+
+  it("surfaces terminal input exceptions instead of leaving a frozen running canvas", async () => {
+    TestTerminal.instances = [];
+    TestRunner.instances = [];
+    const restoreEnvironment = installAnimationEnvironment();
+    const load = vi.spyOn(dashboardRuntime, "loadDashboardArtifacts").mockResolvedValue(testArtifacts());
+
+    try {
+      const { default: AgentMailTerminal } = await import("@/components/agent-mail-terminal");
+      let view!: ReturnType<typeof render>;
+      await act(async () => {
+        view = render(createElement(AgentMailTerminal, { paused: false, reducedMotion: false }));
+        await flushMicrotasks();
+      });
+      const [terminal] = TestTerminal.instances;
+      const [runner] = TestRunner.instances;
+      terminal.input.mockImplementationOnce(() => {
+        throw new Error("terminal input failed");
+      });
+
+      await act(async () => {
+        fireEvent.keyDown(screen.getByTestId("hero-agent-mail-canvas"), {
+          key: "2",
+          code: "Digit2",
+        });
+        await flushMicrotasks();
+      });
+
+      expect(screen.getByText("terminal input failed")).toBeVisible();
+      expect(runner.free).toHaveBeenCalledTimes(1);
+      expect(terminal.free).toHaveBeenCalledTimes(1);
+      view.unmount();
+    } finally {
+      load.mockRestore();
+      restoreEnvironment();
+    }
+  });
+
+  it("treats embedded touch drags as page gestures and taps as terminal clicks", async () => {
+    TestTerminal.instances = [];
+    TestRunner.instances = [];
+    const restoreEnvironment = installAnimationEnvironment();
+    const load = vi.spyOn(dashboardRuntime, "loadDashboardArtifacts").mockResolvedValue(testArtifacts());
+
+    try {
+      const { default: AgentMailTerminal } = await import("@/components/agent-mail-terminal");
+      let view!: ReturnType<typeof render>;
+      await act(async () => {
+        view = render(createElement(AgentMailTerminal, { paused: false, reducedMotion: false }));
+        await flushMicrotasks();
+      });
+      const [terminal] = TestTerminal.instances;
+      const canvas = screen.getByTestId("hero-agent-mail-canvas");
+      terminal.input.mockClear();
+
+      fireEvent.pointerDown(canvas, {
+        pointerId: 1,
+        pointerType: "touch",
+        button: 0,
+        clientX: 20,
+        clientY: 20,
+      });
+      fireEvent.pointerMove(canvas, {
+        pointerId: 1,
+        pointerType: "touch",
+        button: 0,
+        clientX: 20,
+        clientY: 60,
+      });
+      fireEvent.pointerUp(canvas, {
+        pointerId: 1,
+        pointerType: "touch",
+        button: 0,
+        clientX: 20,
+        clientY: 60,
+      });
+      expect(terminal.input).not.toHaveBeenCalled();
+
+      fireEvent.pointerDown(canvas, {
+        pointerId: 2,
+        pointerType: "touch",
+        button: 0,
+        clientX: 20,
+        clientY: 20,
+      });
+      fireEvent.pointerCancel(canvas, {
+        pointerId: 2,
+        pointerType: "touch",
+        button: 0,
+        clientX: 20,
+        clientY: 20,
+      });
+      expect(terminal.input).not.toHaveBeenCalled();
+
+      fireEvent.pointerDown(canvas, {
+        pointerId: 3,
+        pointerType: "touch",
+        button: 0,
+        clientX: 20,
+        clientY: 20,
+      });
+      fireEvent.pointerUp(canvas, {
+        pointerId: 3,
+        pointerType: "touch",
+        button: 0,
+        clientX: 20,
+        clientY: 20,
+      });
+      const mousePhases = terminal.input.mock.calls
+        .map(([input]) => input as { kind?: string; phase?: string })
+        .filter((input) => input.kind === "mouse")
+        .map((input) => input.phase);
+      expect(mousePhases).toEqual(["down", "up"]);
+      view.unmount();
+    } finally {
+      load.mockRestore();
+      restoreEnvironment();
+    }
+  });
+
+  it("fails closed when a post-start zoom update throws", async () => {
+    class ZoomFailTerminal extends TestTerminal {
+      override setZoom = vi.fn()
+        .mockImplementationOnce(() => undefined)
+        .mockImplementationOnce(() => {
+          throw new Error("zoom update failed");
+        });
+    }
+    TestTerminal.instances = [];
+    TestRunner.instances = [];
+    const restoreEnvironment = installAnimationEnvironment();
+    const load = vi.spyOn(dashboardRuntime, "loadDashboardArtifacts")
+      .mockResolvedValue(testArtifacts(ZoomFailTerminal));
+
+    try {
+      const { default: AgentMailTerminal } = await import("@/components/agent-mail-terminal");
+      let view!: ReturnType<typeof render>;
+      await act(async () => {
+        view = render(createElement(AgentMailTerminal, {
+          paused: false,
+          reducedMotion: false,
+          zoom: 0.75,
+        }));
+        await flushMicrotasks();
+      });
+      await act(async () => {
+        view.rerender(createElement(AgentMailTerminal, {
+          paused: false,
+          reducedMotion: false,
+          zoom: 0.85,
+        }));
+        await flushMicrotasks();
+      });
+
+      expect(screen.getByText("zoom update failed")).toBeVisible();
+      const [runner] = TestRunner.instances;
+      const [terminal] = TestTerminal.instances;
+      expect(runner.free).toHaveBeenCalledTimes(1);
+      expect(terminal.free).toHaveBeenCalledTimes(1);
+      view.unmount();
     } finally {
       load.mockRestore();
       restoreEnvironment();

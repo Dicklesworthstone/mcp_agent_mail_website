@@ -605,7 +605,7 @@ old DOM simulation and not a prerecorded video.
   event is synthetic
 - **Deterministic replay:** an 18-second loop drives the in-memory browser adapter; the
   site never opens a visitor's database or calls a mailbox mutation API
-- **Production-density opening frame:** 195 varied privacy-safe startup events, 500
+- **Production-density opening frame:** 192 varied privacy-safe startup events, 500
   synthetic agents, 41 synthetic projects, 200 synthetic contacts, and populated
   reservation, latency, throughput, activity, and message-preview panels make the first
   frame resemble a busy real Agent Mail session without shipping a megabyte of repeated
