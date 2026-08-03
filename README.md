@@ -104,7 +104,7 @@ bun run build
 | Coordination demos | Live animated walkthroughs | None | None |
 | Content editing model | Single TS source file | Split across many files | Often CMS-based |
 | Testing coverage | Vitest unit + Playwright browser suites | Rare | Rare |
-| SEO structure | Five JSON-LD schema types | Basic meta tags | Basic meta tags |
+| SEO structure | Four JSON-LD schema types | Basic meta tags | Basic meta tags |
 | Best use case | Product + technical docs for complex systems | Reference docs | Top-of-funnel marketing |
 
 ## What MCP Agent Mail Does
@@ -563,7 +563,7 @@ All site content lives in `lib/content.ts` (3200+ lines) as typed TypeScript exp
 | `faq` | Frequently asked questions |
 | `testimonials` | Social proof (48 items) |
 | `changelog` | Development timeline |
-| `get*JsonLd()` | Five JSON-LD schema generators for SEO |
+| `get*JsonLd()` | Four JSON-LD schema generators for SEO |
 
 ### Runtime Architecture & Operational Contracts
 
@@ -591,14 +591,16 @@ The site uses a dark theme with animated glass-morphism effects:
 
 ### Hero Media System
 
-The hero embeds the actual Agent Mail terminal shell and production `DashboardScreen`,
-compiled from Rust to WebAssembly and rendered to canvas by FrankenTUI. It is not the
-old DOM simulation and not a prerecorded video.
+The hero embeds the production Agent Mail `DashboardScreen` and shared terminal chrome
+inside a browser-safe replay shell, compiled from Rust to WebAssembly and rendered to
+canvas by FrankenTUI. It is not the old DOM simulation and not a prerecorded video.
 
 - **Real TUI behavior:** the shared 16-screen native tab bar and bottom status chrome,
   production responsive dashboard layout, search/filter shortcuts, event panels,
   sparklines, and direct keyboard/pointer input; non-dashboard tabs expose populated,
-  read-only views derived from the same validated public replay state
+  read-only views derived from the same validated public replay state. The browser omits
+  the native mutating operator actions and full command palette; `Ctrl+P`, `:`, and the
+  status palette affordance open its read-only Search adapter instead
 - **Verified assets:** the pack, runner, renderer, and font are checked against byte
   counts and SHA-256 digests in `public/agent-mail-dashboard/manifest.v1.json`; the
   immediate static poster is pinned to one same-origin URL and deliberately loads

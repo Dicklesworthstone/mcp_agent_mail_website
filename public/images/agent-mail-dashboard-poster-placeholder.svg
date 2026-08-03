@@ -21,7 +21,7 @@
     <!-- Primary event stream: the native wide dashboard uses two dense log columns. -->
     <rect x="5" y="95" width="820" height="405" fill="#0a292e" stroke="#31525a"/>
     <text x="10" y="108" font-size="10.5" fill="#8eb4bb">Events (192/192) [FOLLOW] [Verbose] [filter: All]</text>
-    <text x="14" y="128" font-size="11.5" fill="#d7eff2">[1:All] [2:Msg] [3:Tools] [4:Resv]</text>
+    <text x="14" y="128" font-size="11.5" fill="#d7eff2">[A:All] [M:Msg] [O:Tools] [R:Resv]</text>
     <g font-size="9.3" fill="#b9dfe3">
       <text x="14" y="147">181 12:59:43.250 INF ✉ MsgRecv #8051 from TurquoiseTower: parity pass</text>
       <text x="14" y="163">182 12:59:43.500 DBG ◆ Health  p=45 a=1554 m=8059 r=10 ack=28</text>
@@ -98,7 +98,7 @@
 
     <rect x="389" y="507" width="278" height="260" fill="#0a292e" stroke="#31525a"/>
     <text x="397" y="521" font-size="10.5" fill="#90aeb4">Live Search</text>
-    <g font-size="10"><text x="397" y="548" fill="#82aeb5">Hint: press / then type</text><text x="397" y="566" fill="#82aeb5">Totals: events:192 agents:1554</text><text x="397" y="584" fill="#82aeb5">projects:45 reservations:10</text><text x="397" y="612" fill="#a8c7cc">Enter opens Search with the</text><text x="397" y="630" fill="#a8c7cc">same query. Filtering is</text><text x="397" y="648" fill="#a8c7cc">case-insensitive and live.</text><text x="397" y="742" fill="#718f95">/ Focus dashboard search</text></g>
+    <g font-size="10"><text x="397" y="548" fill="#82aeb5">Hint: click Live Filter, then type</text><text x="397" y="566" fill="#82aeb5">Totals: events:192 agents:1554</text><text x="397" y="584" fill="#82aeb5">projects:45 reservations:10</text><text x="397" y="612" fill="#a8c7cc">Enter opens Search with the</text><text x="397" y="630" fill="#a8c7cc">same query. Filtering is</text><text x="397" y="648" fill="#a8c7cc">case-insensitive and live.</text><text x="397" y="742" fill="#718f95">Click Live Filter to edit in place</text></g>
 
     <rect x="674" y="507" width="300" height="260" fill="#0a292e" stroke="#31525a"/>
     <text x="682" y="521" font-size="10.5" fill="#90aeb4">Recent Activity · 192</text>

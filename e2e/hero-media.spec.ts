@@ -313,8 +313,9 @@ test.describe("Hero media module", () => {
 
     const helpControl = await findRenderedCell("F1");
     await clickCell(helpControl.x, helpControl.y);
-    await expect(mirror).toContainText("Agent Mail Browser Controls");
+    await expect(mirror).toContainText("Help & Keybindings");
     await page.keyboard.press("Escape");
+    await expect(mirror).not.toContainText("Help & Keybindings");
 
     const paletteControl = await findRenderedCell("^P");
     await clickCell(paletteControl.x, paletteControl.y);

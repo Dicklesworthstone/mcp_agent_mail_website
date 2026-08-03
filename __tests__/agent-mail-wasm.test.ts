@@ -233,7 +233,7 @@ class TestRunner {
   takeLogs = vi.fn<() => unknown[]>(() => []);
   statusJson = vi.fn(() => RUNNER_STATUS);
   advanceTime = vi.fn();
-  pushEncodedInput = vi.fn(() => true);
+  pushEncodedInput = vi.fn<(value: string) => boolean>(() => true);
   resize = vi.fn();
   step = vi.fn(() => ({ running: true, rendered: false, events_processed: 0, frame_idx: 1 }));
   destroy = vi.fn();
@@ -935,7 +935,7 @@ describe("AgentMailTerminal lifecycle", () => {
     }
   });
 
-  it("coalesces wheel bursts into capped unit inputs in one animation frame", async () => {
+  it("preserves capped vertical wheel order and boundary semantics in one animation frame", async () => {
     TestTerminal.instances = [];
     TestRunner.instances = [];
     const frameCallbacks: FrameRequestCallback[] = [];
@@ -954,31 +954,172 @@ describe("AgentMailTerminal lifecycle", () => {
       terminal.input.mockClear();
       terminal.drainEncodedInputs.mockReturnValue(["wheel"]);
 
+      const horizontalWheel = new WheelEvent("wheel", {
+        deltaX: -1,
+        deltaY: 0,
+        bubbles: true,
+        cancelable: true,
+      });
+      fireEvent(canvas, horizontalWheel);
+      expect(horizontalWheel.defaultPrevented).toBe(false);
       for (let index = 0; index < 30; index += 1) {
+        if (index === 10) {
+          // An interactive key flushes the first wheel run synchronously. The
+          // accepted-step counter must still enforce one cap until the rAF.
+          fireEvent.keyDown(canvas, { key: "x", code: "KeyX" });
+        }
         fireEvent.wheel(canvas, {
           deltaX: -1,
-          deltaY: index < 5 ? 1 : index < 7 ? -1 : 0,
+          deltaY: index < 20 ? 1 : -1,
         });
       }
-      expect(terminal.input).not.toHaveBeenCalled();
+      expect(terminal.input.mock.calls.filter(([input]) => (
+        (input as { kind?: string }).kind === "wheel"
+      ))).toHaveLength(10);
 
       await act(async () => {
         frameCallbacks[0]?.(16);
         await flushMicrotasks();
       });
 
-      const wheelInputs = terminal.input.mock.calls.map(([input]) => input as {
-        kind: string;
-        dx: number;
-        dy: number;
-      });
+      const wheelInputs = terminal.input.mock.calls
+        .map(([input]) => input as { kind: string; dx?: number; dy?: number })
+        .filter((input): input is { kind: string; dx: number; dy: number } => (
+          input.kind === "wheel" && typeof input.dx === "number" && typeof input.dy === "number"
+        ));
       expect(wheelInputs).toHaveLength(24);
       expect(wheelInputs.every((input) => (
-        input.kind === "wheel" && Math.abs(input.dx) <= 1 && Math.abs(input.dy) <= 1
+        input.kind === "wheel" && input.dx === 0 && Math.abs(input.dy) === 1
       ))).toBe(true);
-      expect(wheelInputs.reduce((sum, input) => sum + input.dx, 0)).toBe(-24);
-      expect(wheelInputs.reduce((sum, input) => sum + input.dy, 0)).toBe(3);
+
+      // Mirror ftui-web's parsed wheel semantics: vertical direction wins,
+      // and each unit payload becomes exactly one ScrollUp/ScrollDown event.
+      const parsedDirections = wheelInputs.map((input) => (
+        input.dy < 0 ? "up" : input.dy > 0 ? "down" : null
+      ));
+      expect(parsedDirections).toEqual([
+        ...Array<string>(20).fill("down"),
+        ...Array<string>(4).fill("up"),
+      ]);
+
+      // At the bottom boundary, down-then-up is not equivalent to a signed
+      // net delta: the downs clamp in place before the four ups move away.
+      const bottomRow = 23;
+      const selectedRow = parsedDirections.reduce((row, direction) => {
+        const delta = direction === "down" ? 1 : -1;
+        return Math.max(0, Math.min(bottomRow, row + delta));
+      }, bottomRow);
+      expect(selectedRow).toBe(19);
       view.unmount();
+    } finally {
+      load.mockRestore();
+      restoreEnvironment();
+    }
+  });
+
+  it("forwards bounded paste and committed IME text and removes both listeners", async () => {
+    TestTerminal.instances = [];
+    TestRunner.instances = [];
+    const restoreEnvironment = installAnimationEnvironment();
+    const load = vi.spyOn(dashboardRuntime, "loadDashboardArtifacts").mockResolvedValue(testArtifacts());
+
+    try {
+      const { default: AgentMailTerminal } = await import("@/components/agent-mail-terminal");
+      let view!: ReturnType<typeof render>;
+      await act(async () => {
+        view = render(createElement(AgentMailTerminal, { paused: true, reducedMotion: false }));
+        await flushMicrotasks();
+      });
+      const [terminal] = TestTerminal.instances;
+      const [runner] = TestRunner.instances;
+      const canvas = screen.getByTestId("hero-agent-mail-canvas");
+      const encodedInputs: string[] = [];
+      terminal.input.mockImplementation((value: unknown) => {
+        encodedInputs.push(JSON.stringify(value));
+      });
+      terminal.drainEncodedInputs.mockImplementation(() => encodedInputs.splice(0));
+      terminal.input.mockClear();
+      runner.pushEncodedInput.mockClear();
+
+      const pasteShortcutDown = new KeyboardEvent("keydown", {
+        key: "v",
+        code: "KeyV",
+        ctrlKey: true,
+        bubbles: true,
+        cancelable: true,
+      });
+      fireEvent(canvas, pasteShortcutDown);
+      expect(pasteShortcutDown.defaultPrevented).toBe(false);
+      expect(terminal.input).not.toHaveBeenCalled();
+
+      const pastedText = "🙂".repeat(120);
+      const pasteEvent = new Event("paste", { bubbles: true, cancelable: true });
+      Object.defineProperty(pasteEvent, "clipboardData", {
+        value: { getData: vi.fn(() => pastedText) },
+      });
+      fireEvent(canvas, pasteEvent);
+      expect(pasteEvent.defaultPrevented).toBe(true);
+
+      const pasteShortcutUp = new KeyboardEvent("keyup", {
+        key: "v",
+        code: "KeyV",
+        ctrlKey: true,
+        bubbles: true,
+        cancelable: true,
+      });
+      fireEvent(canvas, pasteShortcutUp);
+      expect(pasteShortcutUp.defaultPrevented).toBe(false);
+
+      const compositionEvent = new Event("compositionend", {
+        bubbles: true,
+        cancelable: true,
+      });
+      Object.defineProperty(compositionEvent, "data", { value: "界".repeat(120) });
+      fireEvent(canvas, compositionEvent);
+      expect(compositionEvent.defaultPrevented).toBe(false);
+
+      const forwardedInputs = runner.pushEncodedInput.mock.calls.map(([encoded]) => (
+        JSON.parse(encoded) as { kind: string; data: string }
+      ));
+      expect(forwardedInputs).toEqual([
+        { kind: "paste", data: "🙂".repeat(96) },
+        { kind: "paste", data: "界".repeat(96) },
+      ]);
+      expect([...forwardedInputs[0].data]).toHaveLength(96);
+      expect([...forwardedInputs[1].data]).toHaveLength(96);
+
+      const emptyPaste = new Event("paste", { bubbles: true, cancelable: true });
+      Object.defineProperty(emptyPaste, "clipboardData", {
+        value: { getData: vi.fn(() => "") },
+      });
+      fireEvent(canvas, emptyPaste);
+      expect(emptyPaste.defaultPrevented).toBe(false);
+      expect(runner.pushEncodedInput).toHaveBeenCalledTimes(2);
+
+      const unreadablePaste = new Event("paste", { bubbles: true, cancelable: true });
+      Object.defineProperty(unreadablePaste, "clipboardData", {
+        value: { getData: vi.fn(() => { throw new Error("clipboard denied"); }) },
+      });
+      fireEvent(canvas, unreadablePaste);
+      expect(unreadablePaste.defaultPrevented).toBe(false);
+      expect(runner.pushEncodedInput).toHaveBeenCalledTimes(2);
+
+      view.unmount();
+      const detachedPaste = new Event("paste", { bubbles: true, cancelable: true });
+      Object.defineProperty(detachedPaste, "clipboardData", {
+        value: { getData: vi.fn(() => "after cleanup") },
+      });
+      fireEvent(canvas, detachedPaste);
+      const detachedComposition = new Event("compositionend", {
+        bubbles: true,
+        cancelable: true,
+      });
+      Object.defineProperty(detachedComposition, "data", { value: "after cleanup" });
+      fireEvent(canvas, detachedComposition);
+
+      expect(detachedPaste.defaultPrevented).toBe(false);
+      expect(runner.pushEncodedInput).toHaveBeenCalledTimes(2);
+      expect(terminal.input).toHaveBeenCalledTimes(2);
     } finally {
       load.mockRestore();
       restoreEnvironment();

@@ -59,12 +59,12 @@ const DASHBOARD_SCREEN_SLUGS = new Set([
 ]);
 const DASHBOARD_FILTER_SLUGS = new Set(["all", "messages", "tools", "reservations"]);
 
-interface CoalescedWheelInput {
+interface PendingWheelInput {
   kind: "wheel";
   x: number;
   y: number;
-  dx: number;
-  dy: number;
+  dx: 0;
+  dy: -1 | 1;
   mods: number;
 }
 
@@ -96,11 +96,6 @@ function withTerminalInitTimeout(operation: Promise<void>): Promise<void> {
   });
 }
 
-function boundedWheelDelta(value: number): number {
-  if (!Number.isFinite(value)) return 0;
-  return Math.max(-MAX_WHEEL_INPUTS_PER_FRAME, Math.min(MAX_WHEEL_INPUTS_PER_FRAME, value));
-}
-
 function boundedTextInput(value: string): string {
   let result = "";
   let characterCount = 0;
@@ -110,6 +105,15 @@ function boundedTextInput(value: string): string {
     characterCount += 1;
   }
   return result;
+}
+
+function isPlatformPasteShortcut(event: KeyboardEvent): boolean {
+  if (event.altKey) return false;
+  return (
+    event.key.toLowerCase() === "v" && (event.ctrlKey || event.metaKey)
+  ) || (
+    event.key === "Insert" && event.shiftKey && !event.ctrlKey && !event.metaKey
+  );
 }
 
 export function dashboardRendererDpr(
@@ -424,7 +428,11 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
       let focusScrollFrame = 0;
       let releaseInitializingTerm: (() => void) | null = null;
       let pendingPointerMove: unknown | null = null;
-      let pendingWheelInput: CoalescedWheelInput | null = null;
+      let pendingWheelInputs: PendingWheelInput[] = [];
+      // `safeInput` may flush the queue before rAF to preserve input order.
+      // Keep a separate count so those early emissions cannot reopen the
+      // per-frame budget for a second wheel burst.
+      let wheelInputsAcceptedForFrame = 0;
       let activePointerId: number | null = null;
       let activePointerButton = 0;
       let activePointerIsEmbeddedTouch = false;
@@ -673,36 +681,10 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
               currentTerm.input(pendingPointerMove);
               pendingPointerMove = null;
             }
-            if (pendingWheelInput !== null) {
-              const wheelInput = pendingWheelInput;
-              pendingWheelInput = null;
-              const horizontalSteps = Math.abs(wheelInput.dx);
-              const verticalSteps = Math.abs(wheelInput.dy);
-              let emitted = 0;
-              for (
-                let index = 0;
-                index < verticalSteps && emitted < MAX_WHEEL_INPUTS_PER_FRAME;
-                index += 1
-              ) {
-                currentTerm.input({
-                  ...wheelInput,
-                  dx: 0,
-                  dy: Math.sign(wheelInput.dy),
-                });
-                emitted += 1;
-              }
-              for (
-                let index = 0;
-                index < horizontalSteps && emitted < MAX_WHEEL_INPUTS_PER_FRAME;
-                index += 1
-              ) {
-                currentTerm.input({
-                  ...wheelInput,
-                  dx: Math.sign(wheelInput.dx),
-                  dy: 0,
-                });
-                emitted += 1;
-              }
+            if (pendingWheelInputs.length > 0) {
+              const wheelInputs = pendingWheelInputs;
+              pendingWheelInputs = [];
+              for (const wheelInput of wheelInputs) currentTerm.input(wheelInput);
             }
           };
 
@@ -714,7 +696,8 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
               // Reset is a semantic boundary: pre-reset drag/wheel input must
               // never leak into the fresh replay on the next animation frame.
               pendingPointerMove = null;
-              pendingWheelInput = null;
+              pendingWheelInputs = [];
+              wheelInputsAcceptedForFrame = 0;
               currentRunner.reset();
               renderRunnerStep(currentTerm, currentRunner, true);
               lastFrameAtRef.current = 0;
@@ -765,6 +748,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
             try {
               if (visibleRef.current && !document.hidden) {
                 flushContinuousInput(currentTerm);
+                wheelInputsAcceptedForFrame = 0;
                 const inputProcessed = drainRunnerInput(currentTerm, currentRunner);
                 const elapsed = lastFrameAtRef.current === 0
                   ? REPLAY_HOST_CADENCE_MS
@@ -941,6 +925,10 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
 
           canvas.addEventListener("keydown", (event) => {
             if (event.isComposing || event.key === "Process") return;
+            // The browser dispatches `paste` only if its platform shortcut is
+            // not cancelled here. The paste listener below owns validation,
+            // default prevention, and forwarding the committed text.
+            if (isPlatformPasteShortcut(event)) return;
             if (event.key === "Escape") {
               if (event.ctrlKey) {
                 suppressFullscreenEscapeKeyUp = false;
@@ -975,6 +963,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
           }, { signal, capture: true });
           canvas.addEventListener("keyup", (event) => {
             if (event.isComposing || event.key === "Process") return;
+            if (isPlatformPasteShortcut(event)) return;
             if (event.key === "Escape" && suppressFullscreenEscapeKeyUp) {
               suppressFullscreenEscapeKeyUp = false;
               return;
@@ -1098,17 +1087,23 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
           }, { signal });
           window.addEventListener("pointerup", (event) => releasePointer(event, true), { signal });
           canvas.addEventListener("wheel", (event) => {
+            const nextDy = Number.isFinite(event.deltaY)
+              ? event.deltaY < 0 ? -1 : event.deltaY > 0 ? 1 : 0
+              : 0;
+            // The dashboard currently has vertical scroll semantics only.
+            // Leave a horizontal-only gesture to the browser instead of
+            // pretending that the runner consumed it.
+            if (nextDy === 0) return;
             event.preventDefault();
-            const point = cellPoint(event);
-            const nextDx = Number.isFinite(event.deltaX) ? Math.sign(event.deltaX) : 0;
-            const nextDy = Number.isFinite(event.deltaY) ? Math.sign(event.deltaY) : 0;
-            pendingWheelInput = {
+            if (wheelInputsAcceptedForFrame >= MAX_WHEEL_INPUTS_PER_FRAME) return;
+            pendingWheelInputs.push({
               kind: "wheel",
-              ...point,
-              dx: boundedWheelDelta((pendingWheelInput?.dx ?? 0) + nextDx),
-              dy: boundedWheelDelta((pendingWheelInput?.dy ?? 0) + nextDy),
+              ...cellPoint(event),
+              dx: 0,
+              dy: nextDy,
               mods: inputModifiers(event),
-            };
+            });
+            wheelInputsAcceptedForFrame += 1;
             scheduleFrame();
           }, { signal, passive: false });
           canvas.addEventListener("paste", (event) => {
@@ -1219,7 +1214,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
         )}
 
         <p id="agent-mail-terminal-help" className="sr-only">
-          This is the real Agent Mail shell and DashboardScreen compiled to WebAssembly and rendered by FrankenTUI. It replays a privacy-checked public pack. Click tabs, filters, and rows, or use Tab, Shift Tab, arrows, j and k, slash, Enter, and Escape. Outside text-entry mode, number keys 1 through 4 jump to Dashboard, Messages, Threads, and Agents. Control Escape returns focus to the webpage.
+          This is the production Agent Mail DashboardScreen and shared chrome in a browser-safe replay shell, compiled to WebAssembly and rendered by FrankenTUI. It replays a privacy-checked public pack without mailbox mutation controls. Click tabs, filters, and rows, or use Tab, Shift Tab, arrows, j and k, slash, Enter, and Escape. Outside text-entry mode, number keys 1 through 4 jump to Dashboard, Messages, Threads, and Agents. Control Escape returns focus to the webpage.
         </p>
         <pre id="agent-mail-terminal-screen-reader-status" className="sr-only" aria-live="polite" aria-atomic="true">
           {screenReaderText}
