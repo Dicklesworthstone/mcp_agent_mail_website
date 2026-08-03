@@ -273,11 +273,11 @@ export default function TuiScreensViz() {
             <ul className="space-y-2 text-sm text-slate-400">
               <li className="flex gap-2">
                 <span className="text-slate-600 select-none">&bull;</span>
-                <span><kbd className="text-blue-300 font-mono text-xs">1-9, 0, !, @, #, $, %, ^</kbd> jump directly outside Dashboard and text-entry mode</span>
+                <span><kbd className="text-blue-300 font-mono text-xs">1-9, 0, !, @, #, $, %, ^</kbd> jump directly outside text-entry mode</span>
               </li>
               <li className="flex gap-2">
                 <span className="text-slate-600 select-none">&bull;</span>
-                <span>On Dashboard, <kbd className="text-blue-300 font-mono text-xs">1-4</kbd> select quick filters; use <kbd className="text-blue-300 font-mono text-xs">Tab</kbd> to enter the shared screen cycle</span>
+                <span>Dashboard quick filters are pointer-clickable; number keys retain native global screen jumps</span>
               </li>
               <li className="flex gap-2">
                 <span className="text-slate-600 select-none">&bull;</span>
@@ -289,7 +289,7 @@ export default function TuiScreensViz() {
               </li>
               <li className="flex gap-2">
                 <span className="text-slate-600 select-none">&bull;</span>
-                <span>5 themes: Default, Cyberpunk Aurora, Solarized, Dracula, High Contrast</span>
+                <span>42 built-in named themes, from Cyberpunk Aurora and Darcula through High Contrast and Frankenstein</span>
               </li>
             </ul>
           </article>

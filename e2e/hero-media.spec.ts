@@ -184,27 +184,26 @@ test.describe("Hero media module", () => {
     const beforeInputFrame = Number(await demo.getAttribute("data-frame-index"));
     await canvas.focus();
     await page.keyboard.press("2");
-    await expect(demo).toHaveAttribute("data-active-screen", "dashboard");
-    await expect(demo).toHaveAttribute("data-dashboard-filter", "messages");
-    await expect.poll(async () => Number(await demo.getAttribute("data-frame-index"))).toBeGreaterThan(beforeInputFrame);
-
-    await page.keyboard.press("Tab");
     await expect(demo).toHaveAttribute("data-active-screen", "messages");
-    await expect(canvas).toBeFocused();
+    await expect.poll(async () => Number(await demo.getAttribute("data-frame-index"))).toBeGreaterThan(beforeInputFrame);
 
     await page.keyboard.press("Tab");
     await expect(demo).toHaveAttribute("data-active-screen", "threads");
     await expect(canvas).toBeFocused();
 
+    await page.keyboard.press("Tab");
+    await expect(demo).toHaveAttribute("data-active-screen", "agents");
+    await expect(canvas).toBeFocused();
+
     await page.keyboard.press("Shift+Tab");
-    await expect(demo).toHaveAttribute("data-active-screen", "messages");
+    await expect(demo).toHaveAttribute("data-active-screen", "threads");
     await expect(canvas).toBeFocused();
 
     const liveUpdate = hero.locator("#agent-mail-terminal-screen-reader-status");
     await expect(liveUpdate).not.toBeEmpty();
     expect((await liveUpdate.textContent())?.length ?? Number.POSITIVE_INFINITY).toBeLessThan(500);
     await expect(hero.getByLabel("Current Agent Mail terminal contents")).toContainText(
-      /Messages\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i,
+      /Threads\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i,
     );
 
     await page.waitForTimeout(900);
@@ -220,19 +219,10 @@ test.describe("Hero media module", () => {
 
     const terminal = page.getByTestId("hero-agent-mail-terminal");
     const canvas = page.getByTestId("hero-agent-mail-canvas");
+    const mirror = page.getByLabel("Current Agent Mail terminal contents");
     await expect(terminal).toHaveAttribute("data-active-screen", "dashboard", { timeout: 30_000 });
     await canvas.focus();
-    await page.keyboard.press("2");
-    await expect(terminal).toHaveAttribute("data-active-screen", "dashboard");
-    await expect(terminal).toHaveAttribute("data-dashboard-filter", "messages");
 
-    // Dashboard owns 1-4 as quick filters. Move to the shared shell before
-    // exercising global numeric screen shortcuts, then return to Dashboard
-    // with 1 only after every other shortcut has been verified.
-    await page.keyboard.press("Tab");
-    await expect(terminal).toHaveAttribute("data-active-screen", "messages");
-
-    const mirror = page.getByLabel("Current Agent Mail terminal contents");
     const shortcuts = [
       ["2", "messages", /Messages\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i],
       ["3", "threads", /Threads\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i],
@@ -271,6 +261,7 @@ test.describe("Hero media module", () => {
 
     const terminal = page.getByTestId("hero-agent-mail-terminal");
     const canvas = page.getByTestId("hero-agent-mail-canvas");
+    const mirror = page.getByLabel("Current Agent Mail terminal contents");
     await expect(terminal).toHaveAttribute("data-active-screen", "dashboard", { timeout: 30_000 });
     await expect(page.getByTestId("hero-tui-demo")).toHaveAttribute("data-zoom", "1.00");
     const box = await canvas.boundingBox();
@@ -286,9 +277,54 @@ test.describe("Hero media module", () => {
         box!.y + ((y + 0.5) / rows) * box!.height,
       );
     };
+    const findRenderedCell = async (needle: string) => {
+      const lines = (await mirror.textContent() ?? "").split("\n");
+      const y = lines.findIndex((line) => line.includes(needle));
+      expect(y, `missing rendered terminal text ${needle}`).toBeGreaterThanOrEqual(0);
+      const x = lines[y].indexOf(needle);
+      expect(x, `missing rendered terminal column for ${needle}`).toBeGreaterThanOrEqual(0);
+      return { x, y };
+    };
+
+    const toolsFilter = await findRenderedCell("[O:Tools]");
+    await clickCell(toolsFilter.x + 3, toolsFilter.y);
+    await expect(terminal).toHaveAttribute("data-dashboard-filter", "tools");
+    const allFilter = await findRenderedCell("[A:All]");
+    await clickCell(allFilter.x + 3, allFilter.y);
+    await expect(terminal).toHaveAttribute("data-dashboard-filter", "all");
+
+    const searchControl = await findRenderedCell("Live Filter [click to edit]");
+    await clickCell(searchControl.x + 2, searchControl.y);
+    await page.keyboard.type("synthetic");
+    await expect(mirror).toContainText("Live Filter [EDITING]");
+    await expect(mirror).toContainText("synthetic");
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("Escape");
+
+    const eventViewer = await findRenderedCell("Events (");
+    await page.mouse.move(
+      box!.x + ((eventViewer.x + 8.5) / cols) * box!.width,
+      box!.y + ((eventViewer.y + 2.5) / rows) * box!.height,
+    );
+    const beforeWheelRevision = Number(await terminal.getAttribute("data-interaction-revision"));
+    await page.mouse.wheel(0, -600);
+    await expect.poll(async () => Number(await terminal.getAttribute("data-interaction-revision")))
+      .toBeGreaterThan(beforeWheelRevision);
+
+    const helpControl = await findRenderedCell("F1");
+    await clickCell(helpControl.x, helpControl.y);
+    await expect(mirror).toContainText("Agent Mail Browser Controls");
+    await page.keyboard.press("Escape");
+
+    const paletteControl = await findRenderedCell("^P");
+    await clickCell(paletteControl.x, paletteControl.y);
+    await expect(terminal).toHaveAttribute("data-active-screen", "search");
+    await page.keyboard.press("1");
+    await expect(terminal).toHaveAttribute("data-active-screen", "dashboard");
+
     await clickCell(18, 0);
     await expect(terminal).toHaveAttribute("data-active-screen", "messages");
-    await expect(page.getByLabel("Current Agent Mail terminal contents")).toContainText(
+    await expect(mirror).toContainText(
       /Messages\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i,
     );
     const pointerLatencyMs = await terminal.evaluate((element) => {
@@ -300,13 +336,13 @@ test.describe("Hero media module", () => {
 
     await clickCell(34, 0);
     await expect(terminal).toHaveAttribute("data-active-screen", "threads");
-    await expect(page.getByLabel("Current Agent Mail terminal contents")).toContainText(
+    await expect(mirror).toContainText(
       /Threads\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i,
     );
 
     await clickCell(46, 0);
     await expect(terminal).toHaveAttribute("data-active-screen", "agents");
-    await expect(page.getByLabel("Current Agent Mail terminal contents")).toContainText(
+    await expect(mirror).toContainText(
       /Agents\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i,
     );
 
@@ -314,7 +350,7 @@ test.describe("Hero media module", () => {
     await expect(terminal).toHaveAttribute("data-active-screen", "dashboard");
     await clickCell(cols - 1, 0);
     await expect(terminal).toHaveAttribute("data-active-screen", "explorer");
-    await expect(page.getByLabel("Current Agent Mail terminal contents")).toContainText(
+    await expect(mirror).toContainText(
       /Explorer\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i,
     );
 
@@ -324,7 +360,7 @@ test.describe("Hero media module", () => {
     await clickCell(8, 8);
     await expect.poll(async () => Number(await terminal.getAttribute("data-interaction-revision")))
       .toBeGreaterThan(beforeRevision);
-    diagnostics.breadcrumb("Canvas pointer input switched native tabs, paged tab overflow, and selected a replay row");
+    diagnostics.breadcrumb("Canvas pointer input operated Dashboard filters/search/wheel/status controls, switched tabs, paged overflow, and selected a replay row");
   });
 
   test("one-click fullscreen fills the browser and exits back to the trigger", async ({

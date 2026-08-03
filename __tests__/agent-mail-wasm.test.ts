@@ -378,6 +378,120 @@ describe("AgentMailTerminal lifecycle", () => {
     }
   });
 
+  it("starts runner and renderer WASM initialization as soon as each engine pair is ready", async () => {
+    const compiled = {} as WebAssembly.Module;
+    const runnerModule = { default: vi.fn(async () => undefined) };
+    const rendererModule = { default: vi.fn(async () => undefined) };
+    let resolveRendererModule!: (module: typeof rendererModule) => void;
+    const rendererModulePromise = new Promise<typeof rendererModule>((resolve) => {
+      resolveRendererModule = resolve;
+    });
+
+    const initialized = dashboardRuntime.initializeDashboardWasmModules(
+      Promise.resolve(runnerModule),
+      Promise.resolve(compiled),
+      rendererModulePromise,
+      Promise.resolve(compiled),
+    );
+    await flushMicrotasks();
+
+    expect(runnerModule.default).toHaveBeenCalledOnce();
+    expect(runnerModule.default).toHaveBeenCalledWith({ module_or_path: compiled });
+    expect(rendererModule.default).not.toHaveBeenCalled();
+
+    resolveRendererModule(rendererModule);
+    await initialized;
+    expect(rendererModule.default).toHaveBeenCalledOnce();
+    expect(rendererModule.default).toHaveBeenCalledWith({ module_or_path: compiled });
+  });
+
+  it("times out a never-settling post-fetch WASM initialization stage", async () => {
+    const compiled = {} as WebAssembly.Module;
+    const neverSettles = new Promise<unknown>(() => undefined);
+    const runnerModule = { default: vi.fn(() => neverSettles) };
+    const rendererModule = { default: vi.fn(async () => undefined) };
+    const initialized = dashboardRuntime.initializeDashboardWasmModules(
+      Promise.resolve(runnerModule),
+      Promise.resolve(compiled),
+      Promise.resolve(rendererModule),
+      Promise.resolve(compiled),
+    );
+    const rejection = expect(initialized).rejects.toThrow(
+      /dashboard runner WASM initialization did not finish/i,
+    );
+
+    await flushMicrotasks();
+    expect(runnerModule.default).toHaveBeenCalledOnce();
+    expect(rendererModule.default).toHaveBeenCalledOnce();
+    await vi.advanceTimersByTimeAsync(dashboardRuntime.DASHBOARD_ARTIFACT_STAGE_TIMEOUT_MS);
+    await rejection;
+  });
+
+  it("cancels an oversized manifest stream even when Content-Length is absent", async () => {
+    const cancel = vi.fn(() => new Promise<void>(() => undefined));
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array(dashboardRuntime.DASHBOARD_MANIFEST_BYTE_LIMIT + 1));
+      },
+      cancel,
+    });
+    const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(body));
+
+    try {
+      dashboardRuntime.resetDashboardArtifactCache();
+      await expect(dashboardRuntime.loadDashboardArtifacts()).rejects.toThrow(/browser safety limit/i);
+      expect(cancel).toHaveBeenCalledOnce();
+    } finally {
+      dashboardRuntime.resetDashboardArtifactCache();
+      fetch.mockRestore();
+    }
+  });
+
+  it("bounds artifact streams without Content-Length and reloads after a poisoned cache response", async () => {
+    const manifest = readFileSync(manifestPath, "utf8");
+    const manifestValue = readJson(manifestPath) as {
+      artifacts: { renderer_wasm: { url: string; bytes: number } };
+    };
+    manifestValue.artifacts.renderer_wasm.bytes = 1;
+    const poisonedManifest = JSON.stringify(manifestValue);
+    const oversizedArtifactUrl = manifestValue.artifacts.renderer_wasm.url;
+    const cancel = vi.fn();
+    let loadRound = 0;
+    const secondRoundArtifactCaches: RequestCache[] = [];
+    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+      const url = String(input);
+      if (url === "/agent-mail-dashboard/manifest.v1.json") {
+        loadRound += 1;
+        return Promise.resolve(new Response(loadRound === 1 ? poisonedManifest : manifest));
+      }
+      if (loadRound === 1 && url.startsWith(`${oversizedArtifactUrl}?`)) {
+        const body = new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(new Uint8Array(2));
+          },
+          cancel,
+        });
+        return Promise.resolve(new Response(body));
+      }
+      if (loadRound === 2) secondRoundArtifactCaches.push(init?.cache ?? "default");
+      return new Promise<Response>(() => undefined);
+    });
+
+    try {
+      dashboardRuntime.resetDashboardArtifactCache();
+      await expect(dashboardRuntime.loadDashboardArtifacts()).rejects.toThrow(/browser safety limit/i);
+      expect(cancel).toHaveBeenCalledOnce();
+
+      void dashboardRuntime.loadDashboardArtifacts();
+      await flushMicrotasks();
+      expect(secondRoundArtifactCaches).toHaveLength(6);
+      expect(secondRoundArtifactCaches).toEqual(Array(6).fill("reload"));
+    } finally {
+      dashboardRuntime.resetDashboardArtifactCache();
+      fetch.mockRestore();
+    }
+  });
+
   it("starts at native zoom and refits when the zoom prop changes", async () => {
     TestTerminal.instances = [];
     TestRunner.instances = [];
@@ -821,7 +935,7 @@ describe("AgentMailTerminal lifecycle", () => {
     }
   });
 
-  it("coalesces wheel bursts to one terminal input per animation frame", async () => {
+  it("coalesces wheel bursts into capped unit inputs in one animation frame", async () => {
     TestTerminal.instances = [];
     TestRunner.instances = [];
     const frameCallbacks: FrameRequestCallback[] = [];
@@ -840,9 +954,12 @@ describe("AgentMailTerminal lifecycle", () => {
       terminal.input.mockClear();
       terminal.drainEncodedInputs.mockReturnValue(["wheel"]);
 
-      fireEvent.wheel(canvas, { deltaY: 1 });
-      fireEvent.wheel(canvas, { deltaY: 1 });
-      fireEvent.wheel(canvas, { deltaY: 1 });
+      for (let index = 0; index < 30; index += 1) {
+        fireEvent.wheel(canvas, {
+          deltaX: -1,
+          deltaY: index < 5 ? 1 : index < 7 ? -1 : 0,
+        });
+      }
       expect(terminal.input).not.toHaveBeenCalled();
 
       await act(async () => {
@@ -850,8 +967,17 @@ describe("AgentMailTerminal lifecycle", () => {
         await flushMicrotasks();
       });
 
-      expect(terminal.input).toHaveBeenCalledTimes(1);
-      expect(terminal.input).toHaveBeenCalledWith(expect.objectContaining({ kind: "wheel", dy: 1 }));
+      const wheelInputs = terminal.input.mock.calls.map(([input]) => input as {
+        kind: string;
+        dx: number;
+        dy: number;
+      });
+      expect(wheelInputs).toHaveLength(24);
+      expect(wheelInputs.every((input) => (
+        input.kind === "wheel" && Math.abs(input.dx) <= 1 && Math.abs(input.dy) <= 1
+      ))).toBe(true);
+      expect(wheelInputs.reduce((sum, input) => sum + input.dx, 0)).toBe(-24);
+      expect(wheelInputs.reduce((sum, input) => sum + input.dy, 0)).toBe(3);
       view.unmount();
     } finally {
       load.mockRestore();
@@ -1005,6 +1131,81 @@ describe("AgentMailTerminal lifecycle", () => {
       expect(terminal.destroy).toHaveBeenCalledTimes(1);
       expect(terminal.free).toHaveBeenCalledTimes(1);
       expect(TestRunner.instances).toHaveLength(0);
+    } finally {
+      load.mockRestore();
+      restoreEnvironment();
+    }
+  });
+
+  it("retries a timed-out initializer on a fresh canvas and frees only the late first terminal", async () => {
+    let finishFirstInitialization!: () => void;
+    class FirstAttemptDelayedTerminal extends TestTerminal {
+      override init = vi.fn(() => {
+        if (TestTerminal.instances[0] === this) {
+          return new Promise<void>((resolve) => {
+            finishFirstInitialization = resolve;
+          });
+        }
+        return Promise.resolve();
+      });
+    }
+    TestTerminal.instances = [];
+    TestRunner.instances = [];
+    const load = vi.spyOn(dashboardRuntime, "loadDashboardArtifacts")
+      .mockResolvedValue(testArtifacts(FirstAttemptDelayedTerminal));
+    const restoreEnvironment = installAnimationEnvironment();
+
+    try {
+      const {
+        default: AgentMailTerminal,
+        DASHBOARD_TERMINAL_INIT_TIMEOUT_MS,
+      } = await import("@/components/agent-mail-terminal");
+      let view!: ReturnType<typeof render>;
+      await act(async () => {
+        view = render(createElement(AgentMailTerminal, { paused: false, reducedMotion: false }));
+        await flushMicrotasks();
+      });
+      const [firstTerminal] = TestTerminal.instances;
+      const firstCanvas = screen.getByTestId("hero-agent-mail-canvas");
+      expect(firstCanvas).toHaveAttribute("data-load-generation", "0");
+      expect(firstTerminal.init).toHaveBeenCalledWith(firstCanvas, expect.any(Object));
+      expect(firstTerminal.destroy).not.toHaveBeenCalled();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(DASHBOARD_TERMINAL_INIT_TIMEOUT_MS);
+        await flushMicrotasks();
+      });
+      expect(screen.getByText(
+        `FrankenTerm renderer initialization did not finish within ${DASHBOARD_TERMINAL_INIT_TIMEOUT_MS}ms`,
+      )).toBeVisible();
+      expect(firstTerminal.destroy).not.toHaveBeenCalled();
+      expect(firstTerminal.free).not.toHaveBeenCalled();
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Retry interactive dashboard" }));
+        await flushMicrotasks();
+      });
+      const secondCanvas = screen.getByTestId("hero-agent-mail-canvas");
+      const secondTerminal = TestTerminal.instances[1];
+      expect(secondCanvas).not.toBe(firstCanvas);
+      expect(secondCanvas).toHaveAttribute("data-load-generation", "1");
+      expect(secondTerminal?.init).toHaveBeenCalledWith(secondCanvas, expect.any(Object));
+      expect(TestRunner.instances).toHaveLength(1);
+      expect(secondCanvas).toHaveAttribute("aria-disabled", "false");
+      expect(secondTerminal?.destroy).not.toHaveBeenCalled();
+
+      await act(async () => {
+        finishFirstInitialization();
+        await flushMicrotasks();
+      });
+      expect(firstTerminal.destroy).toHaveBeenCalledOnce();
+      expect(firstTerminal.free).toHaveBeenCalledOnce();
+      expect(secondTerminal?.destroy).not.toHaveBeenCalled();
+      view.unmount();
+      expect(firstTerminal.destroy).toHaveBeenCalledOnce();
+      expect(firstTerminal.free).toHaveBeenCalledOnce();
+      expect(secondTerminal?.destroy).toHaveBeenCalledOnce();
+      expect(secondTerminal?.free).toHaveBeenCalledOnce();
     } finally {
       load.mockRestore();
       restoreEnvironment();
@@ -1418,6 +1619,89 @@ describe("AgentMailTerminal lifecycle", () => {
       expect(runner.free).toHaveBeenCalledTimes(1);
       expect(terminal.free).toHaveBeenCalledTimes(1);
     } finally {
+      load.mockRestore();
+      restoreEnvironment();
+    }
+  });
+});
+
+describe("HeroMedia dashboard controls", () => {
+  it("keeps replay and zoom actions safe until ready and explains reduced-motion pausing", async () => {
+    TestTerminal.instances = [];
+    TestRunner.instances = [];
+    const restoreEnvironment = installAnimationEnvironment();
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = vi.fn((query: string) => ({
+      matches: query.includes("prefers-reduced-motion"),
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(() => false),
+    })) as typeof window.matchMedia;
+
+    let rejectArtifacts!: (cause: unknown) => void;
+    const pendingArtifacts = new Promise<Awaited<ReturnType<
+      typeof dashboardRuntime.loadDashboardArtifacts
+    >>>((_resolve, reject) => {
+      rejectArtifacts = reject;
+    });
+    let shouldFail = true;
+    const load = vi.spyOn(dashboardRuntime, "loadDashboardArtifacts").mockImplementation(() => (
+      shouldFail ? pendingArtifacts : Promise.resolve(testArtifacts())
+    ));
+
+    try {
+      const { default: HeroMedia } = await import("@/components/hero-media");
+      let view!: ReturnType<typeof render>;
+      await act(async () => {
+        view = render(createElement(HeroMedia));
+        await flushMicrotasks();
+      });
+
+      const replay = screen.getByRole("button", {
+        name: "Dashboard replay is paused because reduced motion is enabled",
+      });
+      const resetReplay = screen.getByRole("button", { name: "Reset dashboard replay" });
+      const zoomOut = screen.getByRole("button", { name: "Zoom dashboard out" });
+      const resetZoom = screen.getByRole("button", { name: "Reset dashboard zoom to 100 percent" });
+      const zoomIn = screen.getByRole("button", { name: "Zoom dashboard in" });
+
+      expect(replay).toBeDisabled();
+      expect(replay).toHaveAttribute(
+        "title",
+        "Replay stays paused while reduced motion is enabled",
+      );
+      expect(resetReplay).toBeDisabled();
+      expect(zoomOut).toBeDisabled();
+      expect(resetZoom).toBeDisabled();
+      expect(zoomIn).toBeDisabled();
+
+      await act(async () => {
+        rejectArtifacts(new Error("verified artifact failed"));
+        await flushMicrotasks();
+      });
+      expect(screen.getByRole("button", { name: "Retry interactive dashboard" })).toBeVisible();
+      expect(resetReplay).toBeDisabled();
+      expect(zoomOut).toBeDisabled();
+      expect(resetZoom).toBeDisabled();
+      expect(zoomIn).toBeDisabled();
+
+      shouldFail = false;
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Retry interactive dashboard" }));
+        await flushMicrotasks();
+      });
+      expect(replay).toBeDisabled();
+      expect(resetReplay).toBeEnabled();
+      expect(zoomOut).toBeEnabled();
+      expect(resetZoom).toBeEnabled();
+      expect(zoomIn).toBeEnabled();
+      view.unmount();
+    } finally {
+      window.matchMedia = originalMatchMedia;
       load.mockRestore();
       restoreEnvironment();
     }

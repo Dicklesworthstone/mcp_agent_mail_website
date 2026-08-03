@@ -149,6 +149,7 @@ const ARTIFACT_ROOT = "/agent-mail-dashboard/";
 const EXPECTED_PRIVACY_POLICY = "agent-mail-dashboard-public-demo-v1";
 const MAX_DEMO_ACTIONS = 10_000;
 const MAX_DEMO_DURATION_MS = 30 * 60 * 1_000;
+export const DASHBOARD_MANIFEST_BYTE_LIMIT = 64 * 1024;
 export const DASHBOARD_ARTIFACT_STAGE_TIMEOUT_MS = 15_000;
 const ARTIFACT_BYTE_LIMITS = {
   // Rust bounds the JSON itself at 8 MiB; the exporter appends one trailing
@@ -166,6 +167,7 @@ let cachedLoad: Promise<LoadedDashboardArtifacts> | null = null;
 let activeLoadToken: symbol | null = null;
 let installedDashboardFont: { digest: string; face: FontFace } | null = null;
 let desiredDashboardFontDigest: string | null = null;
+let revalidateArtifactCacheAfterFailure = false;
 
 export function withDashboardArtifactStageTimeout<T>(
   operation: PromiseLike<T>,
@@ -387,32 +389,117 @@ async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-async function fetchVerifiedArtifact(artifact: Required<DashboardArtifact>): Promise<ArrayBuffer> {
+async function readBoundedResponseBody(
+  response: Response,
+  maxBytes: number,
+  label: string,
+): Promise<ArrayBuffer> {
+  const contentLengthHeader = response.headers.get("content-length");
+  let contentLength: number | null = null;
+  if (contentLengthHeader !== null) {
+    if (!/^(?:0|[1-9][0-9]*)$/.test(contentLengthHeader)) {
+      throw new Error(`${label} returned an invalid Content-Length header`);
+    }
+    contentLength = Number(contentLengthHeader);
+    if (!Number.isSafeInteger(contentLength)) {
+      throw new Error(`${label} returned an invalid Content-Length header`);
+    }
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) {
+    if (contentLength !== null && contentLength > maxBytes) {
+      throw new Error(`${label} exceeds its ${maxBytes}-byte browser safety limit`);
+    }
+    return new ArrayBuffer(0);
+  }
+
+  let readerCancelled = false;
+  const cancelReader = (reason: Error) => {
+    if (readerCancelled) return;
+    readerCancelled = true;
+    try {
+      void reader.cancel(reason).catch(() => {
+        // Preserve the validation error that required cancellation.
+      });
+    } catch {
+      // Preserve the validation error that required cancellation.
+    }
+  };
+
+  try {
+    if (contentLength !== null && contentLength > maxBytes) {
+      const error = new Error(`${label} exceeds its ${maxBytes}-byte browser safety limit`);
+      cancelReader(error);
+      throw error;
+    }
+
+    // Copy each network chunk directly into one manifest-bounded allocation.
+    // Retaining every chunk and then concatenating would briefly double the
+    // memory cost of the two WASM binaries during startup.
+    const bytes = new Uint8Array(maxBytes);
+    let totalBytes = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value || value.byteLength === 0) continue;
+      if (value.byteLength > maxBytes - totalBytes) {
+        const error = new Error(`${label} exceeds its ${maxBytes}-byte browser safety limit`);
+        cancelReader(error);
+        throw error;
+      }
+      bytes.set(value, totalBytes);
+      totalBytes += value.byteLength;
+    }
+
+    return totalBytes === bytes.byteLength
+      ? bytes.buffer
+      : bytes.slice(0, totalBytes).buffer;
+  } catch (cause) {
+    cancelReader(cause instanceof Error ? cause : new Error(String(cause)));
+    throw cause;
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+async function fetchVerifiedArtifact(
+  artifact: Required<DashboardArtifact>,
+  cache: "force-cache" | "reload",
+): Promise<ArrayBuffer> {
   // The digest participates in the browser cache key. A visitor who loaded an
   // older deployment can therefore never pair its unversioned artifact body
   // with a freshly revalidated manifest from a newer deployment.
   const requestUrl = `${artifact.url}?sha256=${artifact.sha256}`;
   const response = await fetch(requestUrl, {
     credentials: "omit",
-    cache: "force-cache",
+    cache,
     signal: AbortSignal.timeout(15_000),
   });
   if (!response.ok) throw new Error(`GET ${artifact.url} returned ${response.status}`);
-  const bytes = await response.arrayBuffer();
+  const bytes = await readBoundedResponseBody(response, artifact.bytes, artifact.url);
   if (bytes.byteLength !== artifact.bytes) {
     throw new Error(`${artifact.url} size mismatch: expected ${artifact.bytes}, got ${bytes.byteLength}`);
   }
-  const actual = await sha256Hex(bytes);
+  const actual = await withDashboardArtifactStageTimeout(
+    sha256Hex(bytes),
+    `${artifact.url} SHA-256 verification`,
+  );
   if (actual !== artifact.sha256) throw new Error(`${artifact.url} failed SHA-256 verification`);
   return bytes;
 }
 
-async function importVerifiedModule<T>(bytes: ArrayBuffer): Promise<T> {
+async function importVerifiedModule<T>(bytes: ArrayBuffer, label: string): Promise<T> {
   const source = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
   const moduleUrl = URL.createObjectURL(new Blob([source], { type: "text/javascript" }));
   try {
-    return await import(/* webpackIgnore: true */ moduleUrl) as T;
+    return await withDashboardArtifactStageTimeout(
+      import(/* webpackIgnore: true */ moduleUrl) as Promise<T>,
+      label,
+    );
   } finally {
+    // A timed-out dynamic import may still settle later, but the blob URL no
+    // longer needs to remain registered once this attempt has failed closed.
     URL.revokeObjectURL(moduleUrl);
   }
 }
@@ -437,14 +524,23 @@ async function loadFont(bytes: ArrayBuffer, digest: string, loadToken: symbol): 
   installedDashboardFont = { digest, face: loaded };
 }
 
-async function loadDashboardArtifactsUncached(loadToken: symbol): Promise<LoadedDashboardArtifacts> {
+async function loadDashboardArtifactsUncached(
+  loadToken: symbol,
+  artifactCacheMode: "force-cache" | "reload",
+): Promise<LoadedDashboardArtifacts> {
   const manifestResponse = await fetch(MANIFEST_URL, {
     credentials: "omit",
     cache: "no-cache",
     signal: AbortSignal.timeout(15_000),
   });
   if (!manifestResponse.ok) throw new Error(`GET ${MANIFEST_URL} returned ${manifestResponse.status}`);
-  const manifest = validateDashboardManifest(await manifestResponse.json());
+  const manifestBytes = await readBoundedResponseBody(
+    manifestResponse,
+    DASHBOARD_MANIFEST_BYTE_LIMIT,
+    MANIFEST_URL,
+  );
+  const manifestJson = new TextDecoder("utf-8", { fatal: true }).decode(manifestBytes);
+  const manifest = validateDashboardManifest(JSON.parse(manifestJson));
   const artifacts = manifest.artifacts;
   if (activeLoadToken === loadToken) {
     // Claim the desired face as soon as the current manifest is known. A
@@ -456,34 +552,34 @@ async function loadDashboardArtifactsUncached(loadToken: symbol): Promise<Loaded
   // Start each consumer as soon as its own verified bytes arrive. This keeps a
   // slower artifact from unnecessarily blocking module import, WASM compile,
   // pack validation, or font loading for every other artifact.
-  const packPromise = fetchVerifiedArtifact(artifacts.demo_pack).then((packBytes) => {
+  const packPromise = fetchVerifiedArtifact(artifacts.demo_pack, artifactCacheMode).then((packBytes) => {
     const json = new TextDecoder("utf-8", { fatal: true }).decode(packBytes);
     // JavaScript validates the public boundary, then drops the parsed object;
     // Rust remains the authoritative typed consumer of the original bytes.
     validateDashboardDemoPack(JSON.parse(json), manifest.runner_source_revision);
     return json;
   });
-  const runnerModulePromise = fetchVerifiedArtifact(artifacts.dashboard_runner_js)
-    .then((bytes) => withDashboardArtifactStageTimeout(
-      importVerifiedModule<RunnerModule>(bytes),
+  const runnerModulePromise = fetchVerifiedArtifact(artifacts.dashboard_runner_js, artifactCacheMode)
+    .then((bytes) => importVerifiedModule<RunnerModule>(
+      bytes,
       "Agent Mail dashboard runner module import",
     ));
-  const runnerCompiledPromise = fetchVerifiedArtifact(artifacts.dashboard_runner_wasm)
+  const runnerCompiledPromise = fetchVerifiedArtifact(artifacts.dashboard_runner_wasm, artifactCacheMode)
     .then((bytes) => withDashboardArtifactStageTimeout(
       WebAssembly.compile(bytes),
       "Agent Mail dashboard runner WASM compilation",
     ));
-  const rendererModulePromise = fetchVerifiedArtifact(artifacts.renderer_js)
-    .then((bytes) => withDashboardArtifactStageTimeout(
-      importVerifiedModule<RendererModule>(bytes),
+  const rendererModulePromise = fetchVerifiedArtifact(artifacts.renderer_js, artifactCacheMode)
+    .then((bytes) => importVerifiedModule<RendererModule>(
+      bytes,
       "FrankenTerm renderer module import",
     ));
-  const rendererCompiledPromise = fetchVerifiedArtifact(artifacts.renderer_wasm)
+  const rendererCompiledPromise = fetchVerifiedArtifact(artifacts.renderer_wasm, artifactCacheMode)
     .then((bytes) => withDashboardArtifactStageTimeout(
       WebAssembly.compile(bytes),
       "FrankenTerm renderer WASM compilation",
     ));
-  const fontPromise = fetchVerifiedArtifact(artifacts.terminal_font)
+  const fontPromise = fetchVerifiedArtifact(artifacts.terminal_font, artifactCacheMode)
     .then((bytes) => withDashboardArtifactStageTimeout(
       loadFont(bytes, artifacts.terminal_font.sha256, loadToken),
       "Agent Mail dashboard terminal font initialization",
@@ -513,19 +609,27 @@ export function loadDashboardArtifacts(): Promise<LoadedDashboardArtifacts> {
   if (!cachedLoad) {
     const loadToken = Symbol("dashboard-artifact-load");
     activeLoadToken = loadToken;
-    const pending = loadDashboardArtifactsUncached(loadToken);
+    const artifactCacheMode = revalidateArtifactCacheAfterFailure ? "reload" : "force-cache";
+    const pending = loadDashboardArtifactsUncached(loadToken, artifactCacheMode);
     cachedLoad = pending;
-    void pending.catch(() => {
-      // A stale rejection must not erase a newer load installed after an
-      // explicit cache reset.
-      if (cachedLoad === pending) {
-        cachedLoad = null;
-        if (activeLoadToken === loadToken) {
-          activeLoadToken = null;
-          desiredDashboardFontDigest = null;
+    void pending.then(
+      () => {
+        if (cachedLoad === pending) revalidateArtifactCacheAfterFailure = false;
+      },
+      () => {
+        // A stale rejection must not erase a newer load installed after an
+        // explicit cache reset. A current rejection does force the next load
+        // past any corrupt force-cache response for the same digest URL.
+        if (cachedLoad === pending) {
+          cachedLoad = null;
+          revalidateArtifactCacheAfterFailure = true;
+          if (activeLoadToken === loadToken) {
+            activeLoadToken = null;
+            desiredDashboardFontDigest = null;
+          }
         }
-      }
-    });
+      },
+    );
   }
   return cachedLoad;
 }
@@ -534,4 +638,5 @@ export function resetDashboardArtifactCache(): void {
   cachedLoad = null;
   activeLoadToken = null;
   desiredDashboardFontDigest = null;
+  revalidateArtifactCacheAfterFailure = false;
 }

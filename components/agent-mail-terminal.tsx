@@ -50,7 +50,8 @@ const SCREEN_READER_MIRROR_THROTTLE_MS = 1_000;
 const SCREEN_READER_MIRROR_DEBOUNCE_MS = 100;
 const DESKTOP_HEADER_CLEARANCE_PX = 96;
 export const DASHBOARD_TERMINAL_INIT_TIMEOUT_MS = 15_000;
-const MAX_COALESCED_WHEEL_DELTA = 24;
+const MAX_WHEEL_INPUTS_PER_FRAME = 24;
+const MAX_TEXT_INPUT_CHARACTERS = 96;
 const DASHBOARD_SCREEN_SLUGS = new Set([
   "dashboard", "messages", "threads", "agents", "search", "reservations",
   "tool_metrics", "system_health", "timeline", "projects", "contacts", "explorer",
@@ -97,7 +98,18 @@ function withTerminalInitTimeout(operation: Promise<void>): Promise<void> {
 
 function boundedWheelDelta(value: number): number {
   if (!Number.isFinite(value)) return 0;
-  return Math.max(-MAX_COALESCED_WHEEL_DELTA, Math.min(MAX_COALESCED_WHEEL_DELTA, value));
+  return Math.max(-MAX_WHEEL_INPUTS_PER_FRAME, Math.min(MAX_WHEEL_INPUTS_PER_FRAME, value));
+}
+
+function boundedTextInput(value: string): string {
+  let result = "";
+  let characterCount = 0;
+  for (const character of value) {
+    if (characterCount >= MAX_TEXT_INPUT_CHARACTERS) break;
+    result += character;
+    characterCount += 1;
+  }
+  return result;
 }
 
 export function dashboardRendererDpr(
@@ -242,7 +254,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
     const [loadingLabel, setLoadingLabel] = useState("Preparing the dashboard runtime…");
     const [error, setError] = useState<Error | null>(null);
     const [screenReaderText, setScreenReaderText] = useState(
-      "Agent Mail dashboard is loading. On Dashboard, number keys 1 through 4 select quick filters and Tab changes screens; outside text-entry mode on other screens, the displayed number keys select screens. Arrow keys, j and k, slash search, Enter, and Escape are also supported.",
+      "Agent Mail dashboard is loading. Outside text-entry mode, number keys 1 through 4 jump to Dashboard, Messages, Threads, and Agents. Tab, Shift Tab, arrows, j and k, slash search, Enter, and Escape are also supported.",
     );
     const [screenReaderMirror, setScreenReaderMirror] = useState(
       "Agent Mail terminal contents will appear when the verified dashboard is ready.",
@@ -410,7 +422,6 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
       let displayListenerCleanup: (() => void) | null = null;
       let inputController: AbortController | null = null;
       let focusScrollFrame = 0;
-      let initializingTerm: FrankenTermInstance | null = null;
       let releaseInitializingTerm: (() => void) | null = null;
       let pendingPointerMove: unknown | null = null;
       let pendingWheelInput: CoalescedWheelInput | null = null;
@@ -470,7 +481,6 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
             termReleased = true;
             releaseTerminal(term);
           };
-          initializingTerm = term;
           releaseInitializingTerm = releaseTermOnce;
           // Respect a genuinely narrow measured viewport; the fallbacks only
           // cover the pre-layout zero-size case.
@@ -512,13 +522,11 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
               // cannot leak a wrapper or create an unhandled rejection.
               void terminalInit.then(releaseTermOnce, releaseTermOnce);
             }
-            initializingTerm = null;
             releaseInitializingTerm = null;
             throw cause;
           }
           if (cancelled) {
             releaseTermOnce();
-            initializingTerm = null;
             releaseInitializingTerm = null;
             return;
           }
@@ -536,7 +544,6 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
           if (fitEffectiveZoom !== initEffectiveZoom) term.setZoom(fitEffectiveZoom);
           effectiveZoomRef.current = fitEffectiveZoom;
           termRef.current = term;
-          initializingTerm = null;
           releaseInitializingTerm = null;
           term.setAccessibility({ reducedMotion: reducedMotionRef.current, screenReader: true });
 
@@ -667,8 +674,35 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
               pendingPointerMove = null;
             }
             if (pendingWheelInput !== null) {
-              currentTerm.input(pendingWheelInput);
+              const wheelInput = pendingWheelInput;
               pendingWheelInput = null;
+              const horizontalSteps = Math.abs(wheelInput.dx);
+              const verticalSteps = Math.abs(wheelInput.dy);
+              let emitted = 0;
+              for (
+                let index = 0;
+                index < verticalSteps && emitted < MAX_WHEEL_INPUTS_PER_FRAME;
+                index += 1
+              ) {
+                currentTerm.input({
+                  ...wheelInput,
+                  dx: 0,
+                  dy: Math.sign(wheelInput.dy),
+                });
+                emitted += 1;
+              }
+              for (
+                let index = 0;
+                index < horizontalSteps && emitted < MAX_WHEEL_INPUTS_PER_FRAME;
+                index += 1
+              ) {
+                currentTerm.input({
+                  ...wheelInput,
+                  dx: Math.sign(wheelInput.dx),
+                  dy: 0,
+                });
+                emitted += 1;
+              }
             }
           };
 
@@ -1077,6 +1111,28 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
             };
             scheduleFrame();
           }, { signal, passive: false });
+          canvas.addEventListener("paste", (event) => {
+            let clipboardText = "";
+            try {
+              clipboardText = event.clipboardData?.getData("text") ?? "";
+            } catch {
+              // Leave the browser's default action alone if clipboard access
+              // is unavailable in this context.
+              return;
+            }
+            const text = boundedTextInput(clipboardText);
+            if (!text) return;
+            if (event.cancelable) event.preventDefault();
+            safeInput({ kind: "paste", data: text });
+          }, { signal });
+          canvas.addEventListener("compositionend", (event) => {
+            const text = boundedTextInput(event.data ?? "");
+            if (!text) return;
+            // The public dashboard consumes Event::Paste in its TextInput
+            // paths. Reuse that stable route for committed IME text instead
+            // of adding a second Event::Ime contract that those paths ignore.
+            safeInput({ kind: "paste", data: text });
+          }, { signal });
           canvas.addEventListener("focus", () => {
             keepFocusedCanvasBelowHeader();
             safeInput({ kind: "focus", focused: true });
@@ -1089,7 +1145,6 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
           canvas.addEventListener("contextmenu", (event) => event.preventDefault(), { signal });
         } catch (cause) {
           releaseInitializingTerm?.();
-          initializingTerm = null;
           releaseInitializingTerm = null;
           if (cancelled) return;
           failRuntime(cause);
@@ -1120,11 +1175,13 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
         aria-busy={loadState === "loading"}
       >
         <canvas
+          key={loadAttempt}
           ref={canvasRef}
           data-testid="hero-agent-mail-canvas"
+          data-load-generation={loadAttempt}
           tabIndex={showCanvas ? 0 : -1}
           aria-disabled={!showCanvas}
-          aria-label="Agent Mail terminal. Click tabs, filters, and rows. On Dashboard, number keys 1 through 4 select quick filters and Tab changes screens; outside text-entry mode on other screens, the displayed number keys select screens. Press Control Escape to return focus to the webpage."
+          aria-label="Agent Mail terminal. Click tabs, filters, and rows. Outside text-entry mode, number keys 1 through 4 jump to Dashboard, Messages, Threads, and Agents. Press Control Escape to return focus to the webpage."
           className={`block h-full w-full ${fullscreen ? "touch-none" : "touch-pan-y"} select-none outline-none ring-inset focus-visible:ring-2 focus-visible:ring-cyan-300 ${showCanvas ? "pointer-events-auto" : "pointer-events-none"}`}
           style={{ imageRendering: "auto" }}
         />
@@ -1162,7 +1219,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
         )}
 
         <p id="agent-mail-terminal-help" className="sr-only">
-          This is the real Agent Mail shell and DashboardScreen compiled to WebAssembly and rendered by FrankenTUI. It replays a privacy-checked public pack. Click tabs, filters, and rows, or use Tab, Shift Tab, arrows, j and k, slash, Enter, and Escape. On Dashboard, number keys 1 through 4 select quick filters; outside text-entry mode after leaving Dashboard, the number keys shown in the terminal select screens. Control Escape returns focus to the webpage.
+          This is the real Agent Mail shell and DashboardScreen compiled to WebAssembly and rendered by FrankenTUI. It replays a privacy-checked public pack. Click tabs, filters, and rows, or use Tab, Shift Tab, arrows, j and k, slash, Enter, and Escape. Outside text-entry mode, number keys 1 through 4 jump to Dashboard, Messages, Threads, and Agents. Control Escape returns focus to the webpage.
         </p>
         <pre id="agent-mail-terminal-screen-reader-status" className="sr-only" aria-live="polite" aria-atomic="true">
           {screenReaderText}

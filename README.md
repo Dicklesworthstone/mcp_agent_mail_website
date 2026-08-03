@@ -7,7 +7,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Bun](https://img.shields.io/badge/Package_Manager-Bun-000000?logo=bun)](https://bun.sh/)
 [![Deploy](https://img.shields.io/badge/Deploy-Vercel-000000?logo=vercel)](https://vercel.com/)
-[![Tests](https://img.shields.io/badge/Tests-109_Unit_+_7_E2E-22c55e)](#testing)
+[![Tests](https://img.shields.io/badge/Tests-Vitest_+_Playwright-22c55e)](#testing)
 [![License](https://img.shields.io/badge/License-Unspecified-lightgrey)](#license)
 
 </div>
@@ -46,7 +46,7 @@ bun dev
 | **Performance-aware frontend** | Heavy components lazy-loaded via `LazyViz` with viewport detection |
 | **Strict TypeScript + linting** | Safer refactors and clearer maintenance boundaries |
 | **Vitest + Playwright suites** | Unit and browser tests cover content, UI primitives, and critical user flows |
-| **JSON-LD structured data** | Five schema types (SoftwareApplication, VideoObject, WebSite, FAQPage, HowTo) |
+| **JSON-LD structured data** | Four schema types (SoftwareApplication, WebSite, FAQPage, HowTo) |
 | **Bun-only workflow** | One package manager and one lockfile path |
 
 ## Quick Example
@@ -672,18 +672,17 @@ The viewer uses TanStack Query for data fetching, TanStack Table for the sidebar
 
 **Reduced Motion.** The `useReducedMotion` hook (framer-motion) checks `prefers-reduced-motion: reduce` at the system level. GlowOrbits disables all orbital animations. The WASM dashboard disables chart transitions, pauses replay time, and renders a deterministic static frame. All framer-motion animations are conditionally applied.
 
-**Semantic HTML & ARIA.** Skip link at the top of every page for keyboard navigation. Aria-expanded on collapsible elements (chapters, transcript panels). Semantic heading hierarchy (h1 → h2 → h3). Alt text on images. Aria-labels on video and interactive elements.
+**Semantic HTML & ARIA.** Skip link at the top of every page for keyboard navigation. `aria-expanded` on collapsible elements. Semantic heading hierarchy (h1 → h2 → h3). Alt text on images. Accessible names and state descriptions on terminal controls and other interactive elements.
 
 **Keyboard Navigation.** `Ctrl+Shift+X` toggles lab mode (blocked during text input to prevent conflicts). Spec explorer search focuses on `/`, clears on `Escape`. All buttons and interactive elements are properly focusable.
 
 ### SEO & Structured Data
 
-Five JSON-LD schema types are embedded in the page markup:
+Four JSON-LD schema types are embedded in the page markup:
 
 | Schema Type | What It Describes | Where Used |
 |---|---|---|
 | `SoftwareApplication` | Agent Mail as a developer tool | Root layout |
-| `VideoObject` | Hero demo video with transcript + duration | Home page |
 | `WebSite` | Site entity with publisher info | Root layout |
 | `FAQPage` | Questions and answers | Getting Started |
 | `HowTo` | Installation/quickstart instructions | Getting Started |
@@ -694,19 +693,20 @@ OpenGraph and Twitter Card meta tags are generated from `siteConfig` in the root
 
 ### Unit Tests (Vitest)
 
-109 tests across 5 files in `__tests__/`:
+Vitest suites in `__tests__/` cover the following contracts:
 
-| File | Tests | Coverage |
-|---|---|---|
-| `content.test.ts` | 50 | siteConfig, navItems, arrays, claims, testimonials, storyboard, transcript, media, JSON-LD |
-| `navigation.test.ts` | 15 | Nav items, routes, features, glossary, changelog, FAQ, heroStats |
-| `viz-state.test.ts` | 12 | Viz framework exports, chapter/caption validation, videoPlaceholder |
-| `conversion.test.ts` | 15 | Adoption, credibility, testimonials, evidence claims, cross-module ID uniqueness |
-| `ui-primitives.test.tsx` | 17 | JsonLd component, cn utility, isTextInputLike, VizSurface, VizControlButton, motion exports |
+| File | Coverage |
+|---|---|
+| `agent-mail-wasm.test.ts` | Manifest validation, bounded streaming, digest gates, lifecycle races, WASM initialization, and retry behavior |
+| `content.test.ts` | Site configuration, navigation, content contracts, current product claims, and JSON-LD generators |
+| `navigation.test.ts` | Navigation items, routes, features, glossary, changelog, FAQ, and hero statistics |
+| `viz-state.test.ts` | Visualization framework exports and state-transition behavior |
+| `conversion.test.ts` | Adoption, credibility, testimonials, evidence claims, and cross-module ID uniqueness |
+| `ui-primitives.test.tsx` | JSON-LD rendering, utilities, text-input detection, visualization primitives, and motion exports |
 
 ### E2E Tests (Playwright)
 
-7 spec files in `e2e/`:
+Playwright specs in `e2e/` cover the following browser behavior:
 
 | Spec | Coverage |
 |---|---|
@@ -715,7 +715,7 @@ OpenGraph and Twitter Card meta tags are generated from `siteConfig` in the root
 | `accessibility.spec.ts` | A11y scans, ARIA compliance |
 | `metadata.spec.ts` | JSON-LD validation, OG tags, meta elements |
 | `performance.spec.ts` | Core Web Vitals, load times |
-| `hero-media.spec.ts` | Video playback, transcript, chapters |
+| `hero-media.spec.ts` | Verified WASM loading, native terminal interaction, fallback handling, zoom, and fullscreen |
 | `visualizations.spec.ts` | Viz rendering, LazyViz triggers |
 
 Custom diagnostics fixtures (`e2e/fixtures.ts`) capture console messages, network requests, and breadcrumb trails.
