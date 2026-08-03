@@ -1,7 +1,9 @@
 {
   "schema": "agent_mail.dashboard_artifacts.v1",
   "built_at": "2026-08-02T15:23:39Z",
-  "source_revision": "d8ad1f76b8659cf356c5d185705aeafb1030aa4b",
+  "runner_source_revision": "d8ad1f76b8659cf356c5d185705aeafb1030aa4b",
+  "runner_ftui_source_revision": "8aeb72216c3a5e8b03029c9634e607adcc297402",
+  "renderer_source_revision": "98690d5f671985c74deb40a124719e0a5f020f38",
   "artifacts": {
     "demo_pack": {
       "url": "/agent-mail-dashboard/demo_pack.v1.json",

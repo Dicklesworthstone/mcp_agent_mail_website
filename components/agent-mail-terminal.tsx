@@ -5,6 +5,7 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -37,9 +38,12 @@ interface AgentMailTerminalProps {
 
 type LoadState = "loading" | "running" | "error";
 
-const DEFAULT_TERMINAL_ZOOM = 0.85;
+const useBrowserLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+const DEFAULT_TERMINAL_ZOOM = 1;
 const MAX_DEVICE_PIXEL_RATIO = 2;
 const MAX_BACKING_PIXELS = 8_500_000;
+const MAX_LOGICAL_VIEWPORT_WIDTH = 2_560;
+const MAX_LOGICAL_VIEWPORT_HEIGHT = 1_440;
 const REPLAY_HOST_CADENCE_MS = 100;
 const RAF_WAKE_AHEAD_MS = 16;
 const SCREEN_READER_MIRROR_THROTTLE_MS = 1_000;
@@ -63,6 +67,24 @@ export function dashboardRendererDpr(
   // here keeps the backing store inside the advertised pixel budget instead
   // of allocating 5K/8K canvases at an unconditional 1x minimum.
   return Math.min(deviceDpr, budgetDpr);
+}
+
+export function dashboardEffectiveZoom(
+  userZoom: number,
+  widthCss: number,
+  heightCss: number,
+): number {
+  const normalizedZoom = Number.isFinite(userZoom) && userZoom > 0
+    ? userZoom
+    : DEFAULT_TERMINAL_ZOOM;
+  const width = Number.isFinite(widthCss) && widthCss > 0 ? widthCss : 1;
+  const height = Number.isFinite(heightCss) && heightCss > 0 ? heightCss : 1;
+  const largeViewportScale = Math.max(
+    1,
+    width / MAX_LOGICAL_VIEWPORT_WIDTH,
+    height / MAX_LOGICAL_VIEWPORT_HEIGHT,
+  );
+  return normalizedZoom * largeViewportScale;
 }
 
 function releaseRunner(runner: DashboardRunnerInstance | null): void {
@@ -164,7 +186,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
     const [loadingLabel, setLoadingLabel] = useState("Preparing the dashboard runtime…");
     const [error, setError] = useState<Error | null>(null);
     const [screenReaderText, setScreenReaderText] = useState(
-      "Agent Mail dashboard is loading. The interactive terminal supports arrow keys, j and k navigation, number keys, slash search, Enter, and Escape.",
+      "Agent Mail dashboard is loading. On Dashboard, number keys 1 through 4 select quick filters and Tab changes screens; outside text-entry mode on other screens, the displayed number keys select screens. Arrow keys, j and k, slash search, Enter, and Escape are also supported.",
     );
     const [screenReaderMirror, setScreenReaderMirror] = useState(
       "Agent Mail terminal contents will appear when the verified dashboard is ready.",
@@ -191,6 +213,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
     const reducedMotionRef = useRef(reducedMotion);
     const fullscreenRef = useRef(fullscreen);
     const zoomRef = useRef(zoom);
+    const effectiveZoomRef = useRef(Number.NaN);
     const failRuntimeRef = useRef<(cause: unknown) => void>(() => undefined);
     const callbacksRef = useRef({ onError, onReady, onRetry, onStatus });
 
@@ -219,6 +242,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
       releaseRunner(runner);
       releaseTerminal(term);
       initializedRef.current = false;
+      effectiveZoomRef.current = Number.NaN;
       failRuntimeRef.current = () => undefined;
     }, []);
 
@@ -276,20 +300,16 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
       }
     }, [paused, reducedMotion]);
 
-    useEffect(() => {
+    useBrowserLayoutEffect(() => {
       fullscreenRef.current = fullscreen;
     }, [fullscreen]);
 
-    useEffect(() => {
+    useBrowserLayoutEffect(() => {
       zoomRef.current = zoom;
-      const term = termRef.current;
-      if (!term) return;
-      try {
-        term.setZoom(zoom);
-        refitRef.current();
-      } catch (cause) {
-        failRuntimeRef.current(cause);
-      }
+    }, [zoom]);
+
+    useEffect(() => {
+      refitRef.current();
     }, [zoom]);
 
     useEffect(() => {
@@ -331,7 +351,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
       initializedRef.current = true;
       let cancelled = false;
       let resizeObserver: ResizeObserver | null = null;
-      let dprListenerCleanup: (() => void) | null = null;
+      let displayListenerCleanup: (() => void) | null = null;
       let inputController: AbortController | null = null;
       let initializingTerm: FrankenTermInstance | null = null;
       let pendingPointerMove: unknown | null = null;
@@ -350,8 +370,8 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
         failed = true;
         resizeObserver?.disconnect();
         resizeObserver = null;
-        dprListenerCleanup?.();
-        dprListenerCleanup = null;
+        displayListenerCleanup?.();
+        displayListenerCleanup = null;
         inputController?.abort();
         inputController = null;
         const currentContainer = containerRef.current;
@@ -385,15 +405,23 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
           setLoadingLabel("Starting the production FrankenTUI dashboard…");
           const term = new loaded.FrankenTermWeb();
           initializingTerm = term;
-          const initialWidth = Math.max(container.clientWidth, 320);
-          const initialHeight = Math.max(container.clientHeight, 300);
-          const dpr = dashboardRendererDpr(initialWidth, initialHeight);
+          // Respect a genuinely narrow measured viewport; the fallbacks only
+          // cover the pre-layout zero-size case.
+          const initialWidth = container.clientWidth > 0 ? container.clientWidth : 320;
+          const initialHeight = container.clientHeight > 0 ? container.clientHeight : 300;
+          const initialDpr = dashboardRendererDpr(initialWidth, initialHeight);
+          const initEffectiveZoom = dashboardEffectiveZoom(
+            zoomRef.current,
+            initialWidth,
+            initialHeight,
+          );
           await term.init(canvas, {
             cols: 220,
             rows: 48,
             cellWidth: 8,
             cellHeight: 16,
-            dpr,
+            dpr: initialDpr,
+            zoom: initEffectiveZoom,
             focused: false,
           });
           if (cancelled) {
@@ -401,15 +429,27 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
             initializingTerm = null;
             return;
           }
-          term.setZoom(zoomRef.current);
+          // WebGPU initialization is asynchronous. Re-read geometry and user
+          // zoom so a resize/fullscreen/zoom change during startup cannot leave
+          // the first live frame fitted to stale values.
+          const fitWidth = container.clientWidth > 0 ? container.clientWidth : initialWidth;
+          const fitHeight = container.clientHeight > 0 ? container.clientHeight : initialHeight;
+          const fitDpr = dashboardRendererDpr(fitWidth, fitHeight);
+          const fitEffectiveZoom = dashboardEffectiveZoom(
+            zoomRef.current,
+            fitWidth,
+            fitHeight,
+          );
+          if (fitEffectiveZoom !== initEffectiveZoom) term.setZoom(fitEffectiveZoom);
+          effectiveZoomRef.current = fitEffectiveZoom;
           termRef.current = term;
           initializingTerm = null;
           term.setAccessibility({ reducedMotion: reducedMotionRef.current, screenReader: true });
 
           let geometry = term.fitToContainer(
-            initialWidth,
-            initialHeight,
-            dpr,
+            fitWidth,
+            fitHeight,
+            fitDpr,
           );
           let cols = Math.max(1, geometry.cols);
           let rows = Math.max(1, geometry.rows);
@@ -645,6 +685,11 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
               const width = Math.max(currentContainer.clientWidth, 1);
               const height = Math.max(currentContainer.clientHeight, 1);
               const currentDpr = dashboardRendererDpr(width, height);
+              const nextEffectiveZoom = dashboardEffectiveZoom(zoomRef.current, width, height);
+              if (nextEffectiveZoom !== effectiveZoomRef.current) {
+                currentTerm.setZoom(nextEffectiveZoom);
+                effectiveZoomRef.current = nextEffectiveZoom;
+              }
               geometry = currentTerm.fitToContainer(
                 width,
                 height,
@@ -679,14 +724,22 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
           resizeObserver = new ResizeObserver(refit);
           resizeObserver.observe(container);
 
+          const displayChangeCleanups: Array<() => void> = [];
+          // Install the aggregate cleanup before registering either source.
+          // If a platform shim throws while the second listener is armed, the
+          // first listener must still be removed by failRuntime.
+          displayListenerCleanup = () => {
+            for (const removeListener of displayChangeCleanups) removeListener();
+          };
           const visualViewport = window.visualViewport;
           if (visualViewport && typeof visualViewport.addEventListener === "function") {
             const handleVisualViewportResize = () => refit();
             visualViewport.addEventListener("resize", handleVisualViewportResize);
-            dprListenerCleanup = () => {
+            displayChangeCleanups.push(() => {
               visualViewport.removeEventListener("resize", handleVisualViewportResize);
-            };
-          } else if (typeof window.matchMedia === "function") {
+            });
+          }
+          if (typeof window.matchMedia === "function") {
             let detachCurrentQuery: () => void = () => undefined;
             const armDprQuery = () => {
               detachCurrentQuery();
@@ -703,8 +756,8 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
                 detachCurrentQuery = () => query.removeListener(handleDprChange);
               }
             };
+            displayChangeCleanups.push(() => detachCurrentQuery());
             armDprQuery();
-            dprListenerCleanup = () => detachCurrentQuery();
           }
 
           inputController = new AbortController();
@@ -914,7 +967,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
       return () => {
         cancelled = true;
         resizeObserver?.disconnect();
-        dprListenerCleanup?.();
+        displayListenerCleanup?.();
         inputController?.abort();
         cleanup();
       };
@@ -937,7 +990,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
           data-testid="hero-agent-mail-canvas"
           tabIndex={showCanvas ? 0 : -1}
           aria-disabled={!showCanvas}
-          aria-label="Agent Mail terminal. Click tabs, filters, and rows, or use Tab, number keys, arrows, j and k. Press Control Escape to return focus to the webpage."
+          aria-label="Agent Mail terminal. Click tabs, filters, and rows. On Dashboard, number keys 1 through 4 select quick filters and Tab changes screens; outside text-entry mode on other screens, the displayed number keys select screens. Press Control Escape to return focus to the webpage."
           className={`block h-full w-full ${fullscreen ? "touch-none" : "touch-pan-y"} select-none outline-none ring-inset focus-visible:ring-2 focus-visible:ring-cyan-300 ${showCanvas ? "pointer-events-auto" : "pointer-events-none"}`}
           style={{ imageRendering: "auto" }}
         />
@@ -975,7 +1028,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
         )}
 
         <p id="agent-mail-terminal-help" className="sr-only">
-          This is the real Agent Mail shell and DashboardScreen compiled to WebAssembly and rendered by FrankenTUI. It replays a privacy-checked public pack. Click tabs, filters, and rows, or use Tab, Shift Tab, arrows, j and k, slash, Enter, Escape, and the number keys shown in the terminal. Control Escape returns focus to the webpage.
+          This is the real Agent Mail shell and DashboardScreen compiled to WebAssembly and rendered by FrankenTUI. It replays a privacy-checked public pack. Click tabs, filters, and rows, or use Tab, Shift Tab, arrows, j and k, slash, Enter, and Escape. On Dashboard, number keys 1 through 4 select quick filters; outside text-entry mode after leaving Dashboard, the number keys shown in the terminal select screens. Control Escape returns focus to the webpage.
         </p>
         <pre id="agent-mail-terminal-screen-reader-status" className="sr-only" aria-live="polite" aria-atomic="true">
           {screenReaderText}

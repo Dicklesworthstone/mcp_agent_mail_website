@@ -600,7 +600,9 @@ old DOM simulation and not a prerecorded video.
   sparklines, and direct keyboard/pointer input; non-dashboard tabs expose populated,
   read-only views derived from the same validated public replay state
 - **Verified assets:** the pack, runner, renderer, and font are checked against byte
-  counts and SHA-256 digests in `public/agent-mail-dashboard/manifest.v1.json`
+  counts and SHA-256 digests in `public/agent-mail-dashboard/manifest.v1.json`; the
+  immediate static poster is pinned to one same-origin URL and deliberately loads
+  directly so fallback paint does not wait on the JavaScript digest pipeline
 - **Privacy-bounded data:** opening project/agent/message/reservation/contact/ack baseline
   counts come from a count-only SQLite export; every name, path, message, subject, thread,
   and replay event is synthetic
@@ -615,7 +617,7 @@ old DOM simulation and not a prerecorded video.
 - **Interactive by default:** the first click both focuses and operates the terminal;
   native tabs, dashboard filters, replay rows, scrolling, Tab/Shift+Tab, direct number
   jumps, and slash search work without an extra interaction gate
-- **Compact controls underneath:** Play/Pause, Reset, zoom out, 85% reset, zoom in,
+- **Compact controls underneath:** Play/Pause, Reset, zoom out, 100% reset, zoom in,
   and one-click browser fullscreen refit the native terminal without decorative device
   chrome; the native screen-tab row remains visible and directly clickable
 - **Fast, sharp startup:** a dense native-structure shell poster is preloaded for
@@ -623,9 +625,10 @@ old DOM simulation and not a prerecorded video.
   parallel, JavaScript executes directly from verified bytes, and digest-keyed immutable
   artifact requests prevent an older browser cache from crossing deployments
 - **Readable bounded raster cost:** the embedded terminal is capped to a comfortable
-  landing-page width and starts at 85% zoom, while controls expose a 55%-115% range;
-  rendering caps device density at 2x and enforces an adaptive 8.5-million-pixel backing
-  budget for large and fullscreen canvases
+  landing-page width and starts at native 100% zoom, while controls expose a 55%-115% range;
+  rendering caps device density at 2x, enforces an adaptive 8.5-million-pixel backing
+  budget, and automatically scales logical cell density beyond a 2560x1440 viewport so
+  large and fullscreen canvases do not create unbounded Rust layout work
 - **Responsive lifecycle:** resize events reflow the production TUI, pointer moves and
   wheel bursts are coalesced per animation frame while discrete clicks and keys are
   applied synchronously, replay time uses the native 100 ms cadence, empty patch batches
@@ -635,7 +638,7 @@ old DOM simulation and not a prerecorded video.
 
 The Rust boundary and offline exporter live in the engine repository at
 `crates/mcp-agent-mail-dashboard-wasm/`. Regenerated public packs must pass the Rust
-typed privacy validator and this site's artifact digest tests before publication.
+typed privacy validator and this site's runtime/data/font digest tests before publication.
 
 ### Lab Mode & Audio SFX
 

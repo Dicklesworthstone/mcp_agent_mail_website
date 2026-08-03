@@ -30,7 +30,10 @@ test.describe("Hero media module", () => {
     const hero = page.locator("#home-hero");
     const terminal = hero.getByTestId("hero-agent-mail-terminal");
     await expect(terminal).toHaveAttribute("data-active-screen", "dashboard", { timeout: 30_000 });
-    await expect.poll(async () => Number(await terminal.getAttribute("data-terminal-cols"))).toBeGreaterThanOrEqual(165);
+    await expect.poll(async () => Number(await terminal.getAttribute("data-terminal-cols"))).toBeGreaterThanOrEqual(140);
+    const mirror = hero.getByLabel("Current Agent Mail terminal contents");
+    await expect.poll(async () => (await mirror.textContent())?.split("\n")[0] ?? "")
+      .toMatch(/Dashboard.*Messages.*Threads.*Agents/i);
 
     const mascotBox = await hero.getByTestId("hero-robot-mascot").boundingBox();
     const demoBox = await hero.getByTestId("hero-tui-demo").boundingBox();
@@ -47,8 +50,8 @@ test.describe("Hero media module", () => {
     expect(demoBox!.height).toBeGreaterThan(terminalBox!.height);
     expect(demoBox!.y - (ctaBox!.y + ctaBox!.height)).toBeLessThanOrEqual(64);
     expect(mascotBox!.y + mascotBox!.height).toBeLessThanOrEqual(demoBox!.y);
-    await expect(hero.getByTestId("hero-tui-demo")).toHaveAttribute("data-zoom", "0.85");
-    diagnostics.breadcrumb("Narrow 2:1 shell opened at readable native density with <=64px CTA gap and zero mascot overlap");
+    await expect(hero.getByTestId("hero-tui-demo")).toHaveAttribute("data-zoom", "1.00");
+    diagnostics.breadcrumb("Narrow 2:1 shell opened at 100% native density with a usable top tab row, <=64px CTA gap, and zero mascot overlap");
   });
 
   test("zoom controls underneath refit the live native terminal", async ({ page, diagnostics }) => {
@@ -61,28 +64,28 @@ test.describe("Hero media module", () => {
     const terminal = hero.getByTestId("hero-agent-mail-terminal");
     await expect(terminal).toHaveAttribute("data-active-screen", "dashboard", { timeout: 30_000 });
     const defaultCols = Number(await terminal.getAttribute("data-terminal-cols"));
-    await expect(demo).toHaveAttribute("data-zoom", "0.85");
+    await expect(demo).toHaveAttribute("data-zoom", "1.00");
 
     await hero.getByRole("button", { name: "Zoom dashboard in" }).click();
-    await expect(demo).toHaveAttribute("data-zoom", "0.95");
+    await expect(demo).toHaveAttribute("data-zoom", "1.10");
     await expect.poll(async () => Number(await terminal.getAttribute("data-terminal-cols")))
       .toBeLessThan(defaultCols);
-    await expect(hero.getByRole("button", { name: "Reset dashboard zoom to 85 percent" }))
-      .toHaveText("95%");
+    await expect(hero.getByRole("button", { name: "Reset dashboard zoom to 100 percent" }))
+      .toHaveText("110%");
 
-    await hero.getByRole("button", { name: "Reset dashboard zoom to 85 percent" }).click();
-    await expect(demo).toHaveAttribute("data-zoom", "0.85");
+    await hero.getByRole("button", { name: "Reset dashboard zoom to 100 percent" }).click();
+    await expect(demo).toHaveAttribute("data-zoom", "1.00");
     await expect.poll(async () => Number(await terminal.getAttribute("data-terminal-cols")))
       .toBe(defaultCols);
 
     await hero.getByRole("button", { name: "Zoom dashboard out" }).click();
-    await expect(demo).toHaveAttribute("data-zoom", "0.75");
+    await expect(demo).toHaveAttribute("data-zoom", "0.90");
     await expect.poll(async () => Number(await terminal.getAttribute("data-terminal-cols")))
       .toBeGreaterThan(defaultCols);
     diagnostics.breadcrumb("Visible controls below the canvas changed zoom and refit the WASM grid in both directions");
   });
 
-  test("verified artifacts are fetched once and JavaScript executes from verified bytes", async ({
+  test("digest-gated runtime assets are fetched once and JavaScript executes from verified bytes", async ({
     page,
     diagnostics,
   }) => {
@@ -111,7 +114,7 @@ test.describe("Hero media module", () => {
       expect(artifactRequestUrls.get(pathname)?.searchParams.get("sha256"), pathname)
         .toMatch(/^[a-f0-9]{64}$/);
     }
-    diagnostics.breadcrumb("Each digest-keyed verified artifact crossed the network exactly once");
+    diagnostics.breadcrumb("Each digest-gated runtime/data/font artifact crossed the network exactly once");
   });
 
   test("verified replay exposes real aggregate counts and synthetic-detail boundary", async ({
@@ -159,8 +162,13 @@ test.describe("Hero media module", () => {
     const beforeInputFrame = Number(await demo.getAttribute("data-frame-index"));
     await canvas.focus();
     await page.keyboard.press("2");
-    await expect(demo).toHaveAttribute("data-active-screen", "messages");
+    await expect(demo).toHaveAttribute("data-active-screen", "dashboard");
+    await expect(demo).toHaveAttribute("data-dashboard-filter", "messages");
     await expect.poll(async () => Number(await demo.getAttribute("data-frame-index"))).toBeGreaterThan(beforeInputFrame);
+
+    await page.keyboard.press("Tab");
+    await expect(demo).toHaveAttribute("data-active-screen", "messages");
+    await expect(canvas).toBeFocused();
 
     await page.keyboard.press("Tab");
     await expect(demo).toHaveAttribute("data-active-screen", "threads");
@@ -193,11 +201,17 @@ test.describe("Hero media module", () => {
     await expect(terminal).toHaveAttribute("data-active-screen", "dashboard", { timeout: 30_000 });
     await canvas.focus();
     await page.keyboard.press("2");
+    await expect(terminal).toHaveAttribute("data-active-screen", "dashboard");
+    await expect(terminal).toHaveAttribute("data-dashboard-filter", "messages");
+
+    // Dashboard owns 1-4 as quick filters. Move to the shared shell before
+    // exercising global numeric screen shortcuts, then return to Dashboard
+    // with 1 only after every other shortcut has been verified.
+    await page.keyboard.press("Tab");
     await expect(terminal).toHaveAttribute("data-active-screen", "messages");
 
     const mirror = page.getByLabel("Current Agent Mail terminal contents");
     const shortcuts = [
-      ["1", "dashboard", /Events\s*\(/i],
       ["2", "messages", /Messages\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i],
       ["3", "threads", /Threads\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i],
       ["4", "agents", /Agents\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i],
@@ -213,6 +227,7 @@ test.describe("Hero media module", () => {
       ["Shift+Digit4", "attachments", /Attachments\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i],
       ["Shift+Digit5", "archive_browser", /Archive Browser\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i],
       ["Shift+Digit6", "atc", /ATC\s+PUBLIC REPLAY\s+·\s+READ-ONLY/i],
+      ["1", "dashboard", /Events\s*\(/i],
     ] as const;
     for (const [shortcut, screenName, renderedContent] of shortcuts) {
       await page.keyboard.press(shortcut);
@@ -227,7 +242,7 @@ test.describe("Hero media module", () => {
     diagnostics.breadcrumb("Every shared-shell shortcut changed the WASM screen and rendered screen-specific content");
   });
 
-  test("mouse clicks switch native tabs and select public replay rows", async ({ page, diagnostics }) => {
+  test("mouse clicks switch the 100% native top tabs and select public replay rows", async ({ page, diagnostics }) => {
     diagnostics.setRoute("/");
     await page.setViewportSize({ width: 1600, height: 1000 });
     await page.goto("/");
@@ -235,6 +250,7 @@ test.describe("Hero media module", () => {
     const terminal = page.getByTestId("hero-agent-mail-terminal");
     const canvas = page.getByTestId("hero-agent-mail-canvas");
     await expect(terminal).toHaveAttribute("data-active-screen", "dashboard", { timeout: 30_000 });
+    await expect(page.getByTestId("hero-tui-demo")).toHaveAttribute("data-zoom", "1.00");
     const box = await canvas.boundingBox();
     const cols = Number(await terminal.getAttribute("data-terminal-cols"));
     const rows = Number(await terminal.getAttribute("data-terminal-rows"));

@@ -121,12 +121,16 @@ test.describe("Mobile visualization regressions", () => {
     await gotoAndWaitForMain(page, "/");
 
     const hero = page.getByTestId("hero-tui-demo");
-    await expect(hero.getByTestId("hero-dashboard-runtime-status")).toContainText(/WASM frame/i, {
+    const terminal = hero.getByRole("region", {
+      name: "Interactive Agent Mail FrankenTUI dashboard",
+    });
+    await expect(hero.getByTestId("hero-dashboard-runtime-status")).toContainText(/dashboard screen ready/i, {
       timeout: 30_000,
     });
+    await expect(terminal).toHaveAttribute("data-active-screen", "dashboard");
+    await expect(hero.getByTestId("hero-agent-mail-canvas")).toBeVisible();
     await hero.scrollIntoViewIfNeeded();
     await expect(hero).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByText(/Production DashboardScreen · Rust → WASM/i)).toBeVisible({ timeout: 30_000 });
 
     const widths = await expectNoHorizontalOverflow(page);
     const heroBox = await hero.boundingBox();

@@ -24,27 +24,35 @@ function readJson(path: string): unknown {
 describe("Agent Mail browser dashboard artifacts", () => {
   it("accepts the checked-in manifest and public demo pack", () => {
     const manifest = validateDashboardManifest(readJson(manifestPath));
-    const pack = validateDashboardDemoPack(readJson(packPath), manifest.source_revision);
+    const pack = validateDashboardDemoPack(readJson(packPath), manifest.runner_source_revision);
 
     expect(manifest.schema).toBe("agent_mail.dashboard_artifacts.v1");
+    expect(manifest.runner_source_revision).toMatch(/^[a-f0-9]{40}$/);
+    expect(manifest.runner_ftui_source_revision).toMatch(/^[a-f0-9]{40}$/);
+    expect(manifest.renderer_source_revision).toMatch(/^[a-f0-9]{40}$/);
     expect(manifest.artifacts.poster.url).toBe(DASHBOARD_POSTER_URL);
     expect(pack.schema).toBe("agent_mail.demo_pack.v1");
     expect(pack.provenance.privacy_policy).toBe("agent-mail-dashboard-public-demo-v1");
     expect(pack.provenance.source_label).toMatch(/aggregate counts.*details synthetic/i);
   });
 
-  it("matches every byte size and SHA-256 digest in the manifest", () => {
+  it("matches every digest-gated runtime, data, and font artifact", () => {
     const manifest = validateDashboardManifest(readJson(manifestPath));
-    const byteArtifacts = Object.values(manifest.artifacts).filter(
-      (artifact): artifact is Required<typeof artifact> =>
-        typeof artifact.bytes === "number" && typeof artifact.sha256 === "string",
-    );
+    const byteArtifacts = [
+      manifest.artifacts.demo_pack,
+      manifest.artifacts.dashboard_runner_js,
+      manifest.artifacts.dashboard_runner_wasm,
+      manifest.artifacts.renderer_js,
+      manifest.artifacts.renderer_wasm,
+      manifest.artifacts.terminal_font,
+    ];
 
     for (const artifact of byteArtifacts) {
       const bytes = readFileSync(join(projectRoot, "public", artifact.url));
       expect(bytes.byteLength, artifact.url).toBe(artifact.bytes);
       expect(createHash("sha256").update(bytes).digest("hex"), artifact.url).toBe(artifact.sha256);
     }
+    expect(manifest.artifacts.poster).toEqual({ url: DASHBOARD_POSTER_URL });
   });
 
   it("rejects remote, traversing, and malformed artifact URLs", () => {
@@ -103,7 +111,39 @@ describe("Agent Mail browser dashboard artifacts", () => {
     const manifest = validateDashboardManifest(readJson(manifestPath));
     const pack = readJson(packPath) as { provenance: { source_revision: string } };
     expect(() => validateDashboardDemoPack(pack, "0".repeat(40))).toThrow(/does not match/i);
-    expect(() => validateDashboardDemoPack(pack, manifest.source_revision)).not.toThrow();
+    expect(() => validateDashboardDemoPack(pack, manifest.runner_source_revision)).not.toThrow();
+  });
+
+  it("matches Rust's outer duration and action-count limits", () => {
+    const pack = readJson(packPath) as Record<string, unknown>;
+    const maximumDuration = structuredClone(pack);
+    maximumDuration.duration_ms = 30 * 60 * 1_000;
+    expect(() => validateDashboardDemoPack(maximumDuration)).not.toThrow();
+
+    const excessiveDuration = structuredClone(maximumDuration);
+    excessiveDuration.duration_ms = 30 * 60 * 1_000 + 1;
+    expect(() => validateDashboardDemoPack(excessiveDuration)).toThrow(/duration/i);
+
+    const excessiveActions = structuredClone(pack);
+    excessiveActions.actions = Array.from({ length: 10_001 }, () => null);
+    expect(() => validateDashboardDemoPack(excessiveActions)).toThrow(/actions/i);
+  });
+
+  it("requires reproducible source revisions for all WASM build inputs", () => {
+    const manifest = readJson(manifestPath) as Record<string, unknown>;
+    for (const field of [
+      "runner_source_revision",
+      "runner_ftui_source_revision",
+      "renderer_source_revision",
+    ]) {
+      const missing = structuredClone(manifest);
+      delete missing[field];
+      expect(() => validateDashboardManifest(missing), field).toThrow(field);
+
+      const malformed = structuredClone(manifest);
+      malformed[field] = "tip";
+      expect(() => validateDashboardManifest(malformed), field).toThrow(field);
+    }
   });
 
   it("contains no home directories, database paths, or common credential markers", () => {
@@ -112,17 +152,18 @@ describe("Agent Mail browser dashboard artifacts", () => {
     expect(raw).not.toMatch(/BEGIN (?:RSA |OPENSSH )?PRIVATE KEY|api[_-]?key|bearer\s+[a-z0-9._-]+/i);
   });
 
-  it("contains no developer home paths in either published WASM binary", () => {
+  it("contains no developer filesystem paths in either published WASM binary", () => {
     const wasmArtifacts = [
       "public/agent-mail-dashboard/runner/agent_mail_dashboard_bg.wasm",
       "public/agent-mail-dashboard/renderer/FrankenTerm_bg.wasm",
     ];
     for (const relativePath of wasmArtifacts) {
       const raw = readFileSync(join(projectRoot, relativePath)).toString("latin1");
-      // Match a full home-root + username component. The runner intentionally
-      // contains validator literals such as `/home/`; those are policy data,
-      // not an embedded compiler filesystem path.
+      // Require a user/build-directory component after the root. The runner
+      // intentionally contains validator literals such as `/home/` and `/tmp`;
+      // those are policy data, not embedded compiler filesystem paths.
       expect(/(?:\/Users|\/home)\/[^/\0]{1,64}\//.test(raw), relativePath).toBe(false);
+      expect(/\/(?:private\/)?tmp\/[^/\0]{1,64}\//.test(raw), relativePath).toBe(false);
       expect(/[A-Za-z]:\\Users\\[^\\\0]{1,64}\\/i.test(raw), relativePath).toBe(false);
     }
   });
@@ -263,20 +304,41 @@ function installAnimationEnvironment(callbacks?: FrameRequestCallback[]) {
 }
 
 describe("AgentMailTerminal lifecycle", () => {
-  it("keeps 5K and 8K fullscreen backing stores inside the pixel budget", async () => {
-    const { dashboardRendererDpr } = await import("@/components/agent-mail-terminal");
+  it("keeps 5K and 8K fullscreen raster and grid work inside their budgets", async () => {
+    const {
+      dashboardEffectiveZoom,
+      dashboardRendererDpr,
+    } = await import("@/components/agent-mail-terminal");
     const maxBackingPixels = 8_500_000;
+    const userZoom = 1;
 
     for (const [width, height] of [[5_120, 2_880], [7_680, 4_320]]) {
       const dpr = dashboardRendererDpr(width, height, 2);
+      const effectiveZoom = dashboardEffectiveZoom(userZoom, width, height);
+      // Mirror FrankenTerm's device-pixel rounding instead of using idealized
+      // CSS division: fitToContainer rounds both the viewport and each scaled
+      // cell before taking the floor. The rounding margin is why the ceiling
+      // is slightly above the nominal 2560x1440 / (8x16) cell budget.
+      const estimatedCols = Math.floor(
+        Math.round(width * dpr) / Math.max(1, Math.round(8 * dpr * effectiveZoom)),
+      );
+      const estimatedRows = Math.floor(
+        Math.round(height * dpr) / Math.max(1, Math.round(16 * dpr * effectiveZoom)),
+      );
       expect(dpr).toBeGreaterThan(0);
       expect(dpr).toBeLessThan(1);
       expect(width * height * dpr * dpr).toBeLessThanOrEqual(maxBackingPixels + 0.001);
+      expect(estimatedCols * estimatedRows).toBeLessThanOrEqual(42_000);
+      expect(dashboardEffectiveZoom(1.1, width, height)).toBeGreaterThan(effectiveZoom);
     }
 
     expect(dashboardRendererDpr(1_280, 640, 3)).toBe(2);
     expect(dashboardRendererDpr(1_280, 640, 0.75)).toBe(0.75);
     expect(dashboardRendererDpr(Number.NaN, Number.POSITIVE_INFINITY, Number.NaN)).toBe(1);
+    expect(dashboardEffectiveZoom(userZoom, 1_280, 640)).toBe(userZoom);
+    expect(dashboardEffectiveZoom(userZoom, 2_560, 1_440)).toBe(userZoom);
+    expect(dashboardEffectiveZoom(Number.NaN, Number.POSITIVE_INFINITY, Number.NaN))
+      .toBe(userZoom);
   });
 
   it("keeps a newer in-flight artifact load when an older reset load rejects", async () => {
@@ -308,7 +370,7 @@ describe("AgentMailTerminal lifecycle", () => {
     }
   });
 
-  it("starts at readable zoom and refits when the zoom prop changes", async () => {
+  it("starts at native zoom and refits when the zoom prop changes", async () => {
     TestTerminal.instances = [];
     TestRunner.instances = [];
     const restoreEnvironment = installAnimationEnvironment();
@@ -321,25 +383,46 @@ describe("AgentMailTerminal lifecycle", () => {
         view = render(createElement(AgentMailTerminal, {
           paused: false,
           reducedMotion: false,
-          zoom: 0.85,
+          zoom: 1,
         }));
         await flushMicrotasks();
       });
       const [terminal] = TestTerminal.instances;
-      expect(terminal.setZoom).toHaveBeenCalledWith(0.85);
+      expect(terminal.init).toHaveBeenCalledWith(
+        expect.any(HTMLCanvasElement),
+        expect.objectContaining({ zoom: 1 }),
+      );
+      expect(terminal.setZoom).not.toHaveBeenCalled();
       const initialFitCalls = terminal.fitToContainer.mock.calls.length;
 
       await act(async () => {
         view.rerender(createElement(AgentMailTerminal, {
           paused: false,
           reducedMotion: false,
-          zoom: 0.95,
+          zoom: 1.1,
         }));
         await flushMicrotasks();
       });
 
-      expect(terminal.setZoom).toHaveBeenLastCalledWith(0.95);
+      expect(terminal.setZoom).toHaveBeenLastCalledWith(1.1);
       expect(terminal.fitToContainer.mock.calls.length).toBeGreaterThan(initialFitCalls);
+
+      const container = screen.getByTestId("hero-agent-mail-terminal");
+      Object.defineProperties(container, {
+        clientWidth: { configurable: true, value: 5_120 },
+        clientHeight: { configurable: true, value: 2_880 },
+      });
+      const [resizeObserver] = TestResizeObserver.instances;
+      await act(async () => {
+        resizeObserver.callback([], resizeObserver as unknown as ResizeObserver);
+        await flushMicrotasks();
+      });
+      expect(terminal.setZoom).toHaveBeenLastCalledWith(2.2);
+      expect(terminal.fitToContainer).toHaveBeenLastCalledWith(
+        5_120,
+        2_880,
+        expect.any(Number),
+      );
 
       const canvas = screen.getByTestId("hero-agent-mail-canvas");
       expect(canvas).toHaveClass("touch-pan-y");
@@ -348,11 +431,72 @@ describe("AgentMailTerminal lifecycle", () => {
           paused: false,
           reducedMotion: false,
           fullscreen: true,
-          zoom: 0.95,
+          zoom: 1.1,
         }));
         await flushMicrotasks();
       });
       expect(canvas).toHaveClass("touch-none");
+      view.unmount();
+    } finally {
+      load.mockRestore();
+      restoreEnvironment();
+    }
+  });
+
+  it("fits the latest viewport and zoom when initialization resolves", async () => {
+    let finishInitialization!: () => void;
+    class DelayedFitTerminal extends TestTerminal {
+      override init = vi.fn(() => new Promise<void>((resolve) => {
+        finishInitialization = resolve;
+      }));
+    }
+    TestTerminal.instances = [];
+    TestRunner.instances = [];
+    const restoreEnvironment = installAnimationEnvironment();
+    const load = vi.spyOn(dashboardRuntime, "loadDashboardArtifacts")
+      .mockResolvedValue(testArtifacts(DelayedFitTerminal));
+
+    try {
+      const { default: AgentMailTerminal } = await import("@/components/agent-mail-terminal");
+      let view!: ReturnType<typeof render>;
+      await act(async () => {
+        view = render(createElement(AgentMailTerminal, {
+          paused: false,
+          reducedMotion: false,
+          zoom: 0.75,
+        }));
+        await flushMicrotasks();
+      });
+      const [terminal] = TestTerminal.instances;
+      expect(terminal.init).toHaveBeenCalledWith(
+        expect.any(HTMLCanvasElement),
+        expect.objectContaining({ zoom: 0.75 }),
+      );
+
+      const container = screen.getByTestId("hero-agent-mail-terminal");
+      Object.defineProperties(container, {
+        clientWidth: { configurable: true, value: 5_120 },
+        clientHeight: { configurable: true, value: 2_880 },
+      });
+      await act(async () => {
+        view.rerender(createElement(AgentMailTerminal, {
+          paused: false,
+          reducedMotion: false,
+          zoom: 0.95,
+        }));
+        await flushMicrotasks();
+      });
+      await act(async () => {
+        finishInitialization();
+        await flushMicrotasks();
+      });
+
+      expect(terminal.setZoom.mock.calls).toEqual([[1.9]]);
+      expect(terminal.fitToContainer).toHaveBeenCalledWith(
+        5_120,
+        2_880,
+        expect.any(Number),
+      );
       view.unmount();
     } finally {
       load.mockRestore();
@@ -372,6 +516,29 @@ describe("AgentMailTerminal lifecycle", () => {
     const removeEventListener = vi.fn((type: string, listener: EventListenerOrEventListenerObject) => {
       if (type === "resize" && resizeListener === listener) resizeListener = null;
     });
+    let densityListener: EventListener | null = null;
+    const addDensityListener = vi.fn((type: string, listener: EventListenerOrEventListenerObject) => {
+      if (type === "change" && typeof listener === "function") densityListener = listener;
+    });
+    const removeDensityListener = vi.fn((type: string, listener: EventListenerOrEventListenerObject) => {
+      if (type === "change" && densityListener === listener) densityListener = null;
+    });
+    const originalMatchMedia = Object.getOwnPropertyDescriptor(window, "matchMedia");
+    const matchMedia = vi.fn((query: string) => ({
+      matches: true,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: addDensityListener,
+      removeEventListener: removeDensityListener,
+      dispatchEvent: vi.fn(),
+    }) as unknown as MediaQueryList);
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      writable: true,
+      value: matchMedia,
+    });
     Object.defineProperty(window, "visualViewport", {
       configurable: true,
       value: { addEventListener, removeEventListener },
@@ -385,24 +552,39 @@ describe("AgentMailTerminal lifecycle", () => {
         view = render(createElement(AgentMailTerminal, {
           paused: false,
           reducedMotion: false,
-          zoom: 0.85,
+          zoom: 1,
         }));
         await flushMicrotasks();
       });
       const [terminal] = TestTerminal.instances;
       const initialFitCalls = terminal.fitToContainer.mock.calls.length;
       expect(resizeListener).not.toBeNull();
+      expect(densityListener).not.toBeNull();
 
       await act(async () => {
         resizeListener?.(new Event("resize"));
         await flushMicrotasks();
       });
       expect(terminal.fitToContainer.mock.calls.length).toBeGreaterThan(initialFitCalls);
+      const viewportFitCalls = terminal.fitToContainer.mock.calls.length;
+
+      await act(async () => {
+        densityListener?.(new Event("change"));
+        await flushMicrotasks();
+      });
+      expect(terminal.fitToContainer.mock.calls.length).toBeGreaterThan(viewportFitCalls);
 
       view.unmount();
       expect(removeEventListener).toHaveBeenCalledWith("resize", expect.any(Function));
+      expect(removeDensityListener).toHaveBeenCalledWith("change", expect.any(Function));
       expect(resizeListener).toBeNull();
+      expect(densityListener).toBeNull();
     } finally {
+      if (originalMatchMedia) {
+        Object.defineProperty(window, "matchMedia", originalMatchMedia);
+      } else {
+        Reflect.deleteProperty(window, "matchMedia");
+      }
       load.mockRestore();
       if (originalVisualViewport) {
         Object.defineProperty(window, "visualViewport", originalVisualViewport);
@@ -1008,11 +1190,9 @@ describe("AgentMailTerminal lifecycle", () => {
 
   it("fails closed when a post-start zoom update throws", async () => {
     class ZoomFailTerminal extends TestTerminal {
-      override setZoom = vi.fn()
-        .mockImplementationOnce(() => undefined)
-        .mockImplementationOnce(() => {
-          throw new Error("zoom update failed");
-        });
+      override setZoom = vi.fn(() => {
+        throw new Error("zoom update failed");
+      });
     }
     TestTerminal.instances = [];
     TestRunner.instances = [];

@@ -1,4 +1,32 @@
+import type { Page } from "@playwright/test";
 import { test, expect, ROUTES } from "./fixtures";
+
+const COLD_DASHBOARD_READY_BUDGET_MS = 3_000;
+const WARM_DASHBOARD_READY_BUDGET_MS = 1_500;
+
+async function measureInteractiveDashboardReadiness(
+  page: Page,
+  navigate: () => Promise<unknown>,
+): Promise<number> {
+  await navigate();
+
+  const terminal = page.getByTestId("hero-agent-mail-terminal");
+  const canvas = page.getByTestId("hero-agent-mail-canvas");
+  await expect(canvas).toBeVisible();
+  await expect(terminal).toHaveAttribute("aria-busy", "false");
+  await expect(terminal).toHaveAttribute("data-active-screen", "dashboard");
+  await expect(page.getByTestId("hero-dashboard-runtime-status")).toContainText(
+    /dashboard screen ready/i,
+  );
+
+  // Readiness includes a completed input/render/status round trip, not merely
+  // downloaded bytes or a visible fallback poster.
+  await canvas.focus();
+  await page.keyboard.press("Tab");
+  await expect(terminal).toHaveAttribute("data-active-screen", "messages");
+
+  return page.evaluate(() => performance.now());
+}
 
 test.describe("Performance budget checks", () => {
   for (const route of ROUTES) {
@@ -61,5 +89,34 @@ test.describe("Performance budget checks", () => {
     await expect(heroHeading).toBeVisible();
 
     diagnostics.breadcrumb("LCP candidate element visible");
+  });
+
+  test("home dashboard reaches full interaction readiness within cold and warm budgets", async ({
+    page,
+    diagnostics,
+  }) => {
+    diagnostics.setRoute("/");
+
+    const coldReadyMs = await measureInteractiveDashboardReadiness(
+      page,
+      () => page.goto("/", { waitUntil: "domcontentloaded" }),
+    );
+    expect(
+      coldReadyMs,
+      `Cold dashboard interaction readiness took ${coldReadyMs.toFixed(0)}ms`,
+    ).toBeLessThan(COLD_DASHBOARD_READY_BUDGET_MS);
+
+    const warmReadyMs = await measureInteractiveDashboardReadiness(
+      page,
+      () => page.reload({ waitUntil: "domcontentloaded" }),
+    );
+    expect(
+      warmReadyMs,
+      `Warm dashboard interaction readiness took ${warmReadyMs.toFixed(0)}ms`,
+    ).toBeLessThan(WARM_DASHBOARD_READY_BUDGET_MS);
+
+    diagnostics.breadcrumb(
+      `Dashboard fully interactive in ${coldReadyMs.toFixed(0)}ms cold / ${warmReadyMs.toFixed(0)}ms warm`,
+    );
   });
 });

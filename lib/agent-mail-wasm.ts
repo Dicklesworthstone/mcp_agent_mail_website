@@ -1,9 +1,11 @@
 /**
  * Verified loader for the Agent Mail dashboard's FrankenTUI browser build.
  *
- * The public demo is deliberately self-contained: every URL must stay under
- * `/agent-mail-dashboard/`, every byte-bearing artifact is checked against the
- * versioned manifest, and the data pack is validated before it reaches WASM.
+ * The public demo is deliberately self-contained: runtime/data/font URLs stay
+ * under `/agent-mail-dashboard/` and their bytes are checked against the
+ * versioned manifest before use. The immediate static poster is instead pinned
+ * to one same-origin URL so fallback paint does not wait on JavaScript hashing.
+ * The data pack is validated before it reaches WASM.
  */
 
 export interface DashboardArtifact {
@@ -15,7 +17,9 @@ export interface DashboardArtifact {
 export interface DashboardArtifactManifest {
   schema: "agent_mail.dashboard_artifacts.v1";
   built_at: string;
-  source_revision: string;
+  runner_source_revision: string;
+  runner_ftui_source_revision: string;
+  renderer_source_revision: string;
   artifacts: {
     demo_pack: Required<DashboardArtifact>;
     dashboard_runner_js: Required<DashboardArtifact>;
@@ -23,7 +27,7 @@ export interface DashboardArtifactManifest {
     renderer_js: Required<DashboardArtifact>;
     renderer_wasm: Required<DashboardArtifact>;
     terminal_font: Required<DashboardArtifact>;
-    poster: DashboardArtifact;
+    poster: { url: string };
   };
 }
 
@@ -139,6 +143,8 @@ export interface LoadedDashboardArtifacts {
 const MANIFEST_URL = "/agent-mail-dashboard/manifest.v1.json";
 const ARTIFACT_ROOT = "/agent-mail-dashboard/";
 const EXPECTED_PRIVACY_POLICY = "agent-mail-dashboard-public-demo-v1";
+const MAX_DEMO_ACTIONS = 10_000;
+const MAX_DEMO_DURATION_MS = 30 * 60 * 1_000;
 export const DASHBOARD_POSTER_URL = "/images/agent-mail-dashboard-poster-placeholder.svg";
 
 let cachedLoad: Promise<LoadedDashboardArtifacts> | null = null;
@@ -213,8 +219,14 @@ export function validateDashboardManifest(value: unknown): DashboardArtifactMani
   if (typeof value.built_at !== "string" || !Number.isFinite(Date.parse(value.built_at))) {
     throw new Error("Dashboard manifest built_at is invalid");
   }
-  if (typeof value.source_revision !== "string" || !/^[a-f0-9]{40}$/.test(value.source_revision)) {
-    throw new Error("Dashboard manifest source_revision is invalid");
+  for (const field of [
+    "runner_source_revision",
+    "runner_ftui_source_revision",
+    "renderer_source_revision",
+  ] as const) {
+    if (typeof value[field] !== "string" || !/^[a-f0-9]{40}$/.test(value[field])) {
+      throw new Error(`Dashboard manifest ${field} is invalid`);
+    }
   }
   if (!isRecord(value.artifacts)) throw new Error("Dashboard manifest artifacts are missing");
   const posterValue = value.artifacts.poster;
@@ -223,7 +235,9 @@ export function validateDashboardManifest(value: unknown): DashboardArtifactMani
   return {
     schema: value.schema,
     built_at: value.built_at,
-    source_revision: value.source_revision,
+    runner_source_revision: value.runner_source_revision as string,
+    runner_ftui_source_revision: value.runner_ftui_source_revision as string,
+    renderer_source_revision: value.renderer_source_revision as string,
     artifacts: {
       demo_pack: requireArtifact(value.artifacts.demo_pack, "demo_pack"),
       dashboard_runner_js: requireArtifact(value.artifacts.dashboard_runner_js, "dashboard_runner_js"),
@@ -240,6 +254,12 @@ export function validateDashboardDemoPack(
   value: unknown,
   expectedSourceRevision?: string,
 ): DashboardDemoPack {
+  // This browser preflight intentionally mirrors only the cheap outer envelope,
+  // provenance boundary, and global duration/action caps. The digest-pinned pack
+  // then goes through Rust's authoritative typed validator, which owns nested
+  // node limits, per-timestamp action limits, field safety, ordering, and its
+  // canonical content-digest check. Duplicating that full schema here would make
+  // the publication path depend on two independently evolving validators.
   if (!isRecord(value) || value.schema !== "agent_mail.demo_pack.v1") {
     throw new Error("Unsupported Agent Mail dashboard demo pack");
   }
@@ -263,10 +283,10 @@ export function validateDashboardDemoPack(
     throw new Error("Dashboard demo pack source revision does not match its artifact manifest");
   }
   if (!Number.isSafeInteger(value.duration_ms) || (value.duration_ms as number) <= 0 ||
-      (value.duration_ms as number) > 300_000) {
+      (value.duration_ms as number) > MAX_DEMO_DURATION_MS) {
     throw new Error("Dashboard demo pack duration is invalid");
   }
-  if (!Array.isArray(value.actions) || value.actions.length > 10_000) {
+  if (!Array.isArray(value.actions) || value.actions.length > MAX_DEMO_ACTIONS) {
     throw new Error("Dashboard demo pack actions are invalid");
   }
   if (!isRecord(value.bootstrap) || !isRecord(value.bootstrap.db_stats)) {
@@ -354,7 +374,7 @@ async function loadDashboardArtifactsUncached(loadToken: symbol): Promise<Loaded
     const json = new TextDecoder("utf-8", { fatal: true }).decode(packBytes);
     // JavaScript validates the public boundary, then drops the parsed object;
     // Rust remains the authoritative typed consumer of the original bytes.
-    validateDashboardDemoPack(JSON.parse(json), manifest.source_revision);
+    validateDashboardDemoPack(JSON.parse(json), manifest.runner_source_revision);
     return json;
   });
   const runnerModulePromise = fetchVerifiedArtifact(artifacts.dashboard_runner_js)

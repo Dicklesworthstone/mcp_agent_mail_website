@@ -19,7 +19,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 
-const DEFAULT_DASHBOARD_ZOOM = 0.85;
+const DEFAULT_DASHBOARD_ZOOM = 1;
 const MIN_DASHBOARD_ZOOM = 0.55;
 const MAX_DASHBOARD_ZOOM = 1.15;
 const DASHBOARD_ZOOM_STEP = 0.1;
