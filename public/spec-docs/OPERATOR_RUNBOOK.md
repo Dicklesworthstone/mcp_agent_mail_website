@@ -82,8 +82,8 @@ remediation hints and exits. Probes check:
 |-----|--------|-------|
 | `1`-`9` | Jump to screens 1-9 | Suppressed during text input |
 | `0` | Jump to screen 10 | Projects screen |
-| `! @ # $ %` | Jump to screens 11-15 | Contacts, Explorer, Analytics, Attachments, Archive Browser |
-| `Tab` / `Shift+Tab` | Next/previous screen | Cycles through all 15 screens |
+| `! @ # $ % ^` | Jump to screens 11-16 | Contacts, Explorer, Analytics, Attachments, Archive Browser, ATC |
+| `Tab` / `Shift+Tab` | Next/previous screen | Cycles through all 16 screens |
 | `Ctrl+P` | Command palette | Always available outside text-entry conflicts |
 | `:` | Command palette | Suppressed during text input |
 | `/` | Global search deep link | Opens Search with query focus |
@@ -114,7 +114,7 @@ Use the palette (`Ctrl+P` or `:`) for fast, low-friction control:
 
 1. Open palette and type fuzzy text (screen/tool/agent/project/thread/reservation).
 2. Use arrow keys + `Enter` to execute actions.
-3. Prefer palette when direct jump keys are ambiguous (especially screens 11-15).
+3. Prefer palette when direct jump keys are ambiguous (especially screens 11-16).
 4. Use palette for transport/layout/macro actions to keep workflows deterministic.
 
 ### 3.2 Toast Focus Mode
@@ -137,6 +137,7 @@ Enter toast focus mode with `Ctrl+Y` when multiple notifications are active.
 - Search: `f` focuses facet rail; use `j/k` + `Enter` to cycle scope/sort/field facets.
 - Contacts: `n` toggles Table/Graph; `g` toggles Mermaid panel.
 - Reservations: `n` opens create-reservation form.
+- ATC: `d` opens decision detail; `r` opens the retention report.
 
 ## 4. Screens Reference
 
@@ -157,6 +158,7 @@ Enter toast focus mode with `Ctrl+Y` when multiple notifications are active.
 | 13 | Analytics   | Anomaly feed with confidence and remediation links |
 | 14 | Attachments | Attachment inventory, preview, and provenance |
 | 15 | Archive Browser | Two-pane Git archive tree + file content preview |
+| 16 | ATC | Agent-traffic-control snapshot, decisions, and retention report |
 
 ### 4.1 Representative Operator Workflows
 

@@ -13,7 +13,7 @@
 
 > "It's like Gmail for your coding agents!"
 
-A mail-like coordination layer for AI coding agents, exposed as an MCP server with 34 tools and 20+ resources, Git-backed archive, SQLite indexing, and an interactive 15-screen TUI operations console. The Rust rewrite of the [original Python project](https://github.com/Dicklesworthstone/mcp_agent_mail) (1,700+ stars).
+A mail-like coordination layer for AI coding agents, exposed as an MCP server with 38 tools and 25 resources, Git-backed archive, SQLite indexing, and an interactive 16-screen TUI operations console. The Rust rewrite of the [original Python project](https://github.com/Dicklesworthstone/mcp_agent_mail) (1,700+ stars).
 
 **Supported agents:** [Claude Code](https://claude.ai/code), [Codex CLI](https://github.com/openai/codex), [Gemini CLI](https://github.com/google-gemini/gemini-cli), [GitHub Copilot CLI](https://docs.github.com/en/copilot), and any MCP-compatible client.
 
@@ -42,7 +42,7 @@ curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/mcp_agent_mail_r
 - [Quick Start](#quick-start)
 - [Agent Configuration](#agent-configuration)
 - [Server Modes](#server-modes)
-- [The 34 MCP Tools](#the-34-mcp-tools)
+- [The 38 MCP Tools](#the-38-mcp-tools)
 - [TUI Operations Console](#tui-operations-console)
 - [Robot Mode (`am robot`)](#robot-mode-am-robot)
 - [File Reservations](#file-reservations-for-multi-agent-editing)
@@ -77,8 +77,9 @@ curl -fsSL "https://raw.githubusercontent.com/Dicklesworthstone/mcp_agent_mail_r
 | **Advisory File Reservations** | Agents declare exclusive or shared leases on file globs before editing, preventing conflicts with a pre-commit guard |
 | **Asynchronous Messaging** | Threaded inbox/outbox with subjects, CC/BCC, acknowledgments, and importance levels |
 | **Token-Efficient** | Messages stored in a per-project archive, not in agent context windows |
-| **34 MCP Tools** | Infrastructure, identity, messaging, contacts, reservations, search, macros, product bus, and build slots |
-| **11-Screen TUI** | Real-time dashboard, message browser, thread view, agent roster, search, reservations, metrics, health, timeline, projects, and contacts |
+| **38 MCP Tools** | Infrastructure, identity, messaging, contacts, reservations, search, macros, product bus, and build slots |
+| **25 MCP Resources** | Read-only inbox, thread, reservation, tooling, identity, and attention views for cheap lookups |
+| **16-Screen TUI** | Real-time operational views spanning communication, search, reservations, metrics, health, analytics, archives, and ATC |
 | **Robot Mode** | 16 agent-optimized CLI subcommands with `toon`/`json`/`md` output for non-interactive workflows |
 | **Git-Backed Archive** | Every message, reservation, and agent profile stored as files in per-project Git repos |
 | **Hybrid Search** | Search V3 via frankensearch with lexical, semantic, and hybrid routing |
@@ -167,7 +168,7 @@ Agent Mail was the first open-source agent coordination system that works across
 
 **No "broadcast to all" mode.** Agents are lazy and will default to broadcasting everything to everyone if you let them. That's like your email system at work defaulting to reply-all every time; it spams every agent with mostly irrelevant information and burns precious context.
 
-**Obsessively refined API ergonomics.** Bad MCP documentation and poor agent ergonomics are the silent killers. It takes a huge amount of careful iteration, observation, and refinement to get the balance so tools just work reliably without wasting tokens. Agent Mail's 34 tool definitions have been through hundreds of rounds of real-world tuning.
+**Obsessively refined API ergonomics.** Bad MCP documentation and poor agent ergonomics are the silent killers. It takes a huge amount of careful iteration, observation, and refinement to get the balance so tools just work reliably without wasting tokens. Agent Mail's 38 tool definitions have been through hundreds of rounds of real-world tuning.
 
 **No git worktrees.** Worktrees demolish development velocity and create debt you need to pay later when the agents diverge. Working in one shared space surfaces conflicts immediately so you can deal with them, which is easy when agents can communicate. Instead of isolating agents, Agent Mail coordinates them.
 
@@ -182,7 +183,7 @@ Agent Mail was the first open-source agent coordination system that works across
 - **Prevents conflicts:** Explicit file reservations (leases) for files/globs prevent agents from overwriting each other
 - **Eliminates human liaisons:** Agents send messages directly to each other with threaded conversations, acknowledgments, and priority levels
 - **Keeps communication off the token budget:** Messages stored in per-project Git archive, not consuming agent context windows
-- **Offers quick reads:** `resource://inbox/{Agent}`, `resource://thread/{id}`, and 20+ other MCP resources
+- **Offers quick reads:** `resource://inbox/{Agent}`, `resource://thread/{id}`, and 23 other MCP resources
 - **Provides full audit trails:** Every instruction, lease, message, and attachment is in Git for human review
 - **Scales across repos:** Frontend and backend agents in different repos coordinate through the product bus and contact system
 
@@ -476,33 +477,35 @@ Running CLI-only commands via the MCP binary produces a deterministic denial on 
 
 ---
 
-## The 34 MCP Tools
+## The 38 MCP Tools
 
 ### 9 Clusters
 
 | Cluster | Count | Tools |
 |---------|-------|-------|
-| Infrastructure | 4 | `health_check`, `ensure_project`, `ensure_product`, `products_link` |
-| Identity | 3 | `register_agent`, `create_agent_identity`, `whois` |
+| Infrastructure | 4 | `health_check`, `ensure_project`, `install_precommit_guard`, `uninstall_precommit_guard` |
+| Identity | 6 | `register_agent`, `create_agent_identity`, `whois`, `resolve_pane_identity`, `cleanup_pane_identities`, `list_agents` |
 | Messaging | 5 | `send_message`, `reply_message`, `fetch_inbox`, `acknowledge_message`, `mark_message_read` |
 | Contacts | 4 | `request_contact`, `respond_contact`, `list_contacts`, `set_contact_policy` |
-| File Reservations | 4 | `file_reservation_paths`, `renew_file_reservations`, `release_file_reservations`, `force_release_file_reservation` |
+| File Reservations | 5 | `check_file_reservation_conflicts`, `file_reservation_paths`, `renew_file_reservations`, `release_file_reservations`, `force_release_file_reservation` |
 | Search | 2 | `search_messages`, `summarize_thread` |
 | Macros | 4 | `macro_start_session`, `macro_prepare_thread`, `macro_contact_handshake`, `macro_file_reservation_cycle` |
 | Product Bus | 5 | `ensure_product`, `products_link`, `search_messages_product`, `fetch_inbox_product`, `summarize_thread_product` |
 | Build Slots | 3 | `acquire_build_slot`, `renew_build_slot`, `release_build_slot` |
 
-### 20+ MCP Resources
+### 25 MCP Resources
 
 Read-only resources for fast lookups without tool calls:
 
 ```
 resource://inbox/{Agent}?project=<abs-path>&limit=20
 resource://thread/{id}?project=<abs-path>&include_bodies=true
-resource://agents?project=<abs-path>
-resource://reservations?project=<abs-path>
-resource://metrics
-resource://health
+resource://mailbox/{Agent}?project=<abs-path>
+resource://views/ack-overdue/{Agent}?project=<abs-path>
+resource://agents/<project-slug>
+resource://file_reservations/<project-slug>?active_only=true
+resource://tooling/metrics
+resource://config/environment
 ```
 
 ### Macros vs. Granular Tools
@@ -514,7 +517,7 @@ resource://health
 
 ## TUI Operations Console
 
-The interactive TUI has 15 screens. Jump directly with `1`-`9`, `0` (screen 10), and shifted digits `!`, `@`, `#`, `$`, `%` (screens 11-15). Use `Tab`/`Shift+Tab` to cycle in order.
+The interactive TUI has 16 screens. Jump directly with `1`-`9`, `0` (screen 10), and shifted digits `!`, `@`, `#`, `$`, `%`, `^` (screens 11-16). Use `Tab`/`Shift+Tab` to cycle in order.
 
 | # | Screen | Shows |
 |---|--------|-------|
@@ -533,6 +536,7 @@ The interactive TUI has 15 screens. Jump directly with `1`-`9`, `0` (screen 10),
 | 13 | Analytics | Anomaly insight feed with confidence and deep links |
 | 14 | Attachments | Attachment inventory with preview and provenance |
 | 15 | Archive Browser | Two-pane Git archive browser with tree + file preview |
+| 16 | ATC | Agent-traffic-control snapshot with decision drill-in and retention reporting |
 
 **Global keys:** `?` help, `Ctrl+P`/`:` command palette, `/` global search focus, `.` contextual action menu, `Ctrl+N` compose overlay, `Ctrl+Y` toast-focus mode, `Ctrl+T`/`Shift+T` cycle theme, `m` toggle MCP/API transport, `q` quit.
 
@@ -805,7 +809,7 @@ MCP Client (agent) ──── stdio/HTTP ────► mcp-agent-mail-server
                                               │
                                     ┌─────────┼─────────┐
                                     ▼         ▼         ▼
-                               34 Tools   20+ Resources  TUI
+                               38 Tools   25 Resources   TUI
                                     │         │
                               mcp-agent-mail-tools
                                     │
@@ -830,12 +834,13 @@ mcp_agent_mail_rust/
 │   ├── mcp-agent-mail-search-core/         # Pluggable search traits
 │   ├── mcp-agent-mail-guard/               # Pre-commit guard, reservation enforcement
 │   ├── mcp-agent-mail-share/               # Snapshot, scrub, bundle, crypto, export
-│   ├── mcp-agent-mail-tools/               # 34 MCP tool implementations (9 clusters)
-│   ├── mcp-agent-mail-server/              # HTTP/MCP runtime, dispatch, TUI (15 screens)
+│   ├── mcp-agent-mail-tools/               # 38 MCP tool implementations (9 clusters)
+│   ├── mcp-agent-mail-server/              # HTTP/MCP runtime, dispatch, TUI (16 screens)
 │   ├── mcp-agent-mail/                     # Server binary (mcp-agent-mail)
 │   ├── mcp-agent-mail-cli/                 # CLI binary (am) with robot mode
 │   ├── mcp-agent-mail-conformance/         # Python parity tests
-│   └── mcp-agent-mail-wasm/                # Browser/WASM TUI frontend
+│   ├── mcp-agent-mail-test-helpers/         # Shared integration-test fixtures
+│   └── mcp-agent-mail-dashboard-wasm/       # Standalone browser workspace (excluded from root)
 ├── tests/e2e/                              # End-to-end test scripts
 ├── scripts/                                # CLI integration tests, utilities
 ├── docs/                                   # ADRs, specs, runbooks, migration guides
@@ -887,7 +892,7 @@ mcp_agent_mail_rust/
 | Audit trail | Full Git history of all communication | File timestamps | Depends | Chat logs (if saved) |
 | Cross-repo coordination | Product bus, contact system | Manual | Build yourself | Manual |
 | Search | Search V3 (lexical + semantic + hybrid) | `grep` | Build yourself | Limited |
-| Operational visibility | 15-screen TUI, robot CLI, metrics | None | None | None |
+| Operational visibility | 16-screen TUI, robot CLI, metrics | None | None | None |
 | Token efficiency | Messages stored externally, not in context | Files in context | Varies | All in context |
 
 ---
@@ -1024,7 +1029,7 @@ The repair command applies safe fixes (stale locks, expired reservations) automa
 ## FAQ
 
 **Q: How is this different from the Python version?**
-A: This is a ground-up Rust rewrite with the same conceptual model but significant improvements: a 15-screen interactive TUI, robot mode CLI, hybrid search, build slots, the product bus for cross-project coordination, and substantially better performance. The conformance test suite ensures output format parity with the Python reference.
+A: This is a ground-up Rust rewrite with the same conceptual model but significant improvements: a 16-screen interactive TUI, robot mode CLI, hybrid search, build slots, the product bus for cross-project coordination, and substantially better performance. The conformance test suite ensures output format parity with the Python reference.
 
 **Q: Do I need to run a separate server for each project?**
 A: No. One server handles multiple projects. Each project is identified by its absolute filesystem path as the `project_key`.

@@ -32,20 +32,20 @@ bun dev
 
 ## TL;DR
 
-**The Problem:** Multi-agent AI coding sessions (Claude Code, Codex CLI, Gemini CLI) need coordination, but most project sites either explain the internals poorly or treat documentation as an afterthought. Interactive systems with 34 MCP tools, file reservations, threaded messaging, and cross-project coordination need something better than a flat docs page.
+**The Problem:** Multi-agent AI coding sessions (Claude Code, Codex CLI, Gemini CLI) need coordination, but most project sites either explain the internals poorly or treat documentation as an afterthought. Interactive systems with 38 MCP tools, file reservations, threaded messaging, and cross-project coordination need something better than a flat docs page.
 
-**The Solution:** This site keeps product narrative, technical architecture, and interactive demonstrations in one place. 50+ interactive visualizations let users explore identity systems, message lifecycles, file reservations, Search V3, stress gauntlet scenarios, and rollout mechanics, all rendered client-side with zero backend dependencies.
+**The Solution:** This site keeps product narrative, technical architecture, and interactive demonstrations in one place. A broad gallery of interactive visualizations lets users explore identity systems, message lifecycles, file reservations, Search V3, stress gauntlet scenarios, and rollout mechanics, all rendered client-side with zero backend dependencies.
 
 ### Why This Setup Works
 
 | Capability | Practical Benefit |
 |---|---|
 | **Centralized content model** | All static content maintained in one 3200-line `lib/content.ts` |
-| **50+ interactive visualizations** | Complex coordination behavior shown through animated components |
+| **Interactive visualization gallery** | Complex coordination behavior shown through animated components |
 | **Spec explorer** | Full technical specification browsable with search and category filtering |
 | **Performance-aware frontend** | Heavy components lazy-loaded via `LazyViz` with viewport detection |
 | **Strict TypeScript + linting** | Safer refactors and clearer maintenance boundaries |
-| **109 unit + 7 E2E tests** | Vitest and Playwright cover content, UI primitives, and critical user flows |
+| **Vitest + Playwright suites** | Unit and browser tests cover content, UI primitives, and critical user flows |
 | **JSON-LD structured data** | Five schema types (SoftwareApplication, VideoObject, WebSite, FAQPage, HowTo) |
 | **Bun-only workflow** | One package manager and one lockfile path |
 
@@ -60,7 +60,7 @@ bun dev
 
 # 3) Visit key pages
 #    http://localhost:3000/                  Home (hero, features, comparisons, code examples)
-#    http://localhost:3000/showcase          50+ interactive viz gallery
+#    http://localhost:3000/showcase          Interactive visualization gallery
 #    http://localhost:3000/architecture      Engine internals
 #    http://localhost:3000/spec-explorer     Specification browser
 #    http://localhost:3000/getting-started   Onboarding guide
@@ -72,7 +72,7 @@ bun lint
 
 # 5) Run tests
 bun run test                # Unit tests (Vitest)
-bun run test:e2e            # 7 E2E specs (Playwright)
+bun run test:e2e            # Browser tests (Playwright)
 
 # 6) Build production bundle
 bun run build
@@ -100,10 +100,10 @@ bun run build
 | Dimension | This Project | Generic Static Docs Site | Typical Marketing Landing Page |
 |---|---|---|---|
 | Technical depth | High (formal models, spec explorer) | Medium/Low | Low |
-| Interactivity | 50+ animated visualizations | Low | Medium |
+| Interactivity | Interactive visualization gallery | Low | Medium |
 | Coordination demos | Live animated walkthroughs | None | None |
 | Content editing model | Single TS source file | Split across many files | Often CMS-based |
-| Testing coverage | 109 unit + 7 E2E specs | Rare | Rare |
+| Testing coverage | Vitest unit + Playwright browser suites | Rare | Rare |
 | SEO structure | Five JSON-LD schema types | Basic meta tags | Basic meta tags |
 | Best use case | Product + technical docs for complex systems | Reference docs | Top-of-funnel marketing |
 
@@ -134,12 +134,12 @@ A 16-screen TUI dashboard plus a web UI give humans real-time visibility into wh
 
 | Metric | Value | Context |
 |---|---|---|
-| MCP Tools | 34 | Coordination primitives across 9 clusters |
-| MCP Resources | 20+ | Agent-discoverable read-only surfaces |
+| MCP Tools | 38 | Coordination primitives across 9 clusters |
+| MCP Resources | 25 | Agent-discoverable read-only surfaces |
 | Stress Gauntlet | 10/10 | All representative high-load scenarios passed |
 | Sustained Throughput | ~49 RPS | Mixed workload stress profile baseline |
 | Concurrent Agents | 40-50 | Proven in production with zero coordination failures |
-| Rust Crates | 12 | Modular workspace (core, db, storage, search, guard, tools, server, CLI, WASM) |
+| Rust Crates | 12 | Active workspace members, plus a standalone dashboard WASM workspace |
 
 ### Agent Mail vs. Alternatives
 
@@ -154,7 +154,7 @@ The full comparison across 12 coordination dimensions:
 | Cross-Project Coordination | Product bus | None | None | None |
 | Search | Hybrid lexical + semantic | Git log | Text search | None |
 | Operator Visibility | 16-screen TUI + Web UI | Git log | File browser | None |
-| MCP Integration | 34 tools + 20 resources | None | None | None |
+| MCP Integration | 38 tools + 25 resources | None | None | None |
 | Agent Discovery | Auto-detect + register | Manual | Manual | Manual |
 | Acknowledgments | Built-in ack protocol | None | None | None |
 | Build Concurrency | Build slot management | None | None | Race conditions |
@@ -246,44 +246,44 @@ MCP config for Claude Code (`.mcp.json`):
 | Route | Purpose | Key Sections |
 |---|---|---|
 | `/` | Primary landing + value proposition | Hero media, proof strip, concepts deep-dive, features grid, comparison table, code examples, architecture preview, adoption CTAs |
-| `/showcase` | Interactive visualization gallery | 50+ animated demos organized by coordination concept |
+| `/showcase` | Interactive visualization gallery | Animated demos organized by coordination concept |
 | `/architecture` | Formal system internals | Runtime model, structured concurrency regions, cancel protocol, state machines, capability tiers |
 | `/spec-explorer` | Technical specification browser | Searchable spec library with markdown rendering and category filtering |
 | `/getting-started` | Onboarding guide | Installation, quickstart, MCP config, operational pillars, FAQ |
 | `/glossary` | Terminology reference | Searchable index with short and long definitions |
 
-## The 34 MCP Tools
+## The 38 MCP Tools
 
-Agent Mail exposes 34 tools organized into 9 clusters, all accessible via the Model Context Protocol standard:
+Agent Mail exposes 38 tools organized into 9 clusters, all accessible via the Model Context Protocol standard:
 
 ### Infrastructure
 Bootstrap project context, health checks, server lifecycle.
-- `health_check`, `ensure_project`, `macro_start_session`
+- `health_check`, `ensure_project`, `install_precommit_guard`, `uninstall_precommit_guard`
 - **When to use:** When an agent joins a repository or diagnostics indicate drift.
 
 ### Identity
 Create and update persistent agent identities and metadata.
-- `register_agent`, `create_agent_identity`, `whois`
+- `register_agent`, `create_agent_identity`, `whois`, `resolve_pane_identity`, `cleanup_pane_identities`, `list_agents`
 - **When to use:** Before sending mail or reserving files.
 
 ### Messaging
 Coordinate work asynchronously with durable, threaded, auditable messages.
-- `send_message`, `reply_message`, `fetch_inbox`, `acknowledge_message`
+- `send_message`, `reply_message`, `fetch_inbox`, `acknowledge_message`, `mark_message_read`
 - **When to use:** For handoffs, blockers, design decisions, escalation paths.
 
 ### Contacts
 Control who can message whom across teams and projects.
-- `request_contact`, `respond_contact`, `set_contact_policy`
+- `request_contact`, `respond_contact`, `list_contacts`, `set_contact_policy`
 - **When to use:** Adding new collaborators or enforcing contact policy.
 
 ### File Reservations
 Advertise file ownership intent and avoid stepping on parallel edits.
-- `file_reservation_paths`, `renew_file_reservations`, `release_file_reservations`
+- `check_file_reservation_conflicts`, `file_reservation_paths`, `renew_file_reservations`, `release_file_reservations`, `force_release_file_reservation`
 - **When to use:** Before starting edits, and renewing/releasing throughout execution.
 
 ### Search
 Recover context rapidly from message history and thread archives.
-- `search_messages`, `summarize_thread`, `search_messages_product`
+- `search_messages`, `summarize_thread`
 - **When to use:** Before asking teammates for status or planning new work.
 
 ### Macros
@@ -293,7 +293,7 @@ Collapse common multi-step workflows into one predictable tool call.
 
 ### Product Bus
 Link multiple repos under one product-level coordination surface.
-- `ensure_product`, `products_link`, `fetch_inbox_product`
+- `ensure_product`, `products_link`, `search_messages_product`, `fetch_inbox_product`, `summarize_thread_product`
 - **When to use:** Architecture spans multiple services/repos with shared releases.
 
 ### Build Slots
@@ -303,17 +303,17 @@ Throttle expensive builds/tests to prevent CI or machine contention.
 
 ## MCP Resources
 
-Over 20 read-only resource surfaces let agents inspect system state without tool calls (lower token overhead):
+Twenty-five read-only resource surfaces let agents inspect system state without tool calls (lower token overhead):
 
 | Resource URI | Purpose | Operator Value |
 |---|---|---|
 | `resource://inbox/{agent}` | Latest inbox snapshot | Low-token-overhead inbox check |
 | `resource://thread/{thread_id}` | Full thread history | Prevents context loss across sessions |
 | `resource://agents/{project_key}` | Known agents + contactable identities | Discoverability for new agents |
-| `resource://file_reservations/{project_key}` | Active lease ownership + expiry | Conflict awareness before editing |
-| `resource://contacts/{agent}` | Contact graph + approval state | Clarifies who can message whom |
-| `resource://metrics/{project_key}` | Throughput/error/latency telemetry | Supports triage decisions |
-| `resource://health` | Service readiness + degraded-mode signals | Early warning for operators |
+| `resource://file_reservations/{slug}` | Active lease ownership + expiry | Conflict awareness before editing |
+| `resource://tooling/metrics` | Throughput/error/latency telemetry | Supports triage decisions |
+| `resource://tooling/diagnostics` | Storage/search/tool diagnostics | Early warning for operators |
+| `resource://tooling/capabilities/{agent}` | Agent capability profile | Supports targeted task assignment |
 
 ## 16-Screen Operations TUI
 
@@ -367,7 +367,7 @@ Four macros collapse common multi-step workflows into single calls:
 
 ## Visualization System
 
-The site features 50+ interactive visualization components built on a shared framework (`components/viz/viz-framework.tsx`):
+The site features dozens of interactive visualization components built on a shared framework (`components/viz/viz-framework.tsx`):
 
 **Framework primitives:**
 - `VizSurface`: viewport-aware container with intersection observer
@@ -529,7 +529,7 @@ Example `.env.local`:
         ▼                        ▼
 ┌───────────────────┐   ┌──────────────────────────────────────────────────┐
 │ Content System    │   │ Visualization Subsystem                          │
-│ lib/content.ts    │   │ VizSurface + LazyViz + 50+ viz components       │
+│ lib/content.ts    │   │ VizSurface + LazyViz + interactive components    │
 │ Static copy/data  │   │ framer-motion animations + useReducedMotion      │
 │ JSON-LD generators│   │ Viewport-aware lazy loading                      │
 └───────────────────┘   └──────────────────────────────────────────────────┘
@@ -551,12 +551,12 @@ All site content lives in `lib/content.ts` (3200+ lines) as typed TypeScript exp
 |---|---|
 | `siteConfig` | Name, title, description, URLs, social links |
 | `navItems` | 6 main navigation routes |
-| `heroStats` | Trust metrics (34 MCP Tools, 20+ Resources, 10/10 Stress Gauntlet, ~49 RPS) |
+| `heroStats` | Trust metrics (38 MCP Tools, 25 Resources, 10/10 Stress Gauntlet, ~49 RPS) |
 | `features` | 16 feature cards with descriptions and categories |
 | `comparisonData` | 12-row comparison table (Agent Mail vs. Git Worktrees vs. Shared Docs vs. No Coordination) |
 | `codeExample` / `codeExampleRobot` / `codeExampleCrossProject` | Three code blocks demonstrating core workflows |
 | `toolClusterCopy` | 9 MCP tool clusters with representative tools |
-| `resourceSurfaceCopy` | 20+ MCP resource URI patterns |
+| `resourceSurfaceCopy` | Representative MCP resource URI patterns |
 | `tuiScreenCopy` | 16 TUI screen descriptions |
 | `robotCommandTrackCopy` | 5 CLI command tracks |
 | `glossaryTerms` | Full glossary index |
@@ -800,7 +800,7 @@ Set `turbopack.root` in `next.config.ts` or remove unrelated lockfiles in parent
 
 ### What is MCP Agent Mail?
 
-A coordination infrastructure for AI coding agents. It provides project-scoped identities, threaded messaging, advisory file reservations, hybrid search, and a 16-screen operations TUI, all exposed via 34 MCP tools. See the [engine source](https://github.com/Dicklesworthstone/mcp_agent_mail_rust).
+A coordination infrastructure for AI coding agents. It provides project-scoped identities, threaded messaging, advisory file reservations, hybrid search, and a 16-screen operations TUI, all exposed via 38 MCP tools. See the [engine source](https://github.com/Dicklesworthstone/mcp_agent_mail_rust).
 
 ### Is this the Agent Mail server itself?
 
@@ -810,7 +810,7 @@ No. This repository is the marketing and documentation website. The Rust server 
 
 `lib/content.ts` is the single source of truth for all static content, features, comparisons, code examples, glossary, FAQ, testimonials, and JSON-LD structured data.
 
-### Why are there 50+ visualization components?
+### Why are there so many visualization components?
 
 Each visualization demonstrates a specific coordination concept interactively. File reservations, message lifecycles, swarm coordination, Search V3, storage internals, and stress behavior are all easier to understand through animation than prose.
 
@@ -885,7 +885,7 @@ Each major claim on the site has a corresponding verification source:
 | Handles thundering herd with zero errors | 30 agents hitting endpoint simultaneously in scenario 9 |
 | Automatic stale lock detection and cleanup | Scenario 4 creates `.git/index.lock` and verifies cleanup |
 | First open-source cross-provider multi-agent coordination | MCP standard, no vendor lock-in, works with any MCP client |
-| 34 MCP tools covering full coordination lifecycle | Enumerable in 9 clusters |
+| 38 MCP tools covering full coordination lifecycle | Enumerable in 9 clusters |
 
 ## About Contributions
 

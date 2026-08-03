@@ -133,6 +133,10 @@ interface RendererModule {
   FrankenTermWeb: new () => FrankenTermInstance;
 }
 
+interface WasmBindgenModule {
+  default(input?: { module_or_path: BufferSource | WebAssembly.Module }): Promise<unknown>;
+}
+
 export interface LoadedDashboardArtifacts {
   manifest: DashboardArtifactManifest;
   packJson: string;
@@ -145,12 +149,88 @@ const ARTIFACT_ROOT = "/agent-mail-dashboard/";
 const EXPECTED_PRIVACY_POLICY = "agent-mail-dashboard-public-demo-v1";
 const MAX_DEMO_ACTIONS = 10_000;
 const MAX_DEMO_DURATION_MS = 30 * 60 * 1_000;
+export const DASHBOARD_ARTIFACT_STAGE_TIMEOUT_MS = 15_000;
+const ARTIFACT_BYTE_LIMITS = {
+  // Rust bounds the JSON itself at 8 MiB; the exporter appends one trailing
+  // newline when it publishes the file.
+  demo_pack: 8 * 1024 * 1024 + 1,
+  dashboard_runner_js: 512 * 1024,
+  dashboard_runner_wasm: 8 * 1024 * 1024,
+  renderer_js: 1024 * 1024,
+  renderer_wasm: 8 * 1024 * 1024,
+  terminal_font: 2 * 1024 * 1024,
+} as const;
 export const DASHBOARD_POSTER_URL = "/images/agent-mail-dashboard-poster-placeholder.svg";
 
 let cachedLoad: Promise<LoadedDashboardArtifacts> | null = null;
 let activeLoadToken: symbol | null = null;
 let installedDashboardFont: { digest: string; face: FontFace } | null = null;
 let desiredDashboardFontDigest: string | null = null;
+
+export function withDashboardArtifactStageTimeout<T>(
+  operation: PromiseLike<T>,
+  label: string,
+  timeoutMs = DASHBOARD_ARTIFACT_STAGE_TIMEOUT_MS,
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    let settled = false;
+    const timeout = globalThis.setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new Error(`${label} did not finish within ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    void Promise.resolve(operation).then(
+      (value) => {
+        if (settled) return;
+        settled = true;
+        globalThis.clearTimeout(timeout);
+        resolve(value);
+      },
+      (cause) => {
+        if (settled) return;
+        settled = true;
+        globalThis.clearTimeout(timeout);
+        reject(cause);
+      },
+    );
+  });
+}
+
+export async function initializeDashboardWasmModules<
+  Runner extends WasmBindgenModule,
+  Renderer extends WasmBindgenModule,
+>(
+  runnerModulePromise: Promise<Runner>,
+  runnerCompiledPromise: Promise<WebAssembly.Module>,
+  rendererModulePromise: Promise<Renderer>,
+  rendererCompiledPromise: Promise<WebAssembly.Module>,
+): Promise<{ runnerModule: Runner; rendererModule: Renderer }> {
+  // Each engine starts the instant its own verified module and compiled WASM
+  // are ready. Neither engine waits for the other, the font, or the demo pack.
+  const runnerReadyPromise = Promise.all([runnerModulePromise, runnerCompiledPromise])
+    .then(async ([runnerModule, runnerCompiled]) => {
+      await withDashboardArtifactStageTimeout(
+        runnerModule.default({ module_or_path: runnerCompiled }),
+        "Agent Mail dashboard runner WASM initialization",
+      );
+      return runnerModule;
+    });
+  const rendererReadyPromise = Promise.all([rendererModulePromise, rendererCompiledPromise])
+    .then(async ([rendererModule, rendererCompiled]) => {
+      await withDashboardArtifactStageTimeout(
+        rendererModule.default({ module_or_path: rendererCompiled }),
+        "FrankenTerm renderer WASM initialization",
+      );
+      return rendererModule;
+    });
+
+  const [runnerModule, rendererModule] = await Promise.all([
+    runnerReadyPromise,
+    rendererReadyPromise,
+  ]);
+  return { runnerModule, rendererModule };
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -198,13 +278,19 @@ function requirePosterUrl(value: unknown): string {
   return url;
 }
 
-function requireArtifact(value: unknown, label: string): Required<DashboardArtifact> {
+function requireArtifact(
+  value: unknown,
+  label: keyof typeof ARTIFACT_BYTE_LIMITS,
+): Required<DashboardArtifact> {
   if (!isRecord(value)) throw new Error(`${label} is missing`);
   const url = requirePublicArtifactUrl(value.url, `${label}.url`);
   const bytes = value.bytes;
   const sha256 = value.sha256;
   if (!Number.isSafeInteger(bytes) || (bytes as number) <= 0) {
     throw new Error(`${label}.bytes must be a positive integer`);
+  }
+  if ((bytes as number) > ARTIFACT_BYTE_LIMITS[label]) {
+    throw new Error(`${label}.bytes exceeds its browser safety limit`);
   }
   if (typeof sha256 !== "string" || !/^[a-f0-9]{64}$/.test(sha256)) {
     throw new Error(`${label}.sha256 must be a lowercase SHA-256 digest`);
@@ -378,34 +464,48 @@ async function loadDashboardArtifactsUncached(loadToken: symbol): Promise<Loaded
     return json;
   });
   const runnerModulePromise = fetchVerifiedArtifact(artifacts.dashboard_runner_js)
-    .then((bytes) => importVerifiedModule<RunnerModule>(bytes));
+    .then((bytes) => withDashboardArtifactStageTimeout(
+      importVerifiedModule<RunnerModule>(bytes),
+      "Agent Mail dashboard runner module import",
+    ));
   const runnerCompiledPromise = fetchVerifiedArtifact(artifacts.dashboard_runner_wasm)
-    .then((bytes) => WebAssembly.compile(bytes));
+    .then((bytes) => withDashboardArtifactStageTimeout(
+      WebAssembly.compile(bytes),
+      "Agent Mail dashboard runner WASM compilation",
+    ));
   const rendererModulePromise = fetchVerifiedArtifact(artifacts.renderer_js)
-    .then((bytes) => importVerifiedModule<RendererModule>(bytes));
+    .then((bytes) => withDashboardArtifactStageTimeout(
+      importVerifiedModule<RendererModule>(bytes),
+      "FrankenTerm renderer module import",
+    ));
   const rendererCompiledPromise = fetchVerifiedArtifact(artifacts.renderer_wasm)
-    .then((bytes) => WebAssembly.compile(bytes));
+    .then((bytes) => withDashboardArtifactStageTimeout(
+      WebAssembly.compile(bytes),
+      "FrankenTerm renderer WASM compilation",
+    ));
   const fontPromise = fetchVerifiedArtifact(artifacts.terminal_font)
-    .then((bytes) => loadFont(bytes, artifacts.terminal_font.sha256, loadToken));
+    .then((bytes) => withDashboardArtifactStageTimeout(
+      loadFont(bytes, artifacts.terminal_font.sha256, loadToken),
+      "Agent Mail dashboard terminal font initialization",
+    ));
 
-  const [runnerModule, rendererModule, runnerCompiled, rendererCompiled, packJson] = await Promise.all([
+  const modulesPromise = initializeDashboardWasmModules(
     runnerModulePromise,
-    rendererModulePromise,
     runnerCompiledPromise,
+    rendererModulePromise,
     rendererCompiledPromise,
+  );
+  const [modules, packJson] = await Promise.all([
+    modulesPromise,
     packPromise,
     fontPromise,
-  ]);
-  await Promise.all([
-    runnerModule.default({ module_or_path: runnerCompiled }),
-    rendererModule.default({ module_or_path: rendererCompiled }),
   ]);
 
   return {
     manifest,
     packJson,
-    AgentMailDashboardRunner: runnerModule.AgentMailDashboardRunner,
-    FrankenTermWeb: rendererModule.FrankenTermWeb,
+    AgentMailDashboardRunner: modules.runnerModule.AgentMailDashboardRunner,
+    FrankenTermWeb: modules.rendererModule.FrankenTermWeb,
   };
 }
 

@@ -77,7 +77,7 @@ export default function ArchitecturePage() {
           <LazyViz><McpArchitectureViz /></LazyViz>
           <div className="space-y-4 text-slate-400 leading-relaxed">
             <p>
-              Agent Mail exposes exactly 34 tools and over 20 read-only resources through the <Tooltip term="MCP">Model Context Protocol</Tooltip> surface.
+              Agent Mail exposes exactly 38 tools and 25 read-only resources through the <Tooltip term="MCP">Model Context Protocol</Tooltip> surface.
               Because the interface speaks pure JSON-RPC over `stdio`, any modern AI assistant—from Claude Code and Cursor to standalone language models—can seamlessly interoperate with the swarm.
             </p>
           </div>

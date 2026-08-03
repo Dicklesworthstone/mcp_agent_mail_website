@@ -273,7 +273,11 @@ export default function TuiScreensViz() {
             <ul className="space-y-2 text-sm text-slate-400">
               <li className="flex gap-2">
                 <span className="text-slate-600 select-none">&bull;</span>
-                <span><kbd className="text-blue-300 font-mono text-xs">1-9, 0, !, @, #, $, %, ^</kbd> jump directly to any screen</span>
+                <span><kbd className="text-blue-300 font-mono text-xs">1-9, 0, !, @, #, $, %, ^</kbd> jump directly outside Dashboard and text-entry mode</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="text-slate-600 select-none">&bull;</span>
+                <span>On Dashboard, <kbd className="text-blue-300 font-mono text-xs">1-4</kbd> select quick filters; use <kbd className="text-blue-300 font-mono text-xs">Tab</kbd> to enter the shared screen cycle</span>
               </li>
               <li className="flex gap-2">
                 <span className="text-slate-600 select-none">&bull;</span>

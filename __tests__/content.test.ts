@@ -10,7 +10,6 @@ import {
   getHowToJsonLd,
   heroDemoTranscript,
   dashboardDemoStoryboard,
-  heroTuiDemo,
   comparisonData,
   generalFaq,
   gettingStartedPillars,
@@ -174,32 +173,11 @@ describe("heroDemoTranscript", () => {
       expect(currMs).toBeGreaterThanOrEqual(prevMs);
     }
   });
-});
 
-// ─── Media Specs ─────────────────────────────────────────────────
 
-describe("heroTuiDemo", () => {
-  it("has required dimensions", () => {
-    expect(heroTuiDemo.width).toBeGreaterThan(0);
-    expect(heroTuiDemo.height).toBeGreaterThan(0);
-  });
-
-  it("contains real-data snapshot fields", () => {
-    expect(heroTuiDemo.snapshot.totalMessages).toBeGreaterThan(1000);
-    expect(heroTuiDemo.snapshot.totalAgents).toBeGreaterThan(100);
-    expect(heroTuiDemo.snapshot.activeThreads).toBeGreaterThan(100);
-    expect(heroTuiDemo.feedEvents.length).toBeGreaterThan(5);
-  });
-
-  it("includes a valid real-webapp target", () => {
-    const parsed = new URL(heroTuiDemo.realWebAppUrl);
-    expect(["http:", "https:"]).toContain(parsed.protocol);
-    expect(parsed.pathname.startsWith("/")).toBe(true);
-  });
 });
 
 // ─── Spec Explorer Data Contracts ───────────────────────────────
-
 describe("specDocs", () => {
   it("contains only known categories", () => {
     const categorySet = new Set(specCategories);

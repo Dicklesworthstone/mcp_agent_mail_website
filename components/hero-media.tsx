@@ -48,6 +48,19 @@ export default function HeroMedia() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [zoom, setZoom] = useState(DEFAULT_DASHBOARD_ZOOM);
   const effectivePaused = paused || prefersReducedMotion;
+  const dashboardReady = status !== null && !loadError;
+  const replayControlLabel = prefersReducedMotion
+    ? "Dashboard replay is paused because reduced motion is enabled"
+    : effectivePaused
+      ? "Play dashboard replay"
+      : "Pause dashboard replay";
+  const replayControlTitle = prefersReducedMotion
+    ? "Replay stays paused while reduced motion is enabled"
+    : !dashboardReady
+      ? "Replay controls become available when the interactive dashboard is ready"
+      : effectivePaused
+        ? "Play replay"
+        : "Pause replay";
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -138,9 +151,9 @@ export default function HeroMedia() {
             type="button"
             onClick={() => setPaused((current) => !current)}
             className="grid h-9 w-9 place-items-center text-slate-300 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
-            aria-label={effectivePaused ? "Play dashboard replay" : "Pause dashboard replay"}
-            disabled={prefersReducedMotion}
-            title={effectivePaused ? "Play replay" : "Pause replay"}
+            aria-label={replayControlLabel}
+            disabled={prefersReducedMotion || !dashboardReady}
+            title={replayControlTitle}
           >
             {effectivePaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
           </button>
@@ -148,9 +161,10 @@ export default function HeroMedia() {
           <button
             type="button"
             onClick={() => terminalRef.current?.reset()}
-            className="grid h-9 w-9 place-items-center text-slate-300 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+            disabled={!dashboardReady}
+            className="grid h-9 w-9 place-items-center text-slate-300 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-35"
             aria-label="Reset dashboard replay"
-            title="Reset replay"
+            title={dashboardReady ? "Reset replay" : "Available when the interactive dashboard is ready"}
           >
             <RotateCcw className="h-4 w-4" />
           </button>
@@ -160,7 +174,7 @@ export default function HeroMedia() {
           <button
             type="button"
             onClick={() => setZoom((current) => clampDashboardZoom(current - DASHBOARD_ZOOM_STEP))}
-            disabled={zoom <= MIN_DASHBOARD_ZOOM}
+            disabled={!dashboardReady || zoom <= MIN_DASHBOARD_ZOOM}
             className="grid h-9 w-9 place-items-center text-slate-300 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-35"
             aria-label="Zoom dashboard out"
             title="Zoom out"
@@ -170,7 +184,8 @@ export default function HeroMedia() {
           <button
             type="button"
             onClick={() => setZoom(DEFAULT_DASHBOARD_ZOOM)}
-            className="h-9 min-w-14 px-2 font-mono text-xs font-bold tabular-nums text-cyan-100 transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+            disabled={!dashboardReady}
+            className="h-9 min-w-14 px-2 font-mono text-xs font-bold tabular-nums text-cyan-100 transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-35"
             aria-label={`Reset dashboard zoom to ${Math.round(DEFAULT_DASHBOARD_ZOOM * 100)} percent`}
             title="Reset zoom"
           >
@@ -179,7 +194,7 @@ export default function HeroMedia() {
           <button
             type="button"
             onClick={() => setZoom((current) => clampDashboardZoom(current + DASHBOARD_ZOOM_STEP))}
-            disabled={zoom >= MAX_DASHBOARD_ZOOM}
+            disabled={!dashboardReady || zoom >= MAX_DASHBOARD_ZOOM}
             className="grid h-9 w-9 place-items-center text-slate-300 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-35"
             aria-label="Zoom dashboard in"
             title="Zoom in"

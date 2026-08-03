@@ -48,6 +48,57 @@ const REPLAY_HOST_CADENCE_MS = 100;
 const RAF_WAKE_AHEAD_MS = 16;
 const SCREEN_READER_MIRROR_THROTTLE_MS = 1_000;
 const SCREEN_READER_MIRROR_DEBOUNCE_MS = 100;
+const DESKTOP_HEADER_CLEARANCE_PX = 96;
+export const DASHBOARD_TERMINAL_INIT_TIMEOUT_MS = 15_000;
+const MAX_COALESCED_WHEEL_DELTA = 24;
+const DASHBOARD_SCREEN_SLUGS = new Set([
+  "dashboard", "messages", "threads", "agents", "search", "reservations",
+  "tool_metrics", "system_health", "timeline", "projects", "contacts", "explorer",
+  "analytics", "attachments", "archive_browser", "atc",
+]);
+const DASHBOARD_FILTER_SLUGS = new Set(["all", "messages", "tools", "reservations"]);
+
+interface CoalescedWheelInput {
+  kind: "wheel";
+  x: number;
+  y: number;
+  dx: number;
+  dy: number;
+  mods: number;
+}
+
+function withTerminalInitTimeout(operation: Promise<void>): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    let settled = false;
+    const timeout = window.setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new Error(
+        `FrankenTerm renderer initialization did not finish within ${DASHBOARD_TERMINAL_INIT_TIMEOUT_MS}ms`,
+      ));
+    }, DASHBOARD_TERMINAL_INIT_TIMEOUT_MS);
+
+    void operation.then(
+      () => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timeout);
+        resolve();
+      },
+      (cause) => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timeout);
+        reject(cause);
+      },
+    );
+  });
+}
+
+function boundedWheelDelta(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(-MAX_COALESCED_WHEEL_DELTA, Math.min(MAX_COALESCED_WHEEL_DELTA, value));
+}
 
 export function dashboardRendererDpr(
   widthCss: number,
@@ -147,9 +198,14 @@ function parseStatus(runner: DashboardRunnerInstance): DashboardRunnerStatus {
   ];
   if (
     booleanFields.some((field) => typeof status[field] !== "boolean") ||
-    numberFields.some((field) => typeof status[field] !== "number" || !Number.isFinite(status[field])) ||
+    numberFields.some((field) => !Number.isSafeInteger(status[field]) || (status[field] as number) < 0) ||
     stringFields.some((field) => typeof status[field] !== "string") ||
-    !(status.last_deep_link === null || typeof status.last_deep_link === "string")
+    (status.duration_ms as number) === 0 ||
+    !/^[a-f0-9]{64}$/.test(status.content_sha256 as string) ||
+    !DASHBOARD_SCREEN_SLUGS.has(status.active_screen as string) ||
+    !DASHBOARD_FILTER_SLUGS.has(status.dashboard_filter as string) ||
+    !(status.last_deep_link === null ||
+      (typeof status.last_deep_link === "string" && status.last_deep_link.length <= 2_048))
   ) {
     throw new Error("Agent Mail dashboard runner returned an invalid status snapshot");
   }
@@ -353,9 +409,11 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
       let resizeObserver: ResizeObserver | null = null;
       let displayListenerCleanup: (() => void) | null = null;
       let inputController: AbortController | null = null;
+      let focusScrollFrame = 0;
       let initializingTerm: FrankenTermInstance | null = null;
+      let releaseInitializingTerm: (() => void) | null = null;
       let pendingPointerMove: unknown | null = null;
-      let pendingWheelInput: unknown | null = null;
+      let pendingWheelInput: CoalescedWheelInput | null = null;
       let activePointerId: number | null = null;
       let activePointerButton = 0;
       let activePointerIsEmbeddedTouch = false;
@@ -374,6 +432,8 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
         displayListenerCleanup = null;
         inputController?.abort();
         inputController = null;
+        if (focusScrollFrame) cancelAnimationFrame(focusScrollFrame);
+        focusScrollFrame = 0;
         const currentContainer = containerRef.current;
         if (currentContainer) {
           currentContainer.dataset.activeScreen = "error";
@@ -404,7 +464,14 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
 
           setLoadingLabel("Starting the production FrankenTUI dashboard…");
           const term = new loaded.FrankenTermWeb();
+          let termReleased = false;
+          const releaseTermOnce = () => {
+            if (termReleased) return;
+            termReleased = true;
+            releaseTerminal(term);
+          };
           initializingTerm = term;
+          releaseInitializingTerm = releaseTermOnce;
           // Respect a genuinely narrow measured viewport; the fallbacks only
           // cover the pre-layout zero-size case.
           const initialWidth = container.clientWidth > 0 ? container.clientWidth : 320;
@@ -415,7 +482,8 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
             initialWidth,
             initialHeight,
           );
-          await term.init(canvas, {
+          let terminalInitSettled = false;
+          const terminalInit = term.init(canvas, {
             cols: 220,
             rows: 48,
             cellWidth: 8,
@@ -423,10 +491,35 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
             dpr: initialDpr,
             zoom: initEffectiveZoom,
             focused: false,
-          });
-          if (cancelled) {
-            releaseTerminal(term);
+          }).then(
+            () => {
+              terminalInitSettled = true;
+            },
+            (cause) => {
+              terminalInitSettled = true;
+              throw cause;
+            },
+          );
+          try {
+            await withTerminalInitTimeout(terminalInit);
+          } catch (cause) {
+            if (terminalInitSettled) {
+              releaseTermOnce();
+            } else {
+              // Surface the timeout immediately, but let an in-flight WebGPU
+              // initializer finish touching its wrapper before disposing it.
+              // Both fulfillment and rejection are observed so a late result
+              // cannot leak a wrapper or create an unhandled rejection.
+              void terminalInit.then(releaseTermOnce, releaseTermOnce);
+            }
             initializingTerm = null;
+            releaseInitializingTerm = null;
+            throw cause;
+          }
+          if (cancelled) {
+            releaseTermOnce();
+            initializingTerm = null;
+            releaseInitializingTerm = null;
             return;
           }
           // WebGPU initialization is asynchronous. Re-read geometry and user
@@ -444,6 +537,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
           effectiveZoomRef.current = fitEffectiveZoom;
           termRef.current = term;
           initializingTerm = null;
+          releaseInitializingTerm = null;
           term.setAccessibility({ reducedMotion: reducedMotionRef.current, screenReader: true });
 
           let geometry = term.fitToContainer(
@@ -786,6 +880,30 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
               y: Math.max(0, Math.min(y, rows - 1)),
             };
           };
+          const keepFocusedCanvasBelowHeader = () => {
+            if (focusScrollFrame) cancelAnimationFrame(focusScrollFrame);
+            focusScrollFrame = requestAnimationFrame(() => {
+              focusScrollFrame = 0;
+              if (
+                cancelled ||
+                failed ||
+                fullscreenRef.current ||
+                window.innerWidth < 768 ||
+                activePointerId !== null ||
+                document.activeElement !== canvas
+              ) {
+                return;
+              }
+              const top = canvas.getBoundingClientRect().top;
+              // Correct only the browser's usual focus alignment at the top of
+              // the viewport. If the user intentionally has an earlier part of
+              // this tall canvas scrolled above view, focusing a visible lower
+              // cell must not yank the whole terminal back down.
+              if (top >= 0 && top < DESKTOP_HEADER_CLEARANCE_PX) {
+                window.scrollBy(0, top - DESKTOP_HEADER_CLEARANCE_PX);
+              }
+            });
+          };
 
           canvas.addEventListener("keydown", (event) => {
             if (event.isComposing || event.key === "Process") return;
@@ -879,6 +997,10 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
             if (canvas.hasPointerCapture(event.pointerId)) {
               canvas.releasePointerCapture(event.pointerId);
             }
+            // Focusing on pointer-down may need to move the tall canvas below
+            // the fixed site header. Defer that correction until mouse-up so
+            // the canvas cannot move between the down/up cell calculations.
+            if (document.activeElement === canvas) keepFocusedCanvasBelowHeader();
           };
           canvas.addEventListener("pointerdown", (event) => {
             const allowEmbeddedTouchPan = event.pointerType === "touch" && !fullscreenRef.current;
@@ -943,21 +1065,32 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
           window.addEventListener("pointerup", (event) => releasePointer(event, true), { signal });
           canvas.addEventListener("wheel", (event) => {
             event.preventDefault();
+            const point = cellPoint(event);
+            const nextDx = Number.isFinite(event.deltaX) ? Math.sign(event.deltaX) : 0;
+            const nextDy = Number.isFinite(event.deltaY) ? Math.sign(event.deltaY) : 0;
             pendingWheelInput = {
               kind: "wheel",
-              ...cellPoint(event),
-              dx: Math.sign(event.deltaX),
-              dy: Math.sign(event.deltaY),
+              ...point,
+              dx: boundedWheelDelta((pendingWheelInput?.dx ?? 0) + nextDx),
+              dy: boundedWheelDelta((pendingWheelInput?.dy ?? 0) + nextDy),
               mods: inputModifiers(event),
             };
             scheduleFrame();
           }, { signal, passive: false });
-          canvas.addEventListener("focus", () => safeInput({ kind: "focus", focused: true }), { signal });
-          canvas.addEventListener("blur", () => safeInput({ kind: "focus", focused: false }), { signal });
+          canvas.addEventListener("focus", () => {
+            keepFocusedCanvasBelowHeader();
+            safeInput({ kind: "focus", focused: true });
+          }, { signal });
+          canvas.addEventListener("blur", () => {
+            if (focusScrollFrame) cancelAnimationFrame(focusScrollFrame);
+            focusScrollFrame = 0;
+            safeInput({ kind: "focus", focused: false });
+          }, { signal });
           canvas.addEventListener("contextmenu", (event) => event.preventDefault(), { signal });
         } catch (cause) {
-          releaseTerminal(initializingTerm);
+          releaseInitializingTerm?.();
           initializingTerm = null;
+          releaseInitializingTerm = null;
           if (cancelled) return;
           failRuntime(cause);
         }
@@ -969,6 +1102,7 @@ const AgentMailTerminal = forwardRef<AgentMailTerminalHandle, AgentMailTerminalP
         resizeObserver?.disconnect();
         displayListenerCleanup?.();
         inputController?.abort();
+        if (focusScrollFrame) cancelAnimationFrame(focusScrollFrame);
         cleanup();
       };
     }, [cleanup, loadAttempt]);

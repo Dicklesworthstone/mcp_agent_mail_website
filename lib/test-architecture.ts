@@ -27,7 +27,7 @@ export const coverageMatrix: CoverageTarget[] = [
     ],
     e2eTests: [
       "Full page load and hero visible",
-      "Simulated TUI surface renders with deterministic event feed",
+      "Production FrankenTUI WASM loads digest-pinned artifacts and accepts live input",
       "Chapter navigation opens and seeks simulation timeline correctly",
       "Transcript panel toggles and displays text",
       "Evidence strip renders all 5 credibility highlights",

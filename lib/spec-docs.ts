@@ -98,7 +98,7 @@ const specDocSections = [
         title: "MCP Surface: Tools, Resources, And Macros",
         filename: "mcp-surface-tools-resources-macros.md",
         description:
-          "How the 34-tool MCP surface is organized, what resources are for, and when the macro helpers collapse multi-step workflows.",
+          "How the 38-tool MCP surface is organized, what resources are for, and when the macro helpers collapse multi-step workflows.",
       },
       {
         slug: "operator-surfaces",

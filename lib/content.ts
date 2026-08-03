@@ -250,8 +250,8 @@ export const gettingStartedFaq: GettingStartedFaqItem[] = [
 
 // Hero stats
 export const heroStats: Stat[] = [
-  { id: "mcp-tools", label: "MCP Tools", value: "34", helper: "Coordination primitives across messaging/search/reservations" },
-  { id: "resources", label: "Resources", value: "20+", helper: "Agent-discoverable resource surfaces" },
+  { id: "mcp-tools", label: "MCP Tools", value: "38", helper: "Coordination primitives across messaging/search/reservations" },
+  { id: "resources", label: "Resources", value: "25", helper: "Agent-discoverable resource surfaces" },
   { id: "stress-gauntlet", label: "Stress Gauntlet", value: "10/10", helper: "Representative high-load scenarios passed" },
   { id: "throughput", label: "Sustained Throughput", value: "~49 RPS", helper: "HTTP stress profile baseline (context-dependent)" },
 ];
@@ -281,7 +281,7 @@ export const features: Feature[] = [
   },
   {
     id: "mcp-tools-clusters",
-    title: "34 MCP Tools in 9 Clusters",
+    title: "38 MCP Tools in 9 Clusters",
     description: "Infrastructure, Identity, Messaging, Contacts, File Reservations, Search, Macros, Product Bus, and Build Slots. Every coordination primitive exposed via the Model Context Protocol standard.",
     icon: "cpu",
     category: "MCP Surface",
@@ -344,7 +344,7 @@ export const features: Feature[] = [
   },
   {
     id: "mcp-resources",
-    title: "20+ MCP Resources",
+    title: "25 MCP Resources",
     description: "Fast lookup surfaces for inbox, threads, agents, reservations, metrics, and health \u2014 all accessible without tool calls. resource://inbox/{Agent}, resource://thread/{id}, and more.",
     icon: "globe",
     category: "MCP Surface",
@@ -366,7 +366,7 @@ export const features: Feature[] = [
   {
     id: "rust-workspace-architecture",
     title: "12-Crate Rust Architecture",
-    description: "Modular workspace: core, db, storage, search-core, guard, share, tools, server, CLI, conformance, and WASM. Built on Tokio, frankensearch, frankentui, and fastmcp_rust.",
+    description: "Twelve workspace members span the binary, core, DB, storage, server, tools, CLI, guard, share, conformance, search-core, and test helpers, plus a standalone dashboard WASM workspace. Built on Asupersync, frankensearch, frankentui, and fastmcp_rust.",
     icon: "cpu",
     category: "Architecture",
   },
@@ -392,7 +392,7 @@ export const comparisonStatusByValue: Record<string, ComparisonStatus> = {
   "Product bus": "positive",
   "Hybrid lexical + semantic": "positive",
   "16-screen TUI + Web UI": "positive",
-  "34 tools + 20 resources": "positive",
+  "38 tools + 25 resources": "positive",
   "Auto-detect + register": "positive",
   "Built-in ack protocol": "positive",
   "Build slot management": "positive",
@@ -419,7 +419,7 @@ export const comparisonData: AgentMailComparisonRow[] = [
   { id: "cross-project-coordination", feature: "Cross-Project Coordination", agentMail: "Product bus", gitWorktrees: "None", sharedDocs: "None", noCoordination: "None" },
   { id: "search", feature: "Search", agentMail: "Hybrid lexical + semantic", gitWorktrees: "Git log", sharedDocs: "Text search", noCoordination: "None" },
   { id: "operator-visibility", feature: "Operator Visibility", agentMail: "16-screen TUI + Web UI", gitWorktrees: "Git log", sharedDocs: "File browser", noCoordination: "None" },
-  { id: "mcp-integration", feature: "MCP Integration", agentMail: "34 tools + 20 resources", gitWorktrees: "None", sharedDocs: "None", noCoordination: "None" },
+  { id: "mcp-integration", feature: "MCP Integration", agentMail: "38 tools + 25 resources", gitWorktrees: "None", sharedDocs: "None", noCoordination: "None" },
   { id: "agent-discovery", feature: "Agent Discovery", agentMail: "Auto-detect + register", gitWorktrees: "Manual", sharedDocs: "Manual", noCoordination: "Manual" },
   { id: "acknowledgments", feature: "Acknowledgments", agentMail: "Built-in ack protocol", gitWorktrees: "None", sharedDocs: "None", noCoordination: "None" },
   { id: "build-concurrency", feature: "Build Concurrency", agentMail: "Build slot management", gitWorktrees: "None", sharedDocs: "None", noCoordination: "Race conditions" },
@@ -539,42 +539,42 @@ export const toolClusterCopy: ToolClusterCopy[] = [
     cluster: "Infrastructure",
     purpose: "Bootstrap project context, health checks, and server lifecycle visibility.",
     whenToUse: "Use first when an agent joins a repo or diagnostics indicate environment drift.",
-    representativeTools: ["health_check", "ensure_project", "macro_start_session"],
+    representativeTools: ["health_check", "ensure_project", "install_precommit_guard", "uninstall_precommit_guard"],
   },
   {
     id: "cluster-identity",
     cluster: "Identity",
     purpose: "Create or update persistent agent identities and profile metadata.",
     whenToUse: "Use before sending mail or reserving files so actions are attributable.",
-    representativeTools: ["register_agent", "create_agent_identity", "whois"],
+    representativeTools: ["register_agent", "create_agent_identity", "whois", "resolve_pane_identity", "cleanup_pane_identities", "list_agents"],
   },
   {
     id: "cluster-messaging",
     cluster: "Messaging",
     purpose: "Coordinate work asynchronously with durable, threaded, auditable messages.",
     whenToUse: "Use for handoffs, blockers, design decisions, and escalation paths.",
-    representativeTools: ["send_message", "reply_message", "fetch_inbox", "acknowledge_message"],
+    representativeTools: ["send_message", "reply_message", "fetch_inbox", "acknowledge_message", "mark_message_read"],
   },
   {
     id: "cluster-contacts",
     cluster: "Contacts",
     purpose: "Control who can message whom across teams and projects.",
     whenToUse: "Use when adding a new collaborator edge or enforcing contact policy.",
-    representativeTools: ["request_contact", "respond_contact", "set_contact_policy"],
+    representativeTools: ["request_contact", "respond_contact", "list_contacts", "set_contact_policy"],
   },
   {
     id: "cluster-file-reservations",
     cluster: "File Reservations",
     purpose: "Advertise file ownership intent and avoid stepping on parallel edits.",
     whenToUse: "Use before starting edits and renew/release throughout execution.",
-    representativeTools: ["file_reservation_paths", "renew_file_reservations", "release_file_reservations"],
+    representativeTools: ["check_file_reservation_conflicts", "file_reservation_paths", "renew_file_reservations", "release_file_reservations", "force_release_file_reservation"],
   },
   {
     id: "cluster-search",
     cluster: "Search",
     purpose: "Recover context rapidly from message history and thread archives.",
     whenToUse: "Use before asking teammates for status and before planning new work.",
-    representativeTools: ["search_messages", "summarize_thread", "search_messages_product"],
+    representativeTools: ["search_messages", "summarize_thread"],
   },
   {
     id: "cluster-macros",
@@ -588,7 +588,7 @@ export const toolClusterCopy: ToolClusterCopy[] = [
     cluster: "Product Bus",
     purpose: "Link multiple repos under one product-level coordination surface.",
     whenToUse: "Use when architecture spans multiple services/repos with shared releases.",
-    representativeTools: ["ensure_product", "products_link", "fetch_inbox_product"],
+    representativeTools: ["ensure_product", "products_link", "search_messages_product", "fetch_inbox_product", "summarize_thread_product"],
   },
   {
     id: "cluster-build-slots",
@@ -620,27 +620,27 @@ export const resourceSurfaceCopy: ResourceSurfaceCopy[] = [
   },
   {
     id: "resource-reservations",
-    uriPattern: "resource://file_reservations/{project_key}",
+    uriPattern: "resource://file_reservations/{slug}",
     purpose: "Inspect active lease ownership and expiry windows.",
     operatorValue: "Immediate conflict awareness before code edits or commits.",
   },
   {
-    id: "resource-contacts",
-    uriPattern: "resource://contacts/{agent}",
-    purpose: "Show contact graph and approval state.",
-    operatorValue: "Clarifies who can be pinged directly vs. needs handshake.",
-  },
-  {
     id: "resource-metrics",
-    uriPattern: "resource://metrics/{project_key}",
-    purpose: "Expose throughput/error/latency telemetry snapshots.",
+    uriPattern: "resource://tooling/metrics",
+    purpose: "Expose throughput, error, and latency telemetry snapshots.",
     operatorValue: "Supports operator triage and regression detection.",
   },
   {
-    id: "resource-health",
-    uriPattern: "resource://health",
-    purpose: "Report service readiness and degraded-mode signals.",
-    operatorValue: "Early warning for transport/storage/search instability.",
+    id: "resource-diagnostics",
+    uriPattern: "resource://tooling/diagnostics",
+    purpose: "Report storage, search, and tool diagnostics.",
+    operatorValue: "Early warning for degraded subsystems.",
+  },
+  {
+    id: "resource-capabilities",
+    uriPattern: "resource://tooling/capabilities/{agent}",
+    purpose: "Inspect an agent's advertised capability profile.",
+    operatorValue: "Supports targeted assignment in heterogeneous swarms.",
   },
 ];
 
@@ -1198,7 +1198,7 @@ export const changelog: ChangelogEntry[] = [
     title: "Rust Ground-Up Rewrite",
     items: [
       "12-crate modular workspace architecture with zero unsafe code",
-      "Built on Tokio for high-performance async concurrency",
+      "Built on Asupersync for structured async concurrency",
       "SQLite WAL mode with connection pooling and PRAGMA tuning",
       "Git-backed archive with commit coalescing (9x reduction)",
     ],
@@ -1208,8 +1208,8 @@ export const changelog: ChangelogEntry[] = [
     period: "Phase 3",
     title: "MCP Surface & Search V3",
     items: [
-      "Implemented 34 MCP tools across 9 clusters via fastmcp_rust",
-      "Added 20+ MCP resources for fast agent-discoverable lookups",
+      "Reached 34 MCP tools across 9 clusters via fastmcp_rust",
+      "Reached 20+ MCP resources for fast agent-discoverable lookups",
       "Built hybrid search with two-tier fusion and reranking on frankensearch",
       "Cross-project coordination via product bus and contact handshakes",
     ],
@@ -1271,7 +1271,7 @@ export const glossaryTerms: GlossaryTerm[] = [
   { term: "Human Overseer", short: "Web UI for operator intervention", long: "The web interface at localhost:8765/mail allows humans to compose and send high-priority messages to agents, view all inboxes, search messages, and monitor file reservations across projects." },
   { term: "Inbox", short: "Per-agent message queue", long: "Each registered agent has a project-scoped inbox where incoming messages are delivered. Agents fetch their inbox via fetch_inbox or the resource://inbox/{agent} MCP resource." },
   { term: "Macro", short: "Multi-step MCP operation in one call", long: "Agent Mail provides four macros that combine common multi-tool workflows into single calls: macro_start_session, macro_prepare_thread, macro_file_reservation_cycle, and macro_contact_handshake." },
-  { term: "MCP", short: "Model Context Protocol", long: "An open standard for connecting AI models to external tools and data sources. Agent Mail exposes its 34 tools and 20+ resources via MCP, making it compatible with any MCP-capable coding agent." },
+  { term: "MCP", short: "Model Context Protocol", long: "An open standard for connecting AI models to external tools and data sources. Agent Mail exposes its 38 tools and 25 resources via MCP, making it compatible with any MCP-capable coding agent." },
   { term: "MCP Resource", short: "Read-only data surface discoverable by agents", long: "Unlike tools (which perform actions), MCP resources provide fast read access to data: resource://inbox/{agent}, resource://thread/{id}, resource://agents, etc. No tool call overhead." },
   { term: "Pre-Commit Guard", short: "Git hook enforcing file reservations", long: "The mcp-agent-mail-guard binary installs as a Git pre-commit hook. It checks whether committed files overlap with another agent\u2019s active reservations and blocks the commit if so. Bypassable with AGENT_MAIL_BYPASS=1." },
   { term: "Product Bus", short: "Cross-repository coordination layer", long: "Links multiple Git repositories under a single product umbrella. Enables cross-project search, unified inbox aggregation, and inter-project contact management." },
@@ -1280,7 +1280,7 @@ export const glossaryTerms: GlossaryTerm[] = [
   { term: "Shared Reservation", short: "Non-exclusive file access declaration", long: "When an agent reserves files with exclusive=false, other agents can also create overlapping reservations. Useful for read-heavy access patterns where coordination is desired but exclusivity isn\u2019t required." },
   { term: "Stress Gauntlet", short: "10-scenario production readiness test suite", long: "A comprehensive stress test suite covering: 30-agent message pipelines, 10-project concurrent ops, commit coalescer batching, stale lock recovery, mixed reservations + messages, pool exhaustion, sustained throughput, thundering herd, and inbox reads during storms." },
   { term: "Thread", short: "Conversation grouping by thread_id", long: "Messages sharing the same thread_id form a conversation thread. Threads enable context-aware communication; agents can review the full conversation history before replying. Thread IDs often map to bead/issue IDs (e.g., bd-123)." },
-  { term: "Tool Cluster", short: "Logical grouping of MCP tools", long: "Agent Mail\u2019s 34 tools are organized into 9 clusters: Infrastructure, Identity, Messaging, Contacts, File Reservations, Search, Macros, Product Bus, and Build Slots. Each cluster handles a distinct coordination concern." },
+  { term: "Tool Cluster", short: "Logical grouping of MCP tools", long: "Agent Mail\u2019s 38 tools are organized into 9 clusters: Infrastructure, Identity, Messaging, Contacts, File Reservations, Search, Macros, Product Bus, and Build Slots. Each cluster handles a distinct coordination concern." },
   { term: "Toon Format", short: "Token-efficient robot output format", long: "The default output format for robot mode at a TTY. Compact, human-scannable, and designed to minimize token consumption when agents parse the output. Alternative formats: json and md." },
   { term: "TTL", short: "Time-to-live for reservations", long: "File reservations and build slots expire after their TTL (default 3600 seconds). Agents can renew before expiration. Expired reservations are automatically cleaned up, preventing stale locks." },
   { term: "TUI", short: "Terminal User Interface operations console", long: "A 16-screen interactive terminal interface built on frankentui. Provides real-time dashboards, message browsing, thread exploration, agent roster, search, reservation management, and system health monitoring." },
@@ -1297,7 +1297,7 @@ export const generalFaq: FaqItem[] = [
   },
   {
     question: "Does Agent Mail work with any AI coding agent?",
-    answer: "Yes. Agent Mail exposes 34 MCP tools and 20+ resources via the Model Context Protocol standard. Any MCP-capable agent (Claude Code, Codex CLI, Gemini CLI, Cursor, etc.) can connect with a single config snippet.",
+    answer: "Yes. Agent Mail exposes 38 MCP tools and 25 resources via the Model Context Protocol standard. Any MCP-capable agent (Claude Code, Codex CLI, Gemini CLI, Cursor, etc.) can connect with a single config snippet.",
   },
   {
     question: "What happens if an agent crashes mid-reservation?",
@@ -1417,7 +1417,7 @@ export const userPersonas: UserPersona[] = [
     ],
     valueProps: [
       "Local-first: single binary, no cloud dependencies, SQLite + Git",
-      "MCP standard: 34 tools + 20 resources, works with any MCP-capable agent",
+      "MCP standard: 38 tools + 25 resources, works with any MCP-capable agent",
       "Stress-tested: 30-agent pipelines, ~49 RPS sustained, 10/10 gauntlet",
       "12-crate Rust workspace you can extend, fork, or embed",
     ],
@@ -2038,293 +2038,6 @@ export const faq: FaqItem[] = [
   },
 ];
 
-// ─── Hero TUI Demo Spec ──────────────────────────────────────────
-
-export interface HeroTuiDemoEvent {
-  id: number;
-  sender: string;
-  program: string;
-  subject: string;
-  threadId: string | null;
-  importance: "low" | "normal" | "high" | "urgent";
-  ackRequired: boolean;
-  createdTs: number;
-}
-
-export interface HeroTuiDemoSpec {
-  id: string;
-  width: number;
-  height: number;
-  ariaLabel: string;
-  reducedMotionFallback: string;
-  overlayTitle: string;
-  overlaySubtitle: string;
-  sourceDatabasePath: string;
-  sourceProjectKey: string;
-  generatedAtIso: string;
-  realWebAppUrl: string;
-  timelineTickMs: number;
-  feedWindowSize: number;
-  snapshot: {
-    totalMessages: number;
-    totalAgents: number;
-    ackRequiredMessages: number;
-    activeThreads: number;
-    fileReservations: number;
-    importanceBreakdown: {
-      normal: number;
-      high: number;
-      low: number;
-      urgent: number;
-    };
-  };
-  topProjects: { slug: string; messageCount: number }[];
-  topThreads: { threadId: string; messageCount: number }[];
-  topSenders: { name: string; sentCount: number }[];
-  activeAgentPreview: string[];
-  queueDepthSeries: number[];
-  ingressRpsSeries: number[];
-  conflictSeries: number[];
-  feedEvents: HeroTuiDemoEvent[];
-}
-
-// Snapshot is sourced from a production-scale coordination extract:
-// - source: sanitized SQLite export
-// - table joins: messages + agents + projects
-// - extraction date: 2026-03-05
-export const heroTuiDemo: HeroTuiDemoSpec = {
-  id: "hero-agent-mail-tui-simulation",
-  width: 1920,
-  height: 1080,
-  ariaLabel: "Simulated Agent Mail TUI activity seeded from a real local SQLite snapshot",
-  reducedMotionFallback: "/images/agent-mail-dashboard-poster-placeholder.svg",
-  overlayTitle: "Simulated Agent Mail TUI stream from real coordination snapshot data",
-  overlaySubtitle:
-    "source dataset: production-scale coordination snapshot | deterministic playback",
-  sourceDatabasePath: "agent_mail_snapshot.sqlite3",
-  sourceProjectKey: "mcp-agent-mail-production-snapshot",
-  generatedAtIso: "2026-03-05T00:00:00Z",
-  realWebAppUrl: `${siteConfig.url}/showcase`,
-  timelineTickMs: 1400,
-  feedWindowSize: 8,
-  snapshot: {
-    totalMessages: 1825,
-    totalAgents: 391,
-    ackRequiredMessages: 295,
-    activeThreads: 513,
-    fileReservations: 0,
-    importanceBreakdown: {
-      normal: 1636,
-      high: 181,
-      low: 4,
-      urgent: 4,
-    },
-  },
-  topProjects: [
-    { slug: "data-projects-frankentui", messageCount: 1971 },
-    { slug: "data-projects-mcp-agent-mail-rust", messageCount: 1825 },
-    { slug: "data-projects-frankensqlite", messageCount: 1123 },
-    { slug: "data-projects-storage-ballast-helper", messageCount: 523 },
-    { slug: "data-projects-midas-edge", messageCount: 243 },
-    { slug: "data-projects-jeffreys-skills-md", messageCount: 139 },
-  ],
-  topThreads: [
-    { threadId: "br-2k3qx.1.2", messageCount: 34 },
-    { threadId: "br-3h13.12", messageCount: 32 },
-    { threadId: "br-3h13.12.4", messageCount: 27 },
-    { threadId: "port-coordination", messageCount: 21 },
-    { threadId: "br-2bbt.9", messageCount: 18 },
-    { threadId: "br-3kwox", messageCount: 17 },
-  ],
-  topSenders: [
-    { name: "RubyPrairie", sentCount: 103 },
-    { name: "GrayElk", sentCount: 53 },
-    { name: "RedHarbor", sentCount: 49 },
-    { name: "CoralDog", sentCount: 43 },
-    { name: "BrownGlacier", sentCount: 32 },
-    { name: "WindyLynx", sentCount: 27 },
-  ],
-  activeAgentPreview: [
-    "CalmCanyon",
-    "CreamLake",
-    "VioletLantern",
-    "YellowBrook",
-    "CreamPond",
-    "SilverAspen",
-    "DustyCardinal",
-    "JadePine",
-  ],
-  queueDepthSeries: [4, 6, 8, 7, 5, 6, 9, 8, 6, 5, 7, 6],
-  ingressRpsSeries: [32, 38, 41, 44, 46, 43, 40, 42, 45, 47, 44, 39],
-  conflictSeries: [0, 1, 0, 2, 1, 0, 1, 0, 0, 1, 0, 0],
-  feedEvents: [
-    {
-      id: 49,
-      sender: "LilacMill",
-      program: "codex-cli",
-      subject: "Re: [coord] BlueCrane online; starting bead triage",
-      threadId: "coord-2026-03-04-bluecrane-intro",
-      importance: "normal",
-      ackRequired: true,
-      createdTs: 1_772_663_705_669_256,
-    },
-    {
-      id: 46,
-      sender: "SandyMouse",
-      program: "codex-cli",
-      subject: "[br-legjy.2] Handoff details: boundary tests + validation results",
-      threadId: "br-legjy.2",
-      importance: "high",
-      ackRequired: false,
-      createdTs: 1_772_663_515_638_696,
-    },
-    {
-      id: 45,
-      sender: "SandyMouse",
-      program: "codex-cli",
-      subject: "Re: [coord] BlueCrane online; starting bead triage",
-      threadId: "coord-2026-03-04-bluecrane-intro",
-      importance: "normal",
-      ackRequired: false,
-      createdTs: 1_772_663_498_391_734,
-    },
-    {
-      id: 88,
-      sender: "IcyCondor",
-      program: "codex-cli",
-      subject:
-        "[br-3kwox.1] Progress update: db regressions pass; tools test blocked by upstream asupersync compile error",
-      threadId: "br-3kwox.1",
-      importance: "normal",
-      ackRequired: false,
-      createdTs: 1_772_655_780_673_123,
-    },
-    {
-      id: 87,
-      sender: "IcyCondor",
-      program: "codex-cli",
-      subject: "[intro] IcyCondor online for br-3kwox.1",
-      threadId: "br-intro-2026-03-04",
-      importance: "normal",
-      ackRequired: true,
-      createdTs: 1_772_655_755_504_775,
-    },
-    {
-      id: 527,
-      sender: "FoggyShore",
-      program: "codex-cli",
-      subject: "[br-legjy.4.5] Closed as verification-complete (implementation already present)",
-      threadId: "br-legjy.4.5",
-      importance: "normal",
-      ackRequired: false,
-      createdTs: 1_772_654_000_434_664,
-    },
-    {
-      id: 526,
-      sender: "FoggyShore",
-      program: "codex-cli",
-      subject:
-        "[br-legjy.3.3] Verification indicates C3 already implemented; rch tests blocked by upstream asupersync compile errors",
-      threadId: "br-legjy.3.3",
-      importance: "normal",
-      ackRequired: false,
-      createdTs: 1_772_653_797_543_384,
-    },
-    {
-      id: 525,
-      sender: "FoggyShore",
-      program: "codex-cli",
-      subject:
-        "[br-legjy.3.3] Claimed; reservation conflict on tui_app/tui_events (held by SandyMouse)",
-      threadId: "br-legjy.3.3",
-      importance: "high",
-      ackRequired: false,
-      createdTs: 1_772_653_564_153_665,
-    },
-    {
-      id: 524,
-      sender: "IcyCondor",
-      program: "codex-cli",
-      subject: "Re: [coord] messaging/db reservation overlap on topic-contract audit",
-      threadId: "coord-2026-03-04",
-      importance: "normal",
-      ackRequired: true,
-      createdTs: 1_772_653_432_324_984,
-    },
-    {
-      id: 522,
-      sender: "BlackPlateau",
-      program: "codex-cli",
-      subject: "[coord] Closed br-2bbt.10 and br-edpom after implementation audits",
-      threadId: "coord-2026-03-04",
-      importance: "normal",
-      ackRequired: false,
-      createdTs: 1_772_652_804_709_276,
-    },
-    {
-      id: 521,
-      sender: "SandyMouse",
-      program: "codex-cli",
-      subject: "[br-legjy.3.3] Status update: reopened/unassigned while I execute br-legjy.2.2",
-      threadId: "br-legjy.3.3",
-      importance: "normal",
-      ackRequired: false,
-      createdTs: 1_772_652_788_123_566,
-    },
-    {
-      id: 519,
-      sender: "SandyMouse",
-      program: "codex-cli",
-      subject: "[br-legjy.2.2] Progress: backoff/park diagnostics patch landed in /dp/asupersync",
-      threadId: "br-legjy.2.2",
-      importance: "normal",
-      ackRequired: false,
-      createdTs: 1_772_652_761_752_384,
-    },
-    {
-      id: 518,
-      sender: "BlackPlateau",
-      program: "codex-cli",
-      subject: "[br-2bbt.10] Closed after implementation audit (no additional code delta)",
-      threadId: "br-2bbt.10",
-      importance: "normal",
-      ackRequired: false,
-      createdTs: 1_772_652_744_173_493,
-    },
-    {
-      id: 517,
-      sender: "LilacMill",
-      program: "codex-cli",
-      subject: "[br-legjy.5.11] Added lookup-cache regression tests; awaiting upstream compile unblock",
-      threadId: "br-legjy.5.11",
-      importance: "normal",
-      ackRequired: false,
-      createdTs: 1_772_652_725_239_041,
-    },
-    {
-      id: 514,
-      sender: "BlackPlateau",
-      program: "codex-cli",
-      subject: "[br-legjy.5.5] Closed + reservation released",
-      threadId: "br-legjy.5.5",
-      importance: "normal",
-      ackRequired: false,
-      createdTs: 1_772_652_605_370_718,
-    },
-    {
-      id: 510,
-      sender: "LilacMill",
-      program: "codex-cli",
-      subject:
-        "[br-legjy.5.11] Progress: Contacts graph edge lookup optimization landed; validation blocked upstream",
-      threadId: "br-legjy.5.11",
-      importance: "normal",
-      ackRequired: false,
-      createdTs: 1_772_652_242_416_189,
-    },
-  ],
-};
-
 // ─── Social Proof & Credibility ──────────────────────────────────
 
 export interface EvidenceBackedClaim {
@@ -2386,10 +2099,10 @@ export const evidenceBackedClaims: EvidenceBackedClaim[] = [
     category: "adoption",
   },
   {
-    id: "ebc-34-mcp-tools",
-    claim: "34 MCP tools covering the full coordination lifecycle",
+    id: "ebc-38-mcp-tools",
+    claim: "38 MCP tools covering the full coordination lifecycle",
     evidence: "Tools span identity (register_agent), messaging (send_message, reply_message, fetch_inbox), reservations (file_reservation_paths), search (search_messages), and macros (macro_start_session).",
-    source: "src/tools/ module definitions",
+    source: "crates/mcp-agent-mail-tools module definitions",
     category: "architecture",
   },
 ];
@@ -2469,7 +2182,7 @@ export const adoptionMessages: AdoptionMessage[] = [
   {
     id: "am-platform",
     headline: "The coordination layer your agent platform is missing",
-    subline: "34 MCP tools, cross-provider compatibility, and a stress gauntlet proving 40+ concurrent agents. MIT licensed.",
+    subline: "38 MCP tools, cross-provider compatibility, and a stress gauntlet proving 40+ concurrent agents. MIT licensed.",
     targetAudience: "Platform engineers building agent infrastructure",
     ctaLabel: "Explore Architecture",
     ctaHref: "/architecture",

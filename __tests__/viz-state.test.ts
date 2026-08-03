@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { heroDemoTranscript, heroTuiDemo } from "@/lib/content";
+import { heroDemoTranscript } from "@/lib/content";
 import {
   getNextHandshakeState,
   getPreviousHandshakeState,
@@ -99,43 +99,8 @@ describe("heroDemoTranscript.captions", () => {
       expect(cap.text.length).toBeGreaterThan(0);
     }
   });
-});
 
-describe("heroTuiDemo", () => {
-  it("has all required fields", () => {
-    expect(typeof heroTuiDemo.id).toBe("string");
-    expect(heroTuiDemo.id.length).toBeGreaterThan(0);
 
-    expect(typeof heroTuiDemo.width).toBe("number");
-    expect(heroTuiDemo.width).toBeGreaterThan(0);
-
-    expect(typeof heroTuiDemo.height).toBe("number");
-    expect(heroTuiDemo.height).toBeGreaterThan(0);
-
-    expect(typeof heroTuiDemo.ariaLabel).toBe("string");
-    expect(heroTuiDemo.ariaLabel.length).toBeGreaterThan(0);
-
-    expect(typeof heroTuiDemo.reducedMotionFallback).toBe("string");
-    expect(heroTuiDemo.reducedMotionFallback.length).toBeGreaterThan(0);
-
-    expect(typeof heroTuiDemo.overlayTitle).toBe("string");
-    expect(typeof heroTuiDemo.overlaySubtitle).toBe("string");
-
-    expect(Array.isArray(heroTuiDemo.feedEvents)).toBe(true);
-    expect(heroTuiDemo.feedEvents.length).toBeGreaterThan(0);
-    expect(Array.isArray(heroTuiDemo.activeAgentPreview)).toBe(true);
-    expect(heroTuiDemo.activeAgentPreview.length).toBeGreaterThan(0);
-  });
-
-  it("feed events have valid severity and timing shape", () => {
-    const validImportance = ["low", "normal", "high", "urgent"];
-    for (const event of heroTuiDemo.feedEvents) {
-      expect(validImportance).toContain(event.importance);
-      expect(event.sender.length).toBeGreaterThan(0);
-      expect(event.subject.length).toBeGreaterThan(0);
-      expect(event.createdTs).toBeGreaterThan(1_000_000_000_000);
-    }
-  });
 });
 
 describe("agent handshake transitions", () => {

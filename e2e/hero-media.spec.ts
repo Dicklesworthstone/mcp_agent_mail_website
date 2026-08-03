@@ -146,6 +146,28 @@ test.describe("Hero media module", () => {
     diagnostics.breadcrumb("Public data provenance and aggregate snapshot counts are visible");
   });
 
+  test("desktop focus keeps the terminal tabs below the fixed site header", async ({
+    page,
+    diagnostics,
+  }, testInfo) => {
+    test.skip(testInfo.project.name === "mobile-chrome", "Desktop fixed-header contract");
+    diagnostics.setRoute("/");
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/");
+
+    const hero = page.locator("#home-hero");
+    const terminal = hero.getByTestId("hero-agent-mail-terminal");
+    const canvas = hero.getByTestId("hero-agent-mail-canvas");
+    await expect(terminal).toHaveAttribute("data-active-screen", "dashboard", { timeout: 30_000 });
+    await canvas.focus();
+
+    await expect(canvas).toBeFocused();
+    const focusedCanvasTop = () => canvas.boundingBox().then((box) => box?.y ?? -1);
+    await expect.poll(focusedCanvasTop).toBeGreaterThanOrEqual(88);
+    await expect.poll(focusedCanvasTop).toBeLessThanOrEqual(160);
+    diagnostics.breadcrumb("Focusing the tall canvas kept Dashboard's top tab row below the desktop navigation overlay");
+  });
+
   test("terminal accepts keyboard input and pause freezes the deterministic replay", async ({
     page,
     diagnostics,

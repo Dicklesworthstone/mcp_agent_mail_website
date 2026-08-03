@@ -628,9 +628,10 @@ export default function ShowcasePage() {
               operator needs for fast decisions.
             </p>
             <p>
-              Jump keys provide O(1) navigation to any screen: the first nine use <code className="text-blue-400 font-mono">1-9</code>,
+              Outside Dashboard and text-entry mode, jump keys provide O(1) navigation to any screen: the first nine use <code className="text-blue-400 font-mono">1-9</code>,
               Projects uses <code className="text-blue-400 font-mono">0</code>, and screens 11-16 use the shifted number-row
-              symbols <code className="text-blue-400 font-mono">! @ # $ % ^</code>. Filter by category in the visualization,
+              symbols <code className="text-blue-400 font-mono">! @ # $ % ^</code>. Dashboard reserves <code className="text-blue-400 font-mono">1-4</code> for its
+              quick filters; press <code className="text-blue-400 font-mono">Tab</code> to move to Messages before using global jumps. Filter by category in the visualization,
               then inspect the selected screen&apos;s core question to understand the information architecture behind each key.
             </p>
             <p>

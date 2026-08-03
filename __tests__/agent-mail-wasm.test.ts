@@ -94,6 +94,14 @@ describe("Agent Mail browser dashboard artifacts", () => {
     expect(() => validateDashboardManifest(queried)).toThrow(/local.*agent-mail-dashboard/i);
   });
 
+  it("rejects manifest sizes that exceed bounded browser artifact budgets", () => {
+    const manifest = readJson(manifestPath) as {
+      artifacts: { dashboard_runner_wasm: { bytes: number } };
+    };
+    manifest.artifacts.dashboard_runner_wasm.bytes = 8 * 1024 * 1024 + 1;
+    expect(() => validateDashboardManifest(manifest)).toThrow(/browser safety limit/i);
+  });
+
   it("rejects packs that lose their explicit privacy boundary", () => {
     const pack = readJson(packPath) as Record<string, unknown>;
     const changed = structuredClone(pack) as {
@@ -851,6 +859,78 @@ describe("AgentMailTerminal lifecycle", () => {
     }
   });
 
+  it("defers fixed-header focus scrolling until a pointer click is balanced", async () => {
+    TestTerminal.instances = [];
+    TestRunner.instances = [];
+    const frameCallbacks: FrameRequestCallback[] = [];
+    const restoreEnvironment = installAnimationEnvironment(frameCallbacks);
+    const load = vi.spyOn(dashboardRuntime, "loadDashboardArtifacts").mockResolvedValue(testArtifacts());
+    const scrollBy = vi.spyOn(window, "scrollBy").mockImplementation(() => undefined);
+
+    try {
+      const { default: AgentMailTerminal } = await import("@/components/agent-mail-terminal");
+      let view!: ReturnType<typeof render>;
+      await act(async () => {
+        view = render(createElement(AgentMailTerminal, { paused: true, reducedMotion: false }));
+        await flushMicrotasks();
+      });
+      const [terminal] = TestTerminal.instances;
+      const canvas = screen.getByTestId("hero-agent-mail-canvas");
+      vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue(DOMRect.fromRect({
+        x: 0,
+        y: 0,
+        width: 1_000,
+        height: 500,
+      }));
+      Object.defineProperties(canvas, {
+        setPointerCapture: { configurable: true, value: vi.fn() },
+        hasPointerCapture: { configurable: true, value: vi.fn(() => true) },
+        releasePointerCapture: { configurable: true, value: vi.fn() },
+      });
+      terminal.input.mockClear();
+
+      fireEvent.pointerDown(canvas, {
+        pointerId: 7,
+        pointerType: "mouse",
+        button: 0,
+        clientX: 100,
+        clientY: 100,
+      });
+      expect(frameCallbacks).toHaveLength(1);
+      await act(async () => {
+        frameCallbacks[0]?.(16);
+        await flushMicrotasks();
+      });
+      expect(scrollBy).not.toHaveBeenCalled();
+
+      fireEvent.pointerUp(canvas, {
+        pointerId: 7,
+        pointerType: "mouse",
+        button: 0,
+        clientX: 100,
+        clientY: 100,
+      });
+      expect(frameCallbacks).toHaveLength(2);
+      await act(async () => {
+        frameCallbacks[1]?.(32);
+        await flushMicrotasks();
+      });
+
+      const mousePhases = terminal.input.mock.calls
+        .map(([input]) => input as { kind?: string; phase?: string })
+        .filter((input) => input.kind === "mouse")
+        .map((input) => input.phase);
+      expect(mousePhases).toEqual(["down", "up"]);
+      expect(scrollBy).toHaveBeenCalledOnce();
+      expect(scrollBy).toHaveBeenCalledWith(0, -96);
+      view.unmount();
+    } finally {
+      scrollBy.mockRestore();
+      load.mockRestore();
+      restoreEnvironment();
+    }
+  });
+
   it("releases every initialized WASM wrapper exactly once across Strict Mode remounts", async () => {
     TestTerminal.instances = [];
     TestRunner.instances = [];
@@ -1039,6 +1119,40 @@ describe("AgentMailTerminal lifecycle", () => {
       const [terminal] = TestTerminal.instances;
       expect(runner.free).toHaveBeenCalledTimes(1);
       expect(terminal.free).toHaveBeenCalledTimes(1);
+      view.unmount();
+    } finally {
+      load.mockRestore();
+      restoreEnvironment();
+    }
+  });
+
+  it("fails closed on an out-of-contract Rust status snapshot", async () => {
+    class InvalidStatusRunner extends TestRunner {
+      override statusJson = vi.fn(() => JSON.stringify({
+        ...JSON.parse(RUNNER_STATUS),
+        frame_index: -1,
+        active_screen: "unknown_screen",
+      }));
+    }
+    TestTerminal.instances = [];
+    TestRunner.instances = [];
+    const restoreEnvironment = installAnimationEnvironment();
+    const load = vi.spyOn(dashboardRuntime, "loadDashboardArtifacts")
+      .mockResolvedValue(testArtifacts(TestTerminal, InvalidStatusRunner));
+
+    try {
+      const { default: AgentMailTerminal } = await import("@/components/agent-mail-terminal");
+      let view!: ReturnType<typeof render>;
+      await act(async () => {
+        view = render(createElement(AgentMailTerminal, { paused: false, reducedMotion: false }));
+        await flushMicrotasks();
+      });
+
+      expect(screen.getByText(
+        "Agent Mail dashboard runner returned an invalid status snapshot",
+      )).toBeVisible();
+      expect(TestRunner.instances[0]?.free).toHaveBeenCalledTimes(1);
+      expect(TestTerminal.instances[0]?.free).toHaveBeenCalledTimes(1);
       view.unmount();
     } finally {
       load.mockRestore();
