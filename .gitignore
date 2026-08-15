@@ -84,6 +84,8 @@ gemini.mcp.json
 .beads/*.repair_candidate_*
 .beads/*.bak-corrupt
 .beads/.br_history/
+.beads/*wal-cert
+.beads/*wal-cert-head
 .beads/.write.lock
 .beads/*-fsqlite-ns-gate
 .beads/*-fsqlite-ns-use
