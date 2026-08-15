@@ -87,6 +87,7 @@ gemini.mcp.json
 .beads/.write.lock
 .beads/*-fsqlite-ns-gate
 .beads/*-fsqlite-ns-use
+.beads/*.db-wal-cert*
 a.out
 ubs-*.json
 ubs-*.jsonl
