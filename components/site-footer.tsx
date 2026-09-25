@@ -147,6 +147,9 @@ export default function SiteFooter() {
                &copy; <span suppressHydrationWarning>{new Date().getFullYear()}</span> Jeffrey Emanuel. MIT License.
              </p>
              <div className="flex gap-8">
+                <Link href="/support" className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-blue-400">
+                  App Support
+                </Link>
                 <Link href="/privacy" className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-blue-400">
                   App Privacy
                 </Link>
