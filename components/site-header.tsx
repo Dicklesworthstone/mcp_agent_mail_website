@@ -72,7 +72,7 @@ export default function SiteHeader() {
       return undefined;
     }
 
-    const mediaQuery = window.matchMedia("(min-width: 768px)");
+    const mediaQuery = window.matchMedia("(min-width: 1280px)");
     const handleViewportChange = () => {
       if (mediaQuery.matches) {
         closeMenu();
@@ -151,7 +151,7 @@ export default function SiteHeader() {
   return (
     <>
       {/* DESKTOP NAVBAR */}
-      <div className="fixed top-0 left-0 right-0 z-50 hidden md:block pointer-events-none h-24">
+      <div className="fixed top-0 left-0 right-0 z-50 hidden xl:block pointer-events-none h-24">
         <header
           className={cn(
             "absolute top-6 left-1/2 -translate-x-1/2 flex items-center transition-all duration-500 pointer-events-auto",
@@ -242,7 +242,7 @@ export default function SiteHeader() {
       </div>
 
       {/* MOBILE BOTTOM NAV */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 md:hidden w-[90%] pointer-events-none">
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 xl:hidden w-[90%] pointer-events-none">
         <nav className="glass-modern h-16 rounded-2xl border border-white/10 flex items-center justify-around px-2 pointer-events-auto shadow-2xl">
           {navItems.slice(0, 4).map((item) => {
             const active = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
@@ -289,7 +289,7 @@ export default function SiteHeader() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={closeMenu}
-              className="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] md:hidden"
+              className="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] xl:hidden"
             />
             <motion.div
               ref={mobileNavRef}
@@ -300,7 +300,7 @@ export default function SiteHeader() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed top-0 right-0 bottom-0 w-[80%] z-[80] bg-[#020a14] border-l border-blue-500/20 p-8 flex flex-col md:hidden pointer-events-auto text-left"
+              className="fixed top-0 right-0 bottom-0 w-[80%] z-[80] bg-[#020a14] border-l border-blue-500/20 p-8 flex flex-col xl:hidden pointer-events-auto text-left"
             >
               <div className="flex items-center justify-between mb-12">
                 <span className="text-xs font-black text-blue-500 uppercase tracking-[0.4em]">MAIL_MENU</span>
